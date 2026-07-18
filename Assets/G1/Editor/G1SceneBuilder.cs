@@ -25,6 +25,7 @@ public static class G1SceneBuilder
         ConfigureFbx($"{Models}/Protagonist.fbx", loopAll: true);
         ConfigureFbx($"{Models}/Villain.fbx", loopAll: true);
         ConfigureFbx($"{Models}/Pistol.fbx", loopAll: false);   // only Idle loops
+        ConfigureFbx($"{Models}/Smg.fbx", loopAll: false);
 
         RuntimeAnimatorController protagonistCtrl =
             MakeNpcController($"{Models}/Protagonist.fbx", $"{AnimDir}/Protagonist.controller");
@@ -32,13 +33,15 @@ public static class G1SceneBuilder
             MakeNpcController($"{Models}/Villain.fbx", $"{AnimDir}/Villain.controller");
         RuntimeAnimatorController pistolCtrl =
             MakePistolController($"{Models}/Pistol.fbx", $"{AnimDir}/Pistol.controller");
+        RuntimeAnimatorController smgCtrl =
+            MakePistolController($"{Models}/Smg.fbx", $"{AnimDir}/Smg.controller");
 
         Scene scene = EditorSceneManager.NewScene(
             NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         BuildLighting();
         BuildArena();
-        GameObject player = BuildPlayer(pistolCtrl);
+        GameObject player = BuildPlayer(pistolCtrl, smgCtrl);
         BuildNpcs(protagonistCtrl, villainCtrl, player.transform.position);
 
         EnsureFolder("Assets/Scenes");
@@ -232,7 +235,7 @@ public static class G1SceneBuilder
         Slab("DoorLintel", new Vector3(7f, 2.6f, 6f), new Vector3(2.4f, 0.3f, 0.4f), concrete);
     }
 
-    static GameObject BuildPlayer(RuntimeAnimatorController pistolCtrl)
+    static GameObject BuildPlayer(RuntimeAnimatorController pistolCtrl, RuntimeAnimatorController smgCtrl)
     {
         var player = new GameObject("Player");
         player.transform.position = new Vector3(0f, 0.05f, -8f);
@@ -287,8 +290,24 @@ public static class G1SceneBuilder
         pistolAnim.runtimeAnimatorController = pistolCtrl;
         pistol.modelAnimator = pistolAnim;
 
+        // --- smg
+        var smgHolder = new GameObject("SmgHolder");
+        smgHolder.transform.SetParent(camGo.transform, false);
+        smgHolder.transform.localPosition = new Vector3(0.22f, -0.32f, 0.48f);
+        var smg = smgHolder.AddComponent<G1Smg>();
+        smg.viewCamera = cam;
+        smg.movement = move;
+        smg.hitMask = shootable;
+        var smgModel = MountViewmodel($"{Models}/Smg.fbx", smgHolder.transform,
+                                      Vector3.zero, Quaternion.identity);
+        var smgAnim = smgModel.GetComponent<Animator>();
+        if (!smgAnim)
+            smgAnim = smgModel.AddComponent<Animator>();
+        smgAnim.runtimeAnimatorController = smgCtrl;
+        smg.modelAnimator = smgAnim;
+
         var switcher = camGo.AddComponent<WeaponSwitcher>();
-        switcher.weapons = new[] { crowbarHolder, pistolHolder };
+        switcher.weapons = new[] { crowbarHolder, pistolHolder, smgHolder };
 
         SetLayerRecursive(player, playerLayer);
         return player;
