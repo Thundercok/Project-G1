@@ -116,8 +116,6 @@ public static class G1SceneBuilder
         }
         return ctrl;
     }
-        return ctrl;
-    }
 
     static Material MakeMat(string name, Color color, float smooth = 0.15f)
     {
