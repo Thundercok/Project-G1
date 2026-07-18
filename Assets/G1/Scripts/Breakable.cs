@@ -1,25 +1,23 @@
 using UnityEngine;
 
-/// HL crate energy: takes crowbar hits, shatters into physics shards.
+/// HL crate energy: reacts to its HealthSystem — shrinks a touch per hit as
+/// damage feedback, shatters into physics shards on death.
+[RequireComponent(typeof(HealthSystem))]
 public class Breakable : MonoBehaviour
 {
-    public float health = 50f;
     public int shardCount = 8;
     public float shardLife = 5f;
 
-    public void TakeHit(float damage, Vector3 point, Vector3 dir)
+    void Awake()
     {
-        health -= damage;
-        if (health > 0f)
-        {
-            transform.localScale *= 0.985f;     // visible damage feedback
-            return;
-        }
-        Shatter(point, dir);
+        var health = GetComponent<HealthSystem>();
+        health.OnHealthChanged += (current, max) => transform.localScale *= 0.985f;
+        health.OnDeath += Shatter;
     }
 
-    void Shatter(Vector3 point, Vector3 dir)
+    void Shatter(Vector3 point, Vector3 normal)
     {
+        Vector3 dir = -normal;                      // push shards away from the hit
         Renderer rend = GetComponentInChildren<Renderer>();
         Material mat = rend ? rend.sharedMaterial : null;
         Vector3 size = transform.localScale;

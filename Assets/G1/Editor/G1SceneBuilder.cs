@@ -22,20 +22,23 @@ public static class G1SceneBuilder
         EnsureFolder(AnimDir);
         EnsureFolder(MatDir);
 
-        ConfigureCharacterFbx($"{Models}/Protagonist.fbx");
-        ConfigureCharacterFbx($"{Models}/Villain.fbx");
+        ConfigureFbx($"{Models}/Protagonist.fbx", loopAll: true);
+        ConfigureFbx($"{Models}/Villain.fbx", loopAll: true);
+        ConfigureFbx($"{Models}/Pistol.fbx", loopAll: false);   // only Idle loops
 
         RuntimeAnimatorController protagonistCtrl =
-            MakeController($"{Models}/Protagonist.fbx", $"{AnimDir}/Protagonist.controller");
+            MakeNpcController($"{Models}/Protagonist.fbx", $"{AnimDir}/Protagonist.controller");
         RuntimeAnimatorController villainCtrl =
-            MakeController($"{Models}/Villain.fbx", $"{AnimDir}/Villain.controller");
+            MakeNpcController($"{Models}/Villain.fbx", $"{AnimDir}/Villain.controller");
+        RuntimeAnimatorController pistolCtrl =
+            MakePistolController($"{Models}/Pistol.fbx", $"{AnimDir}/Pistol.controller");
 
         Scene scene = EditorSceneManager.NewScene(
             NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         BuildLighting();
         BuildArena();
-        GameObject player = BuildPlayer();
+        GameObject player = BuildPlayer(pistolCtrl);
         BuildNpcs(protagonistCtrl, villainCtrl, player.transform.position);
 
         EnsureFolder("Assets/Scenes");
@@ -55,7 +58,7 @@ public static class G1SceneBuilder
         }
     }
 
-    static void ConfigureCharacterFbx(string path)
+    static void ConfigureFbx(string path, bool loopAll)
     {
         var importer = (ModelImporter)AssetImporter.GetAtPath(path);
         importer.animationType = ModelImporterAnimationType.Generic;
@@ -64,26 +67,55 @@ public static class G1SceneBuilder
         {
             int bar = clip.takeName.LastIndexOf('|');
             clip.name = bar >= 0 ? clip.takeName.Substring(bar + 1) : clip.takeName;
-            clip.loopTime = true;
+            clip.loopTime = loopAll || clip.name == "Idle";
         }
         importer.clipAnimations = clips;
         importer.SaveAndReimport();
     }
 
-    static RuntimeAnimatorController MakeController(string fbxPath, string ctrlPath)
+    static AnimationClip LoadClip(string fbxPath, string name)
     {
-        AnimationClip Clip(string name) => AssetDatabase.LoadAllAssetsAtPath(fbxPath)
+        return AssetDatabase.LoadAllAssetsAtPath(fbxPath)
             .OfType<AnimationClip>()
             .First(c => !c.name.Contains("__preview__") && c.name.EndsWith(name));
+    }
 
+    static AnimatorController NewController(string ctrlPath)
+    {
         AssetDatabase.DeleteAsset(ctrlPath);
-        var ctrl = AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
+        return AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
+    }
+
+    static RuntimeAnimatorController MakeNpcController(string fbxPath, string ctrlPath)
+    {
+        var ctrl = NewController(ctrlPath);
         var sm = ctrl.layers[0].stateMachine;
         var idle = sm.AddState("Idle");
-        idle.motion = Clip("Idle");
+        idle.motion = LoadClip(fbxPath, "Idle");
         sm.defaultState = idle;
         var walk = sm.AddState("Walk");
-        walk.motion = Clip("Walk");
+        walk.motion = LoadClip(fbxPath, "Walk");
+        return ctrl;
+    }
+
+    static RuntimeAnimatorController MakePistolController(string fbxPath, string ctrlPath)
+    {
+        var ctrl = NewController(ctrlPath);
+        var sm = ctrl.layers[0].stateMachine;
+        var idle = sm.AddState("Idle");
+        idle.motion = LoadClip(fbxPath, "Idle");
+        sm.defaultState = idle;
+        foreach (string name in new[] { "Fire", "Reload" })
+        {
+            var state = sm.AddState(name);
+            state.motion = LoadClip(fbxPath, name);
+            var back = state.AddTransition(idle);
+            back.hasExitTime = true;
+            back.exitTime = 1f;
+            back.duration = 0.05f;
+        }
+        return ctrl;
+    }
         return ctrl;
     }
 
@@ -101,6 +133,34 @@ public static class G1SceneBuilder
         return mat;
     }
 
+    static int EnsureLayer(string name)
+    {
+        var assets = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset");
+        var tm = new SerializedObject(assets[0]);
+        var layers = tm.FindProperty("layers");
+        for (int i = 8; i < 32; i++)
+            if (layers.GetArrayElementAtIndex(i).stringValue == name)
+                return i;
+        for (int i = 8; i < 32; i++)
+        {
+            var sp = layers.GetArrayElementAtIndex(i);
+            if (string.IsNullOrEmpty(sp.stringValue))
+            {
+                sp.stringValue = name;
+                tm.ApplyModifiedProperties();
+                return i;
+            }
+        }
+        Debug.LogWarning("No free layer slot; using Default");
+        return 0;
+    }
+
+    static void SetLayerRecursive(GameObject go, int layer)
+    {
+        go.layer = layer;
+        foreach (Transform child in go.transform)
+            SetLayerRecursive(child.gameObject, layer);
+    }
     // ------------------------------------------------------------- scene
     static void BuildLighting()
     {
@@ -160,7 +220,10 @@ public static class G1SceneBuilder
         foreach (var p in cratePos)
         {
             var crate = Slab("Crate", p, Vector3.one * 0.8f, wood);
-            crate.AddComponent<Breakable>();
+            crate.AddComponent<Breakable>();            // auto-adds HealthSystem
+            crate.GetComponent<HealthSystem>().maxHealth = 50f;
+            var bar = crate.AddComponent<WorldSpaceHealthBar>();
+            bar.heightOffset = 1.1f;
         }
 
         var door = Slab("SlidingDoor", new Vector3(7f, 1.1f, 6f),
@@ -171,7 +234,7 @@ public static class G1SceneBuilder
         Slab("DoorLintel", new Vector3(7f, 2.6f, 6f), new Vector3(2.4f, 0.3f, 0.4f), concrete);
     }
 
-    static GameObject BuildPlayer()
+    static GameObject BuildPlayer(RuntimeAnimatorController pistolCtrl)
     {
         var player = new GameObject("Player");
         player.transform.position = new Vector3(0f, 0.05f, -8f);
@@ -196,22 +259,54 @@ public static class G1SceneBuilder
         var use = player.AddComponent<PlayerUse>();
         use.viewCamera = cam;
 
-        var holder = new GameObject("WeaponHolder");
-        holder.transform.SetParent(camGo.transform, false);
-        holder.transform.localPosition = new Vector3(0.32f, -0.34f, 0.55f);
-        var crowbar = holder.AddComponent<Crowbar>();
+        int playerLayer = EnsureLayer("Player");
+        LayerMask shootable = ~(1 << playerLayer);
+
+        // --- crowbar
+        var crowbarHolder = new GameObject("CrowbarHolder");
+        crowbarHolder.transform.SetParent(camGo.transform, false);
+        crowbarHolder.transform.localPosition = new Vector3(0.32f, -0.34f, 0.55f);
+        var crowbar = crowbarHolder.AddComponent<Crowbar>();
         crowbar.viewCamera = cam;
         crowbar.movement = move;
+        crowbar.hitMask = shootable;
+        MountViewmodel($"{Models}/Crowbar.fbx", crowbarHolder.transform,
+                       new Vector3(0f, -0.06f, 0f), Quaternion.Euler(-62f, 18f, 12f));
 
-        var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{Models}/Crowbar.fbx");
-        var vm = (GameObject)PrefabUtility.InstantiatePrefab(model);
-        vm.transform.SetParent(holder.transform, false);
-        vm.transform.localPosition = new Vector3(0f, -0.06f, 0f);
-        vm.transform.localRotation = Quaternion.Euler(-62f, 18f, 12f);
+        // --- pistol
+        var pistolHolder = new GameObject("PistolHolder");
+        pistolHolder.transform.SetParent(camGo.transform, false);
+        pistolHolder.transform.localPosition = new Vector3(0.24f, -0.27f, 0.42f);
+        var pistol = pistolHolder.AddComponent<G1Pistol>();
+        pistol.viewCamera = cam;
+        pistol.movement = move;
+        pistol.hitMask = shootable;
+        var pistolModel = MountViewmodel($"{Models}/Pistol.fbx", pistolHolder.transform,
+                                         Vector3.zero, Quaternion.identity);
+        var pistolAnim = pistolModel.GetComponent<Animator>();
+        if (!pistolAnim)
+            pistolAnim = pistolModel.AddComponent<Animator>();
+        pistolAnim.runtimeAnimatorController = pistolCtrl;
+        pistol.modelAnimator = pistolAnim;
+
+        var switcher = camGo.AddComponent<WeaponSwitcher>();
+        switcher.weapons = new[] { crowbarHolder, pistolHolder };
+
+        SetLayerRecursive(player, playerLayer);
+        return player;
+    }
+
+    static GameObject MountViewmodel(string fbxPath, Transform parent,
+                                     Vector3 localPos, Quaternion localRot)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
+        var vm = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        vm.transform.SetParent(parent, false);
+        vm.transform.localPosition = localPos;
+        vm.transform.localRotation = localRot;
         foreach (var col in vm.GetComponentsInChildren<Collider>())
             Object.DestroyImmediate(col);
-
-        return player;
+        return vm;
     }
 
     static void BuildNpcs(RuntimeAnimatorController protagonistCtrl,
@@ -239,6 +334,13 @@ public static class G1SceneBuilder
         Vector3 toPlayer = playerPos - villain.transform.position;
         toPlayer.y = 0f;
         villain.transform.rotation = Quaternion.LookRotation(toPlayer);
+
+        // the villain can now be hurt (debug bar included) — no death anim yet
+        var health = villain.AddComponent<HealthSystem>();
+        health.maxHealth = 100f;
+        var bar = villain.AddComponent<WorldSpaceHealthBar>();
+        bar.heightOffset = 2.15f;
+        villain.AddComponent<DeathDespawn>();
     }
 
     static GameObject SpawnCharacter(string fbxPath, Vector3 pos,
