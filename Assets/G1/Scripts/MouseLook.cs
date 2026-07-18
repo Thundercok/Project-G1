@@ -8,6 +8,7 @@ public class MouseLook : MonoBehaviour
     public float pitchLimit = 89f;
 
     float pitch;
+    public float Pitch => pitch;
 
     void Start()
     {

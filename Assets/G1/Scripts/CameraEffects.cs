@@ -31,10 +31,13 @@ public class CameraEffects : MonoBehaviour
     float damageFlashTimer;
     public float DamageFlashAlpha => Mathf.Clamp01(damageFlashTimer / 0.35f);
 
+    MouseLook mouseLook;
+
     void Start()
     {
         cam = GetComponent<Camera>();
         movement = GetComponentInParent<PlayerMovement>();
+        mouseLook = GetComponent<MouseLook>();
         if (cam) baseFOV = cam.fieldOfView;
     }
 
@@ -46,13 +49,15 @@ public class CameraEffects : MonoBehaviour
         if (Mathf.Abs(punchAngle) > 0.01f)
         {
             punchAngle = Mathf.Lerp(punchAngle, 0f, punchRecovery * dt);
-            transform.localRotation = Quaternion.Euler(punchAngle, 0f, 0f);
         }
-        else if (punchAngle != 0f)
+        else
         {
             punchAngle = 0f;
-            transform.localRotation = Quaternion.identity;
         }
+
+        // --- Apply combined pitch (mouse look + recoil punch)
+        float pitch = mouseLook ? mouseLook.Pitch : 0f;
+        transform.localRotation = Quaternion.Euler(pitch + punchAngle, 0f, 0f);
 
         // --- Speed FOV
         if (cam && movement)
