@@ -24,24 +24,6 @@ public class G1Smg : WeaponBase
 
     bool reloading;
     float nextFire;
-    Transform muzzlePoint;
-
-    protected override void Start()
-    {
-        base.Start();
-        muzzlePoint = FindMuzzle(transform);
-    }
-
-    Transform FindMuzzle(Transform parent)
-    {
-        if (parent.name == "muzzle") return parent;
-        foreach (Transform child in parent)
-        {
-            var found = FindMuzzle(child);
-            if (found != null) return found;
-        }
-        return null;
-    }
 
     public override bool HasAmmo => true;
     public override int Clip => clip;

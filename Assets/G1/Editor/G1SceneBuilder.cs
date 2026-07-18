@@ -288,6 +288,10 @@ public static class G1SceneBuilder
         pistol.movement = move;
         pistol.hitMask = shootable;
         pistol.weaponFX = fx;
+        var pistolMuzzle = new GameObject("MuzzlePoint");
+        pistolMuzzle.transform.SetParent(pistolHolder.transform, false);
+        pistolMuzzle.transform.localPosition = new Vector3(0f, 0.075f, 0.144f);
+        pistol.muzzlePoint = pistolMuzzle.transform;
         var pistolModel = MountViewmodel($"{Models}/Pistol.fbx", pistolHolder.transform,
                                          Vector3.zero, Quaternion.identity);
         var pistolAnim = pistolModel.GetComponent<Animator>();
@@ -305,6 +309,10 @@ public static class G1SceneBuilder
         smg.movement = move;
         smg.hitMask = shootable;
         smg.weaponFX = fx;
+        var smgMuzzle = new GameObject("MuzzlePoint");
+        smgMuzzle.transform.SetParent(smgHolder.transform, false);
+        smgMuzzle.transform.localPosition = new Vector3(0f, 0.08f, 0.31f);
+        smg.muzzlePoint = smgMuzzle.transform;
         var smgModel = MountViewmodel($"{Models}/Smg.fbx", smgHolder.transform,
                                       Vector3.zero, Quaternion.identity);
         var smgAnim = smgModel.GetComponent<Animator>();

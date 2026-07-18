@@ -8,6 +8,7 @@ public abstract class WeaponBase : MonoBehaviour
     public Camera viewCamera;
     public PlayerMovement movement;
     public LayerMask hitMask = ~0;
+    public Transform muzzlePoint;
 
     [Header("View bob")]
     public float bobAmount = 0.012f;
