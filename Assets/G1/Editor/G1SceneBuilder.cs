@@ -246,6 +246,11 @@ public static class G1SceneBuilder
         cc.stepOffset = 0.4f;
         var move = player.AddComponent<PlayerMovement>();
 
+        var health = player.AddComponent<HealthSystem>();
+        health.maxHealth = 100f;
+        player.AddComponent<PlayerHUD>();
+        var fx = player.AddComponent<G1WeaponFX>();
+
         var camGo = new GameObject("ViewCamera");
         camGo.transform.SetParent(player.transform, false);
         camGo.transform.localPosition = new Vector3(0f, 1.62f, 0f);
@@ -282,6 +287,7 @@ public static class G1SceneBuilder
         pistol.viewCamera = cam;
         pistol.movement = move;
         pistol.hitMask = shootable;
+        pistol.weaponFX = fx;
         var pistolModel = MountViewmodel($"{Models}/Pistol.fbx", pistolHolder.transform,
                                          Vector3.zero, Quaternion.identity);
         var pistolAnim = pistolModel.GetComponent<Animator>();
@@ -298,6 +304,7 @@ public static class G1SceneBuilder
         smg.viewCamera = cam;
         smg.movement = move;
         smg.hitMask = shootable;
+        smg.weaponFX = fx;
         var smgModel = MountViewmodel($"{Models}/Smg.fbx", smgHolder.transform,
                                       Vector3.zero, Quaternion.identity);
         var smgAnim = smgModel.GetComponent<Animator>();

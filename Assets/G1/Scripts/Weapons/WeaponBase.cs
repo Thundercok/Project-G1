@@ -17,6 +17,12 @@ public abstract class WeaponBase : MonoBehaviour
 
     protected bool InputLocked => Cursor.lockState != CursorLockMode.Locked;
 
+    // HUD interfaces
+    public virtual bool HasAmmo => false;
+    public virtual int Clip => 0;
+    public virtual int Reserve => 0;
+    public virtual bool IsReloading => false;
+
     protected virtual void Start()
     {
         restPos = transform.localPosition;

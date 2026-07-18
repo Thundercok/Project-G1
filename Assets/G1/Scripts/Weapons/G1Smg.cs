@@ -20,9 +20,33 @@ public class G1Smg : WeaponBase
 
     [Header("Wiring")]
     public Animator modelAnimator;
+    public G1WeaponFX weaponFX;
 
     bool reloading;
     float nextFire;
+    Transform muzzlePoint;
+
+    protected override void Start()
+    {
+        base.Start();
+        muzzlePoint = FindMuzzle(transform);
+    }
+
+    Transform FindMuzzle(Transform parent)
+    {
+        if (parent.name == "muzzle") return parent;
+        foreach (Transform child in parent)
+        {
+            var found = FindMuzzle(child);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    public override bool HasAmmo => true;
+    public override int Clip => clip;
+    public override int Reserve => reserve;
+    public override bool IsReloading => reloading;
 
     protected override void HandleInput()
     {
@@ -51,8 +75,14 @@ public class G1Smg : WeaponBase
         clip--;
         if (modelAnimator)
             modelAnimator.CrossFade("Fire", 0.02f, 0, 0f);
+        if (weaponFX && muzzlePoint)
+            weaponFX.PlayMuzzleFlash(muzzlePoint);
         if (RayHit(range, out RaycastHit hit))
+        {
             ApplyHit(hit, damage, hitForce);
+            if (weaponFX)
+                weaponFX.SpawnBulletDecal(hit);
+        }
     }
 
     IEnumerator Reload()
@@ -67,18 +97,4 @@ public class G1Smg : WeaponBase
         reloading = false;
     }
 
-    void OnGUI()
-    {
-        if (!isActiveAndEnabled)
-            return;
-        var style = new GUIStyle(GUI.skin.label)
-        {
-            fontSize = 22, fontStyle = FontStyle.Bold,
-            alignment = TextAnchor.LowerRight,
-        };
-        style.normal.textColor = new Color(1f, 0.62f, 0.1f);
-        string text = reloading ? "RELOADING" : $"{clip} / {reserve}";
-        GUI.Label(new Rect(Screen.width - 220, Screen.height - 60, 200, 40),
-                  text, style);
-    }
 }
