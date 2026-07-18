@@ -60,11 +60,14 @@ public class G1Pistol : WeaponBase
             modelAnimator.CrossFade("Fire", 0.02f, 0, 0f);
         if (weaponFX && muzzlePoint)
             weaponFX.PlayMuzzleFlash(muzzlePoint);
+        if (camFX) camFX.Punch(1.5f);
         if (RayHit(range, out RaycastHit hit))
         {
-            ApplyHit(hit, damage, hitForce);
+            bool hitEnemy = ApplyHit(hit, damage, hitForce);
             if (weaponFX)
                 weaponFX.SpawnBulletDecal(hit);
+            if (hitEnemy && camFX)
+                camFX.ShowHitMarker();
         }
     }
 

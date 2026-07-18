@@ -26,6 +26,7 @@ public class HealthSystem : MonoBehaviour, IDamageable
             return;
         CurrentHealth = Mathf.Max(CurrentHealth - damage, 0f);
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        GetComponentInChildren<CameraEffects>()?.ShowDamageFlash();
         if (CurrentHealth <= 0f)
         {
             IsDead = true;

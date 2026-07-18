@@ -16,11 +16,15 @@ public class PlayerHUD : MonoBehaviour
 
     HealthSystem playerHealth;
     WeaponSwitcher switcher;
+    CameraEffects camFX;
+    Texture2D vignetteTex;
 
     void Start()
     {
         playerHealth = GetComponent<HealthSystem>();
         switcher = GetComponentInChildren<WeaponSwitcher>();
+        camFX = GetComponentInChildren<CameraEffects>();
+        vignetteTex = MakeVignette();
     }
 
     void OnGUI()
@@ -34,6 +38,14 @@ public class PlayerHUD : MonoBehaviour
         // Draw HUD elements with drop shadows for legibility
         DrawHealthHUD();
         DrawAmmoHUD();
+
+        // Hit marker
+        if (camFX && camFX.HitMarkerActive)
+            DrawHitMarker();
+
+        // Damage vignette
+        if (camFX && camFX.DamageFlashAlpha > 0.01f)
+            DrawDamageVignette(camFX.DamageFlashAlpha);
     }
 
     void DrawCrosshair()
@@ -116,5 +128,62 @@ public class PlayerHUD : MonoBehaviour
         // Draw text
         style.normal.textColor = hudColor;
         GUI.Label(new Rect(Screen.width - 300, Screen.height - 80, 250, 60), ammoText, style);
+    }
+
+    void DrawHitMarker()
+    {
+        float x = Screen.width / 2f;
+        float y = Screen.height / 2f;
+        float gap = 6f, len = 8f, t = 2f;
+        Texture2D tex = Texture2D.whiteTexture;
+
+        Color old = GUI.color;
+        GUI.color = new Color(1f, 1f, 1f, 0.9f);
+
+        // 4 diagonal ticks forming an X
+        // top-left
+        GUI.DrawTexture(new Rect(x - gap - len, y - gap - t / 2f, len, t), tex);
+        GUI.DrawTexture(new Rect(x - gap - t / 2f, y - gap - len, t, len), tex);
+        // top-right
+        GUI.DrawTexture(new Rect(x + gap, y - gap - t / 2f, len, t), tex);
+        GUI.DrawTexture(new Rect(x + gap - t / 2f, y - gap - len, t, len), tex);
+        // bottom-left
+        GUI.DrawTexture(new Rect(x - gap - len, y + gap - t / 2f, len, t), tex);
+        GUI.DrawTexture(new Rect(x - gap - t / 2f, y + gap, t, len), tex);
+        // bottom-right
+        GUI.DrawTexture(new Rect(x + gap, y + gap - t / 2f, len, t), tex);
+        GUI.DrawTexture(new Rect(x + gap - t / 2f, y + gap, t, len), tex);
+
+        GUI.color = old;
+    }
+
+    void DrawDamageVignette(float alpha)
+    {
+        if (vignetteTex == null) return;
+        Color old = GUI.color;
+        GUI.color = new Color(1f, 1f, 1f, alpha * 0.6f);
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), vignetteTex);
+        GUI.color = old;
+    }
+
+    /// Procedurally generate a red edge vignette texture.
+    Texture2D MakeVignette()
+    {
+        int sz = 128;
+        var tex = new Texture2D(sz, sz, TextureFormat.RGBA32, false);
+        for (int y = 0; y < sz; y++)
+        {
+            for (int x = 0; x < sz; x++)
+            {
+                float nx = (x / (float)sz) * 2f - 1f;
+                float ny = (y / (float)sz) * 2f - 1f;
+                float d = Mathf.Max(Mathf.Abs(nx), Mathf.Abs(ny));
+                float a = Mathf.Clamp01((d - 0.55f) / 0.45f);
+                a *= a; // ease-in for softer edge
+                tex.SetPixel(x, y, new Color(0.8f, 0.05f, 0.05f, a));
+            }
+        }
+        tex.Apply();
+        return tex;
     }
 }

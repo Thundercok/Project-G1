@@ -261,6 +261,7 @@ public static class G1SceneBuilder
         camGo.AddComponent<AudioListener>();
         var look = camGo.AddComponent<MouseLook>();
         look.body = player.transform;
+        var camFX = camGo.AddComponent<CameraEffects>();
 
         var use = player.AddComponent<PlayerUse>();
         use.viewCamera = cam;
@@ -288,6 +289,7 @@ public static class G1SceneBuilder
         pistol.movement = move;
         pistol.hitMask = shootable;
         pistol.weaponFX = fx;
+        pistol.camFX = camFX;
         var pistolMuzzle = new GameObject("MuzzlePoint");
         pistolMuzzle.transform.SetParent(pistolHolder.transform, false);
         pistolMuzzle.transform.localPosition = new Vector3(0f, 0.075f, 0.144f);
@@ -309,6 +311,7 @@ public static class G1SceneBuilder
         smg.movement = move;
         smg.hitMask = shootable;
         smg.weaponFX = fx;
+        smg.camFX = camFX;
         var smgMuzzle = new GameObject("MuzzlePoint");
         smgMuzzle.transform.SetParent(smgHolder.transform, false);
         smgMuzzle.transform.localPosition = new Vector3(0f, 0.08f, 0.31f);

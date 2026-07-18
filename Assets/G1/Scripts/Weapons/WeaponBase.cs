@@ -9,6 +9,7 @@ public abstract class WeaponBase : MonoBehaviour
     public PlayerMovement movement;
     public LayerMask hitMask = ~0;
     public Transform muzzlePoint;
+    public CameraEffects camFX;
 
     [Header("View bob")]
     public float bobAmount = 0.012f;
@@ -57,12 +58,14 @@ public abstract class WeaponBase : MonoBehaviour
     }
 
     /// Damage + physics kick shared by all hitscan weapons.
-    protected void ApplyHit(RaycastHit hit, float damage, float force)
+    /// Returns true if an IDamageable was hit (for hit marker feedback).
+    protected bool ApplyHit(RaycastHit hit, float damage, float force)
     {
-        hit.collider.GetComponentInParent<IDamageable>()
-            ?.TakeDamage(damage, hit.point, hit.normal);
+        var target = hit.collider.GetComponentInParent<IDamageable>();
+        target?.TakeDamage(damage, hit.point, hit.normal);
         if (hit.rigidbody)
             hit.rigidbody.AddForceAtPosition(
                 viewCamera.transform.forward * force, hit.point, ForceMode.Impulse);
+        return target != null;
     }
 }
