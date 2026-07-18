@@ -57,12 +57,25 @@ public abstract class WeaponBase : MonoBehaviour
         // Direct hit takes priority
         if (Physics.Raycast(ray, out hit, range, hitMask))
             return true;
-        // Bullet magnetism: small sphere sweep to catch near-misses on enemies
-        float magnetRadius = range * 0.018f; // ~2° cone
+        // Bullet magnetism: broad-phase cylinder check via SphereCast
+        float magnetRadius = range * 0.018f; // Max cone radius at max range
         if (Physics.SphereCast(ray, magnetRadius, out hit, range, hitMask))
         {
             if (hit.collider.GetComponentInParent<IDamageable>() != null)
-                return true;
+            {
+                // Verify against true narrow-phase cone using target collider bounds center
+                Vector3 targetCenter = hit.collider.bounds.center;
+                Vector3 toCenter = targetCenter - ray.origin;
+                float projection = Vector3.Dot(toCenter, ray.direction);
+                if (projection > 0f)
+                {
+                    Vector3 pointOnRay = ray.origin + ray.direction * projection;
+                    float lateralOffset = Vector3.Distance(targetCenter, pointOnRay);
+                    float trueConeRadius = projection * 0.018f; // ~2° full-angle cone (1° half-angle)
+                    if (lateralOffset <= trueConeRadius)
+                        return true;
+                }
+            }
         }
         return false;
     }
