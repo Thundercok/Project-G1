@@ -33,7 +33,7 @@ public class G1WeaponFX : MonoBehaviour
             if (flashTimer <= 0f && muzzleFlashInstance != null)
             {
                 muzzleFlashInstance.SetActive(false);
-                muzzleFlashInstance.transform.SetParent(null);
+                muzzleFlashInstance.transform.SetParent(null, false);
             }
         }
     }
