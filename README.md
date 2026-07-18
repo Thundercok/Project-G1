@@ -31,6 +31,10 @@ a crowbar, and a man in a suit who is always watching.
 ## Requirements
 
 - **Unity 2022.3.62f3 LTS** (built-in render pipeline, classic Input Manager)
+- **Git LFS** — model binaries (`*.fbx`) are LFS-tracked. Run `git lfs install`
+  once before cloning/pulling, or every model imports as an empty 131-byte
+  pointer file and the scene builder fails with
+  `InvalidOperationException: Sequence contains no matching element`.
 - **Blender 4.x/5.x** — only needed to regenerate or modify the 3D assets
 
 > This repo began as an empty Unity 6 URP template and was retargeted to
