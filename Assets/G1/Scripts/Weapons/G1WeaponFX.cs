@@ -17,12 +17,25 @@ public class G1WeaponFX : MonoBehaviour
     GameObject muzzleFlashInstance;
     List<GameObject> decalPool = new List<GameObject>();
     int nextDecalIndex = 0;
-    Coroutine flashCoroutine;
+    float flashTimer;
 
     void Awake()
     {
         InitializeMuzzleFlash();
         InitializeDecalPool();
+    }
+
+    void Update()
+    {
+        if (flashTimer > 0f)
+        {
+            flashTimer -= Time.deltaTime;
+            if (flashTimer <= 0f && muzzleFlashInstance != null)
+            {
+                muzzleFlashInstance.SetActive(false);
+                muzzleFlashInstance.transform.SetParent(null);
+            }
+        }
     }
 
     void InitializeMuzzleFlash()
@@ -70,19 +83,7 @@ public class G1WeaponFX : MonoBehaviour
         muzzleFlashInstance.transform.localRotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
         muzzleFlashInstance.SetActive(true);
 
-        if (flashCoroutine != null)
-            StopCoroutine(flashCoroutine);
-        flashCoroutine = StartCoroutine(DisableFlash());
-    }
-
-    IEnumerator DisableFlash()
-    {
-        yield return new WaitForSeconds(flashDuration);
-        if (muzzleFlashInstance != null)
-        {
-            muzzleFlashInstance.SetActive(false);
-            muzzleFlashInstance.transform.SetParent(null); // detach
-        }
+        flashTimer = flashDuration;
     }
 
     public void SpawnBulletDecal(RaycastHit hit)
