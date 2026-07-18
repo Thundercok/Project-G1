@@ -54,7 +54,17 @@ public abstract class WeaponBase : MonoBehaviour
     protected bool RayHit(float range, out RaycastHit hit)
     {
         var ray = new Ray(viewCamera.transform.position, viewCamera.transform.forward);
-        return Physics.Raycast(ray, out hit, range, hitMask);
+        // Direct hit takes priority
+        if (Physics.Raycast(ray, out hit, range, hitMask))
+            return true;
+        // Bullet magnetism: small sphere sweep to catch near-misses on enemies
+        float magnetRadius = range * 0.018f; // ~2° cone
+        if (Physics.SphereCast(ray, magnetRadius, out hit, range, hitMask))
+        {
+            if (hit.collider.GetComponentInParent<IDamageable>() != null)
+                return true;
+        }
+        return false;
     }
 
     /// Damage + physics kick shared by all hitscan weapons.

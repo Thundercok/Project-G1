@@ -21,6 +21,8 @@ public class PlayerMovement : MonoBehaviour
     CharacterController cc;
     Vector3 velocity;
     bool wasGrounded;
+    float coyoteTimer;              // grace period after leaving ground
+    const float CoyoteWindow = 0.12f;
 
     public Vector3 Velocity => velocity;
     public bool Grounded => wasGrounded;
@@ -42,6 +44,11 @@ public class PlayerMovement : MonoBehaviour
         wasGrounded = grounded;
 
         if (grounded)
+            coyoteTimer = CoyoteWindow;
+        else
+            coyoteTimer -= dt;
+
+        if (grounded)
         {
             ApplyFriction(dt);
             Accelerate(wish.normalized, wish.magnitude * maxSpeed, accelerate, dt);
@@ -51,6 +58,12 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
+            // Coyote time: allow jump shortly after walking off an edge
+            if (coyoteTimer > 0f && Input.GetButton("Jump"))
+            {
+                velocity.y = jumpSpeed;
+                coyoteTimer = 0f;
+            }
             float wishSpeed = Mathf.Min(wish.magnitude * maxSpeed, airWishCap);
             Accelerate(wish.normalized, wishSpeed, airAccelerate, dt);
             velocity.y -= gravity * dt;
