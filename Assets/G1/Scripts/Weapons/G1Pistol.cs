@@ -61,6 +61,7 @@ public class G1Pistol : WeaponBase
         if (weaponFX && muzzlePoint)
             weaponFX.PlayMuzzleFlash(muzzlePoint);
         if (camFX) camFX.Punch(1.5f);
+        G1Audio.Play2D("fire_pistol", 0.7f);
         if (RayHit(range, out RaycastHit hit))
         {
             bool hitEnemy = ApplyHit(hit, damage, hitForce);

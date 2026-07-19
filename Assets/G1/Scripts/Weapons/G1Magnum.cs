@@ -101,7 +101,8 @@ public class G1Magnum : WeaponBase
             modelAnimator.CrossFade("Fire", 0.02f, 0, 0f);
         if (weaponFX && muzzlePoint)
             weaponFX.PlayMuzzleFlash(muzzlePoint);
-        
+        G1Audio.Play2D("fire_magnum", 0.9f);
+
         recoilAccum = Mathf.Min(recoilAccum + 6.0f, 9.0f);
         if (camFX)
             camFX.Punch(recoilAccum); // Additive stacking recoil punch!

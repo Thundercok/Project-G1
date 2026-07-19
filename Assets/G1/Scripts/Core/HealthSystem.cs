@@ -26,10 +26,18 @@ public class HealthSystem : MonoBehaviour, IDamageable
             return;
         CurrentHealth = Mathf.Max(CurrentHealth - damage, 0f);
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
-        GetComponentInChildren<CameraEffects>()?.ShowDamageFlash();
+        var camFx = GetComponentInChildren<CameraEffects>();
+        if (camFx)
+        {
+            camFx.ShowDamageFlash();
+            G1Audio.Play2D("player_hurt", 0.6f);
+        }
         if (CurrentHealth <= 0f)
         {
             IsDead = true;
+            if (!camFx)
+                G1Audio.Play(GetComponent<Breakable>() ? "crate_break" : "enemy_death",
+                             transform.position, 0.8f);
             OnDeath?.Invoke(hitPoint, hitNormal);
         }
     }

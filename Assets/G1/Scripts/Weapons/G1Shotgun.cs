@@ -73,6 +73,7 @@ public class G1Shotgun : WeaponBase
             weaponFX.PlayMuzzleFlash(muzzlePoint);
         if (camFX)
             camFX.Punch(3.5f); // substantial recoil kick for shotgun
+        G1Audio.Play2D("fire_shotgun", 0.85f);
 
         bool hitAnyEnemy = false;
         for (int i = 0; i < pellets; i++)

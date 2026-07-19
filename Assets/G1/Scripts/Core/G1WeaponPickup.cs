@@ -18,6 +18,7 @@ public class G1WeaponPickup : MonoBehaviour
 
         var hud = other.GetComponent<PlayerHUD>();
         if (hud != null) hud.ShowWeaponPickup(weaponType.ToString());
+        G1Audio.Play2D("pickup", 0.8f);
 
         Debug.Log($"🎮 PICKUP: Unlocked weapon {weaponType}!");
         Destroy(gameObject);

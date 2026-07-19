@@ -27,6 +27,7 @@ public class Crowbar : WeaponBase
     IEnumerator Swing()
     {
         swinging = true;
+        G1Audio.Play2D("swing", 0.5f);
         bool hitDone = false;
         float t = 0f;
         while (t < swingTime)
@@ -50,7 +51,10 @@ public class Crowbar : WeaponBase
                 {
                     hitDone = true;
                     if (RayHit(range, out RaycastHit hit))
+                    {
                         ApplyHit(hit, damage, hitForce);
+                        G1Audio.Play("hit_thunk", hit.point, 0.8f);
+                    }
                 }
                 float k = (t - impactMoment) / (swingTime - impactMoment);
                 transform.localRotation = Quaternion.Slerp(HitRot, RestRot, k);

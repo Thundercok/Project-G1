@@ -14,6 +14,12 @@ public class PlayerMovement : MonoBehaviour
     [Header("Acceleration")]
     public float accelerate = 10f;       // sv_accelerate
     public float airAccelerate = 10f;    // sv_airaccelerate
+    // HL1's 30-ups air wish clamp. Without it, airborne movement accelerates
+    // at full ground strength with zero friction — combined with auto-bhop the
+    // player is permanently on ice and WASD feels uncontrollable. Strafe-
+    // steering and bhop speed gain still work exactly like GoldSrc with the
+    // cap in place; that IS the skill expression.
+    public float airWishCap = 0.76f;     // 30 ups
     public float friction = 4f;          // sv_friction
     public float gravity = 20.3f;        // 800 ups^2
 
@@ -69,23 +75,25 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        // Apply crouch height transitions
+        // Apply crouch height transitions. The capsule center sits at
+        // height/2 (feet-anchored), so changing height keeps the feet at the
+        // transform — NO transform reposition is needed. The old code shoved
+        // the player 0.4m into the floor, causing depenetration jitter.
         if (wishCrouch != isCrouching)
         {
             isCrouching = wishCrouch;
             float targetHeight = isCrouching ? crouchHeight : defaultHeight;
-            float lastHeight = cc.height;
-
             cc.height = targetHeight;
             cc.center = new Vector3(0f, targetHeight * 0.5f, 0f);
-            transform.position += Vector3.up * (lastHeight - targetHeight) * 0.5f * (isCrouching ? -1f : 1f);
+        }
 
-            if (cameraTransform != null)
-            {
-                Vector3 camPos = cameraTransform.localPosition;
-                camPos.y = isCrouching ? crouchCameraY : defaultCameraLocalPos.y;
-                cameraTransform.localPosition = camPos;
-            }
+        // Smooth the camera toward the current stance height
+        if (cameraTransform != null)
+        {
+            Vector3 camPos = cameraTransform.localPosition;
+            float targetY = isCrouching ? crouchCameraY : defaultCameraLocalPos.y;
+            camPos.y = Mathf.MoveTowards(camPos.y, targetY, 6f * dt);
+            cameraTransform.localPosition = camPos;
         }
 
         float currentMaxSpeed = maxSpeed;
@@ -122,7 +130,7 @@ public class PlayerMovement : MonoBehaviour
                 velocity.y = jumpSpeed;
                 coyoteTimer = 0f;
             }
-            float wishSpeed = wish.magnitude * currentMaxSpeed;
+            float wishSpeed = Mathf.Min(wish.magnitude * currentMaxSpeed, airWishCap);
             Accelerate(wish.normalized, wishSpeed, airAccelerate, dt);
             velocity.y -= gravity * dt;
         }

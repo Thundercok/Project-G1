@@ -592,6 +592,7 @@ public static class G1SceneBuilder
         health.maxHealth = 100f;
         player.AddComponent<PlayerHUD>();
         player.AddComponent<ArenaDebugHUD>();
+        player.AddComponent<G1PlayerDeath>();
         var fx = player.AddComponent<G1WeaponFX>();
 
         var monitor = player.AddComponent<CombatArenaMonitor>();

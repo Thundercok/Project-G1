@@ -19,7 +19,10 @@ public class SlidingDoor : MonoBehaviour, IUsable
     public void OnUse(GameObject user)
     {
         if (!moving)
+        {
+            G1Audio.Play("door_servo", transform.position, 0.7f);
             StartCoroutine(Slide(!open));
+        }
     }
 
     IEnumerator Slide(bool opening)

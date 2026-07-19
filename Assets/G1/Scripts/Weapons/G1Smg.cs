@@ -60,6 +60,7 @@ public class G1Smg : WeaponBase
         if (weaponFX && muzzlePoint)
             weaponFX.PlayMuzzleFlash(muzzlePoint);
         if (camFX) camFX.Punch(0.8f);
+        G1Audio.Play2D("fire_smg", 0.55f);
         if (RayHit(range, out RaycastHit hit))
         {
             bool hitEnemy = ApplyHit(hit, damage, hitForce);
