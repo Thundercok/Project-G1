@@ -293,6 +293,10 @@ public static class G1SceneBuilder
         player.AddComponent<PlayerHUD>();
         var fx = player.AddComponent<G1WeaponFX>();
 
+        var monitor = player.AddComponent<CombatArenaMonitor>();
+        monitor.player = player.transform;
+        monitor.playerHealth = health;
+
         var camGo = new GameObject("ViewCamera");
         camGo.transform.SetParent(player.transform, false);
         camGo.transform.localPosition = new Vector3(0f, 1.62f, 0f);

@@ -8,6 +8,9 @@ public sealed class SquadBlackboard : MonoBehaviour
     public static SquadBlackboard Instance { get; private set; }
     private readonly Dictionary<SquadRole, G1SoldierAI> _claims = new Dictionary<SquadRole, G1SoldierAI>();
 
+    private readonly List<G1SoldierAI> _opportunists = new List<G1SoldierAI>(4);
+    public int OpportunistCount => _opportunists.Count;
+
     private void Awake() 
     { 
         if (Instance != null) 
@@ -38,4 +41,10 @@ public sealed class SquadBlackboard : MonoBehaviour
     }
 
     public bool IsFree(SquadRole role) => !_claims.TryGetValue(role, out var h) || h == null;
+
+    public void RegisterOpportunist(G1SoldierAI s)   { if (!_opportunists.Contains(s)) _opportunists.Add(s); }
+    public void UnregisterOpportunist(G1SoldierAI s) => _opportunists.Remove(s);
+
+    public float AlphaStrikeTimestamp { get; private set; } = -1f;
+    public void TriggerAlphaStrike() => AlphaStrikeTimestamp = Time.time;
 }

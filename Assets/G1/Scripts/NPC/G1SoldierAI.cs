@@ -4,12 +4,12 @@ using UnityEngine;
 /// Burst-fire Patrol Soldier AI.
 /// Scans for player, patrols waypoints, and uses a F.E.A.R.-style GOAP-lite planner
 /// to coordinate squad roles (blackboard claims), seek cover (dynamic cover points),
-/// shoot in 3-shot bursts, and drop supply packs on death.
+/// shoot in 3-shot bursts, drop supply packs, and perform opportunistic squad ambush strikes.
 [RequireComponent(typeof(Animator), typeof(HealthSystem), typeof(UnityEngine.AI.NavMeshAgent))]
 public class G1SoldierAI : MonoBehaviour
 {
     private enum SoldierState : byte { Patrol, Alert, BurstFire, Dead }
-    private enum CombatAction : byte { PopFire, MoveToCover, Suppress, Flank, Reload, Retreat }
+    private enum CombatAction : byte { PopFire, MoveToCover, Suppress, Flank, Reload, Retreat, Opportunist }
 
     [Header("Patrol & Movement")]
     public Transform[] waypoints;
@@ -23,6 +23,11 @@ public class G1SoldierAI : MonoBehaviour
     public float damage = 8f;
     public float fireRate = 1.6f;        // cooldown between bursts
     public float burstGap = 0.11f;       // gap between shots in burst
+
+    [Header("Opportunist Settings")]
+    public int opportunistMobThreshold = 2;
+    public float opportunistTimeout = 6f;
+    public float executeHpThreshold = 0.5f;
 
     [Header("Drop Settings")]
     [Range(0f, 1f)] public float dropChance = 0.72f;
@@ -48,6 +53,9 @@ public class G1SoldierAI : MonoBehaviour
     private const float PlanInterval = 0.4f;
     private bool _recentlyHit;
     private float _recentlyHitResetTime;
+
+    private float _opportunistEnterTime;
+    private float _lastAlphaStrikeSeen = -1f;
 
     // Zero-alloc buffers
     private readonly Collider[] detectBuf = new Collider[4];
@@ -235,6 +243,49 @@ public class G1SoldierAI : MonoBehaviour
             return CombatAction.Reload;
         }
 
+        // --- Opportunistic Predator logic ---
+        var arena = CombatArenaMonitor.Instance;
+        if (arena != null && SquadBlackboard.Instance != null)
+        {
+            bool overwhelmed = arena.MobsEngagingPlayer >= opportunistMobThreshold;
+            bool alerted = state == SoldierState.BurstFire || state == SoldierState.Alert;
+
+            if (overwhelmed && !alerted && _currentAction != CombatAction.Opportunist)
+            {
+                SquadBlackboard.Instance.RegisterOpportunist(this);
+                _opportunistEnterTime = Time.time;
+                ReleaseRole();
+                return CombatAction.Opportunist;
+            }
+
+            if (_currentAction == CombatAction.Opportunist)
+            {
+                bool killWindow = arena.PlayerHealthPct <= executeHpThreshold;
+                bool mobsCleared = arena.MobsEngagingPlayer == 0;
+                bool timedOut = Time.time - _opportunistEnterTime > opportunistTimeout;
+
+                if (killWindow && SquadBlackboard.Instance.OpportunistCount >= 2)
+                {
+                    SquadBlackboard.Instance.TriggerAlphaStrike();
+                }
+
+                bool signalFired = SquadBlackboard.Instance.AlphaStrikeTimestamp > _lastAlphaStrikeSeen;
+                if (signalFired)
+                {
+                    _lastAlphaStrikeSeen = SquadBlackboard.Instance.AlphaStrikeTimestamp;
+                }
+
+                if (signalFired || timedOut || mobsCleared)
+                {
+                    SquadBlackboard.Instance.UnregisterOpportunist(this);
+                    ReleaseCover();
+                    return CombatAction.Flank; // Engage and flank!
+                }
+                return CombatAction.Opportunist;
+            }
+        }
+        // ------------------------------------
+
         if (_recentlyHit && _claimedCover == null)
         {
             var cp = G1CoverPoint.FindNearestValid(transform.position, player.transform.position, 15f);
@@ -283,6 +334,43 @@ public class G1SoldierAI : MonoBehaviour
 
         switch (action)
         {
+            case CombatAction.Opportunist:
+                if (_claimedCover == null)
+                {
+                    var cp = G1CoverPoint.FindNearestValid(transform.position, player.transform.position, 12f);
+                    if (cp != null)
+                    {
+                        cp.Claimed = true;
+                        _claimedCover = cp;
+                    }
+                }
+                if (_claimedCover != null)
+                {
+                    agent.speed = patrolSpeed; // walk quietly, stay quiet
+                    agent.SetDestination(_claimedCover.transform.position);
+
+                    float distToCover = Vector3.Distance(transform.position, _claimedCover.transform.position);
+                    if (distToCover < 0.8f)
+                    {
+                        Crouch();
+                        agent.ResetPath();
+                        if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                            anim.CrossFade("Idle", 0.1f);
+                    }
+                    else
+                    {
+                        if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+                            anim.CrossFade("Walk", 0.1f);
+                    }
+                }
+                else
+                {
+                    agent.ResetPath();
+                    if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                        anim.CrossFade("Idle", 0.1f);
+                }
+                break;
+
             case CombatAction.Retreat:
                 Vector3 retreatDir = (transform.position - player.transform.position).normalized;
                 Vector3 retreatTarget = transform.position + retreatDir * 8f;
@@ -532,6 +620,10 @@ public class G1SoldierAI : MonoBehaviour
         state = SoldierState.Dead;
         ReleaseCover();
         ReleaseRole();
+        if (SquadBlackboard.Instance != null)
+        {
+            SquadBlackboard.Instance.UnregisterOpportunist(this);
+        }
         if (agent) agent.enabled = false;
         if (ThreatDirector.Instance != null)
         {
@@ -562,5 +654,9 @@ public class G1SoldierAI : MonoBehaviour
             myHealth.OnDeath -= HandleDeath;
         ReleaseCover();
         ReleaseRole();
+        if (SquadBlackboard.Instance != null)
+        {
+            SquadBlackboard.Instance.UnregisterOpportunist(this);
+        }
     }
 }
