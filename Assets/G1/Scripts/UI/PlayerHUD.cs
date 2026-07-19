@@ -19,12 +19,26 @@ public class PlayerHUD : MonoBehaviour
     CameraEffects camFX;
     Texture2D vignetteTex;
 
+    Font _hudFont;
+    string _pickupWeaponName;
+    float _pickupDisplayUntil;
+
     void Start()
     {
         playerHealth = GetComponent<HealthSystem>();
         switcher = GetComponentInChildren<WeaponSwitcher>();
         camFX = GetComponentInChildren<CameraEffects>();
         vignetteTex = MakeVignette();
+
+        // Load Share Tech Mono
+        var fontAsset = Resources.Load<Font>("Fonts/ShareTechMono-Regular");
+        if (fontAsset != null) _hudFont = fontAsset;
+    }
+
+    public void ShowWeaponPickup(string weaponName)
+    {
+        _pickupWeaponName = weaponName.ToUpper();
+        _pickupDisplayUntil = Time.time + 2f;
     }
 
     void OnGUI()
@@ -38,6 +52,7 @@ public class PlayerHUD : MonoBehaviour
         // Draw HUD elements with drop shadows for legibility
         DrawHealthHUD();
         DrawAmmoHUD();
+        DrawWeaponPickup();
 
         // Hit marker
         if (camFX && camFX.HitMarkerActive)
@@ -67,37 +82,34 @@ public class PlayerHUD : MonoBehaviour
 
     void DrawHealthHUD()
     {
-        if (playerHealth == null)
-            return;
-
+        if (playerHealth == null) return;
         int hp = Mathf.CeilToInt(playerHealth.CurrentHealth);
         if (hp < 0) hp = 0;
+        string hpText = $"+  {hp}";
 
-        string hpText = $"+  {hp}"; // HL1-style icon representation '+' followed by value
+        // Pulse red when low HP
+        Color hpColor = hp < 25
+            ? Color.Lerp(hudColor, new Color(1f, 0.1f, 0.1f, 0.9f), Mathf.PingPong(Time.time * 3f, 1f))
+            : hudColor;
 
-        // Setup style
         var style = new GUIStyle(GUI.skin.label)
         {
             fontSize = 32,
             fontStyle = FontStyle.Bold,
-            alignment = TextAnchor.LowerLeft
+            alignment = TextAnchor.LowerLeft,
+            font = _hudFont
         };
 
-        // Draw shadow
         style.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
         GUI.Label(new Rect(42, Screen.height - 78, 250, 60), hpText, style);
-
-        // Draw text
-        style.normal.textColor = hudColor;
+        style.normal.textColor = hpColor;
         GUI.Label(new Rect(40, Screen.height - 80, 250, 60), hpText, style);
     }
 
     void DrawAmmoHUD()
     {
-        if (switcher == null || switcher.weapons == null)
-            return;
+        if (switcher == null || switcher.weapons == null) return;
 
-        // Find active weapon
         WeaponBase active = null;
         foreach (var w in switcher.weapons)
         {
@@ -107,27 +119,50 @@ public class PlayerHUD : MonoBehaviour
                 break;
             }
         }
-
-        if (active == null || !active.HasAmmo)
-            return;
+        if (active == null || !active.HasAmmo) return;
 
         string ammoText = active.IsReloading ? "RELOAD" : $"{active.Clip} | {active.Reserve}";
 
-        // Setup style
+        // Red when low ammo
+        Color ammoColor = (active.Clip <= 2 && !active.IsReloading)
+            ? new Color(1f, 0.15f, 0.15f, 0.9f)
+            : hudColor;
+
         var style = new GUIStyle(GUI.skin.label)
         {
             fontSize = 32,
             fontStyle = FontStyle.Bold,
-            alignment = TextAnchor.LowerRight
+            alignment = TextAnchor.LowerRight,
+            font = _hudFont
         };
 
-        // Draw shadow
         style.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
         GUI.Label(new Rect(Screen.width - 298, Screen.height - 78, 250, 60), ammoText, style);
-
-        // Draw text
-        style.normal.textColor = hudColor;
+        style.normal.textColor = ammoColor;
         GUI.Label(new Rect(Screen.width - 300, Screen.height - 80, 250, 60), ammoText, style);
+    }
+
+    void DrawWeaponPickup()
+    {
+        if (string.IsNullOrEmpty(_pickupWeaponName)) return;
+        float remaining = _pickupDisplayUntil - Time.time;
+        if (remaining <= 0f) { _pickupWeaponName = null; return; }
+
+        float alpha = Mathf.Clamp01(remaining);  // fade out last second
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 24,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter,
+            font = _hudFont
+        };
+
+        style.normal.textColor = new Color(0f, 0f, 0f, 0.6f * alpha);
+        GUI.Label(new Rect(Screen.width/2f - 149, Screen.height/2f + 51, 300, 40),
+                  $"PICKED UP {_pickupWeaponName}", style);
+        style.normal.textColor = new Color(hudColor.r, hudColor.g, hudColor.b, alpha);
+        GUI.Label(new Rect(Screen.width/2f - 150, Screen.height/2f + 50, 300, 40),
+                  $"PICKED UP {_pickupWeaponName}", style);
     }
 
     void DrawHitMarker()

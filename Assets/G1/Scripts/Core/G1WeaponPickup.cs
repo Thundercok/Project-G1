@@ -16,6 +16,9 @@ public class G1WeaponPickup : MonoBehaviour
         int idx = (int)weaponType + 1;
         switcher.Unlock(idx);
 
+        var hud = other.GetComponent<PlayerHUD>();
+        if (hud != null) hud.ShowWeaponPickup(weaponType.ToString());
+
         Debug.Log($"🎮 PICKUP: Unlocked weapon {weaponType}!");
         Destroy(gameObject);
     }
