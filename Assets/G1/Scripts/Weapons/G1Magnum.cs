@@ -26,6 +26,7 @@ public class G1Magnum : WeaponBase
     public G1WeaponFX weaponFX;
 
     private float nextFire;
+    private float recoilAccum;
 
     // Reload State Machine
     private enum ReloadPhase : byte { None, OpenCylinder, InsertBullet, CloseCylinder }
@@ -48,6 +49,11 @@ public class G1Magnum : WeaponBase
     protected override void Update()
     {
         base.Update();
+
+        if (recoilAccum > 0.01f)
+            recoilAccum = Mathf.Lerp(recoilAccum, 0f, 7.0f * Time.deltaTime);
+        else
+            recoilAccum = 0f;
 
         if (InputLocked) return;
 
@@ -96,8 +102,10 @@ public class G1Magnum : WeaponBase
             modelAnimator.CrossFade("Fire", 0.02f, 0, 0f);
         if (weaponFX && muzzlePoint)
             weaponFX.PlayMuzzleFlash(muzzlePoint);
+        
+        recoilAccum = Mathf.Min(recoilAccum + 6.0f, 9.0f);
         if (camFX)
-            camFX.Punch(6.0f); // Massive recoil punch!
+            camFX.Punch(recoilAccum); // Additive stacking recoil punch!
 
         if (RayHit(range, out RaycastHit hit))
         {

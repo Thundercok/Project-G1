@@ -511,6 +511,45 @@ public static class G1SceneBuilder
         zBar.heightOffset = 2.15f;
         zombie.AddComponent<G1DeathPhysics>();
         zombie.AddComponent<G1ZombieAI>();
+
+        // Spawn Soldier AI (HECU soldier style - blue/grey camouflage tint)
+        var soldier = SpawnCharacter($"{Models}/Protagonist.fbx", new Vector3(-8f, 0f, 6f), protagonistCtrl);
+        soldier.name = "HECUSoldier";
+
+        // HECU blue-grey and dark vest tinting
+        int renderIdx = 0;
+        foreach (var r in soldier.GetComponentsInChildren<Renderer>())
+        {
+            var m = new Material(r.sharedMaterial);
+            if (renderIdx == 0) m.color = new Color(0.2f, 0.25f, 0.3f); // blue-grey camo
+            else m.color = new Color(0.12f, 0.12f, 0.15f); // dark vest/boots
+            r.sharedMaterial = m;
+            renderIdx++;
+        }
+
+        // Set up Soldier Patrol Path
+        var sPatrol = new GameObject("SoldierPatrolPath").transform;
+        Vector3[] sPts =
+        {
+            new Vector3(-8f, 0f, 6f), new Vector3(-8f, 0f, 12f),
+            new Vector3(-2f, 0f, 12f), new Vector3(-2f, 0f, 6f)
+        };
+        var sWaypoints = sPts.Select((p, i) =>
+        {
+            var wp = new GameObject($"SWP{i}").transform;
+            wp.SetParent(sPatrol, false);
+            wp.position = p;
+            return wp;
+        }).ToArray();
+
+        var sHealth = soldier.AddComponent<HealthSystem>();
+        sHealth.maxHealth = 100f;
+        var sBar = soldier.AddComponent<WorldSpaceHealthBar>();
+        sBar.heightOffset = 2.15f;
+        soldier.AddComponent<G1DeathPhysics>();
+
+        var soldierAI = soldier.AddComponent<G1SoldierAI>();
+        soldierAI.waypoints = sWaypoints;
     }
 
     static Transform FindBone(Transform parent, string name)
