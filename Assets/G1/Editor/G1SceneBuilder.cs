@@ -598,12 +598,12 @@ public static class G1SceneBuilder
                           ArenaConfig cfg, System.Random rng)
     {
         var protagonist = SpawnCharacter($"{Models}/Protagonist.fbx",
-                                         new Vector3(3f, 0f, 4f), protagonistCtrl);
+                                         new Vector3(2f, 0f, -8f), protagonistCtrl);
         var patrol = new GameObject("PatrolPath").transform;
         Vector3[] pts =
         {
-            new Vector3(3f, 0f, 4f), new Vector3(-3f, 0f, 4f),
-            new Vector3(-3f, 0f, 10f), new Vector3(3f, 0f, 10f),
+            new Vector3(2f, 0f, -8f), new Vector3(-2f, 0f, -8f),
+            new Vector3(-2f, 0f, -5f), new Vector3(2f, 0f, -5f),
         };
         var waypoints = pts.Select((p, i) =>
         {
@@ -620,7 +620,7 @@ public static class G1SceneBuilder
         protagonist.AddComponent<G1DeathPhysics>();
 
         var villain = SpawnCharacter($"{Models}/Villain.fbx",
-                                     new Vector3(-4f, 0f, 2f), villainCtrl);
+                                     new Vector3(-2f, 0f, -6f), villainCtrl);
         Vector3 toPlayer = playerPos - villain.transform.position;
         toPlayer.y = 0f;
         villain.transform.rotation = Quaternion.LookRotation(toPlayer);
@@ -641,7 +641,7 @@ public static class G1SceneBuilder
         new GameObject("SquadBlackboard").AddComponent<SquadBlackboard>();
 
         // Spawn Zombie (sickly green skin + procedural Headcrab on head bone)
-        var zombie = SpawnCharacter($"{Models}/Villain.fbx", new Vector3(0f, 0f, 4f), villainCtrl);
+        var zombie = SpawnCharacter($"{Models}/Villain.fbx", new Vector3(0f, 0f, 6f), villainCtrl);
         zombie.name = "Zombie";
         SetLayerRecursive(zombie, enemyLayer);
 
@@ -698,7 +698,7 @@ public static class G1SceneBuilder
         }
 
         // Spawn Alien AI (cloned template, tinted neon purple)
-        var alien = SpawnCharacter($"{Models}/Villain.fbx", new Vector3(2f, 0f, 6f), villainCtrl);
+        var alien = SpawnCharacter($"{Models}/Villain.fbx", new Vector3(12f, 0f, 64f), villainCtrl);
         alien.name = "Alien";
         SetLayerRecursive(alien, enemyLayer);
 
@@ -728,7 +728,7 @@ public static class G1SceneBuilder
         }
 
         // Spawn Soldier AI (HECU soldier style - blue/grey camouflage tint)
-        var soldier = SpawnCharacter($"{Models}/Protagonist.fbx", new Vector3(-8f, 0f, 6f), protagonistCtrl);
+        var soldier = SpawnCharacter($"{Models}/Protagonist.fbx", new Vector3(12f, 0f, 45f), protagonistCtrl);
         soldier.name = "HECUSoldier";
         SetLayerRecursive(soldier, enemyLayer);
 
@@ -743,12 +743,12 @@ public static class G1SceneBuilder
             renderIdx++;
         }
 
-        // Set up Soldier Patrol Path
+        // Set up Soldier Patrol Path (inside Industrial Hall)
         var sPatrol = new GameObject("SoldierPatrolPath").transform;
         Vector3[] sPts =
         {
-            new Vector3(-8f, 0f, 6f), new Vector3(-8f, 0f, 12f),
-            new Vector3(-2f, 0f, 12f), new Vector3(-2f, 0f, 6f)
+            new Vector3(6f, 0f, 32f), new Vector3(6f, 0f, 52f),
+            new Vector3(18f, 0f, 52f), new Vector3(18f, 0f, 32f)
         };
         var sWaypoints = sPts.Select((p, i) =>
         {
@@ -794,17 +794,15 @@ public static class G1SceneBuilder
         director.relaxDuration = cfg.RelaxDuration;
         director.intensityDecayRate = 0.08f;
 
-        // Spawn nodes around map perimeter
+        // Spawn nodes scattered inside Industrial Hall and Alien Breach Zone
         var nodesParent = new GameObject("SpawnNodes").transform;
         Vector3[] nodePositions = {
-            new Vector3(-14f, 0.5f, 14f),
-            new Vector3(14f, 0.5f, 14f),
-            new Vector3(14f, 0.5f, -14f),
-            new Vector3(-14f, 0.5f, -14f),
-            new Vector3(-14f, 0.5f, 0f),
-            new Vector3(14f, 0.5f, 0f),
-            new Vector3(0f, 0.5f, 14f),
-            new Vector3(0f, 0.5f, -14f)
+            new Vector3(4f, 0.5f, 32f),      // Industrial Hall SW
+            new Vector3(20f, 0.5f, 32f),     // Industrial Hall SE
+            new Vector3(4f, 0.5f, 52f),      // Industrial Hall NW
+            new Vector3(20f, 0.5f, 52f),     // Industrial Hall NE
+            new Vector3(12f, 0.5f, 60f),     // Breach Zone South
+            new Vector3(12f, 0.5f, 68f)      // Breach Zone North
         };
         var spawnNodes = new Transform[nodePositions.Length];
         for (int i = 0; i < nodePositions.Length; i++)
@@ -812,7 +810,7 @@ public static class G1SceneBuilder
             var node = new GameObject($"SpawnNode_{i}");
             node.transform.SetParent(nodesParent, false);
             node.transform.position = nodePositions[i];
-            node.transform.LookAt(new Vector3(0f, 0.5f, 0f));
+            node.transform.LookAt(new Vector3(12f, 0.5f, 45f));
             spawnNodes[i] = node.transform;
         }
         director.spawnNodes = spawnNodes;
@@ -824,7 +822,7 @@ public static class G1SceneBuilder
     }
 
     /// Clone the fully configured template until `count` instances exist
-    /// (seeded placement in the arena's upper half), or remove the template
+    /// (seeded placement inside the Industrial Hall), or remove the template
     /// entirely when count is zero. Runs after the prefab save, so the
     /// ThreatDirector keeps valid prefab references either way.
     static void PopulateCount(GameObject template, int count, System.Random rng)
@@ -838,8 +836,9 @@ public static class G1SceneBuilder
         {
             var clone = Object.Instantiate(template);
             clone.name = $"{template.name}_{i}";
+            // Spawn extra entities inside the Industrial Hall bounds
             clone.transform.position = new Vector3(
-                RandRange(rng, -12f, 12f), 0f, RandRange(rng, 2f, 13f));
+                RandRange(rng, 0f, 24f), 0f, RandRange(rng, 32f, 52f));
         }
     }
 
