@@ -49,6 +49,30 @@ small, and the engine happily keeps adding speed. That's air-strafing, straight
 from Quake, and combined with hold-to-jump it produces classic bunnyhop
 acceleration.
 
+## Crouch
+
+`LeftCtrl` or `C`. The CharacterController height drops 1.8 m → 1.0 m at half
+max speed; a `SphereCast` ceiling check keeps you crouched under low geometry
+instead of letting you stand into it. Because the capsule center is
+feet-anchored (`center.y = height/2`), a height change keeps the feet planted —
+**no transform reposition is needed or performed** (an earlier version shoved
+the player 0.4 m into the floor on every crouch, causing depenetration jitter).
+The camera eases between stances rather than snapping.
+
+## Coyote time
+
+A 0.12 s grace window after walking off an edge during which jump still
+fires — makes bhop chains and ledge hops feel forgiving instead of pixel-exact.
+
+## A warning from history: do not remove `airWishCap`
+
+It was tried ("uncapped air speed = skill expression"). The result was an
+uncontrollable player: air movement has **no friction**, so uncapped air
+acceleration turns every jump into ice-skating — and with hold-to-bhop the
+player is airborne almost permanently. The 30-ups cap is not a limitation on
+GoldSrc movement, it is the thing that *makes* GoldSrc movement: strafe
+steering, bhop speed gain, and WASD control all coexist because of it.
+
 ## Tuning cheatsheet
 
 - Feels slippery on the ground → raise `friction` (5–6) or lower `maxSpeed`.

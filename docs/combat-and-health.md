@@ -56,3 +56,11 @@ destroys itself on death.
 TagManager), assigns the whole player hierarchy to it, and gives every weapon a
 `hitMask` of everything-except-Player — so your own capsule and viewmodels can
 never eat a bullet or a swing.
+
+## Player death & respawn (`Scripts/Core/G1PlayerDeath.cs`)
+
+Subscribes to the player HealthSystem's `OnDeath`: freezes movement, mouse
+look, and all weapons; plays a pitched-down groan; fades the screen to black
+over 1.5 s; then reloads the active scene. Mounted by the scene builder.
+Checkpoints (save position + weapon unlocks, restore instead of full reload)
+are the planned upgrade — see the roadmap.
