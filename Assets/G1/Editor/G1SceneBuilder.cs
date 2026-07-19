@@ -98,11 +98,15 @@ public static class G1SceneBuilder
         GameObject player = BuildPlayer(pistolCtrl, smgCtrl, shotgunCtrl, magnumCtrl);
         BuildNpcs(protagonistCtrl, villainCtrl, player.transform.position, cfg, rng);
 
-        // Bake NavMesh in Editor
-        UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
-
+        // Save FIRST so the scene has a path, then bake: the legacy baker
+        // persists NavMesh data as an asset next to a *saved* scene. Baking an
+        // unsaved scene keeps the NavMesh only in memory, and it silently dies
+        // on the play-mode domain reload ("Failed to create agent because
+        // there is no valid NavMesh").
         EnsureFolder("Assets/Scenes");
         EditorSceneManager.SaveScene(scene, ScenePath);
+        UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
+        EditorSceneManager.SaveScene(scene);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         AssetDatabase.SaveAssets();
         Debug.Log($"G1 BUILD OK (seed {cfg.Seed}: {cfg.Soldiers} soldiers, "
@@ -618,6 +622,7 @@ public static class G1SceneBuilder
         zBar.heightOffset = 2.15f;
         zombie.AddComponent<G1DeathPhysics>();
         zombie.AddComponent<G1ZombieAI>();
+        zombie.AddComponent<AgentNavMeshWarp>();
 
         var zAgent = zombie.GetComponent<UnityEngine.AI.NavMeshAgent>();
         if (zAgent)
@@ -647,6 +652,7 @@ public static class G1SceneBuilder
         aBar.heightOffset = 2.15f;
         alien.AddComponent<G1DeathPhysics>();
         alien.AddComponent<G1AlienAI>();
+        alien.AddComponent<AgentNavMeshWarp>();
 
         var aAgent = alien.GetComponent<UnityEngine.AI.NavMeshAgent>();
         if (aAgent)
@@ -697,6 +703,7 @@ public static class G1SceneBuilder
         soldierAI.waypoints = sWaypoints;
         soldier.AddComponent<AIDebugGizmos>();   // before prefab save: spawned
                                                  // reinforcements get gizmos too
+        soldier.AddComponent<AgentNavMeshWarp>();
 
         // Configure NavMeshAgent properties
         var agent = soldier.GetComponent<UnityEngine.AI.NavMeshAgent>();

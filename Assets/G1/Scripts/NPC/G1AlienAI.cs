@@ -53,6 +53,8 @@ public class G1AlienAI : MonoBehaviour
 
     void Update()
     {
+        if (agent && agent.enabled && !agent.isOnNavMesh)
+            return;                     // not placed on a NavMesh (yet)
         if (myHealth.IsDead || player == null || playerHealth == null || playerHealth.IsDead)
         {
             isChasing = false;

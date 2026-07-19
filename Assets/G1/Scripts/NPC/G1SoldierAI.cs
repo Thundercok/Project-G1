@@ -117,6 +117,8 @@ public class G1SoldierAI : MonoBehaviour
 
     void Update()
     {
+        if (agent && agent.enabled && !agent.isOnNavMesh)
+            return;                     // not placed on a NavMesh (yet)
         if (state == SoldierState.Dead || player == null || playerHealth == null || playerHealth.IsDead)
             return;
 
