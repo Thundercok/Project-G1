@@ -241,6 +241,7 @@ public static class G1SceneBuilder
     static GameObject BuildPlayer(RuntimeAnimatorController pistolCtrl, RuntimeAnimatorController smgCtrl, RuntimeAnimatorController shotgunCtrl)
     {
         var player = new GameObject("Player");
+        player.tag = "Player";
         player.transform.position = new Vector3(0f, 0.05f, -8f);
         var cc = player.AddComponent<CharacterController>();
         cc.height = 1.8f;
@@ -407,6 +408,64 @@ public static class G1SceneBuilder
         bar.heightOffset = 2.15f;
         villain.AddComponent<G1DeathPhysics>();
         villain.AddComponent<G1NPCCombat>();
+
+        // Spawn Zombie (sickly green skin + procedural Headcrab on head bone)
+        var zombie = SpawnCharacter($"{Models}/Villain.fbx", new Vector3(0f, 0f, 4f), villainCtrl);
+        zombie.name = "Zombie";
+
+        // Sickly green-decay skin color
+        foreach (var r in zombie.GetComponentsInChildren<Renderer>())
+        {
+            var m = new Material(r.sharedMaterial);
+            m.color = new Color(0.35f, 0.45f, 0.25f);
+            r.sharedMaterial = m;
+        }
+
+        // Attach fleshy Headcrab to head bone
+        Transform headBone = FindBone(zombie.transform, "head");
+        if (headBone)
+        {
+            var hc = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            Object.DestroyImmediate(hc.GetComponent<Collider>());
+            hc.name = "Headcrab";
+            hc.transform.SetParent(headBone, false);
+            hc.transform.localPosition = new Vector3(0f, 0.08f, 0.05f); // sit on top of head
+            hc.transform.localScale = new Vector3(0.24f, 0.18f, 0.22f);
+            var hcMat = new Material(Shader.Find("Standard"));
+            hcMat.color = new Color(0.8f, 0.5f, 0.35f); // fleshy orange
+            hc.GetComponent<Renderer>().sharedMaterial = hcMat;
+
+            // Fleshy legs
+            for (int i = 0; i < 4; i++)
+            {
+                var leg = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                Object.DestroyImmediate(leg.GetComponent<Collider>());
+                leg.transform.SetParent(hc.transform, false);
+                float side = (i % 2 == 0) ? 0.4f : -0.4f;
+                float fwd = (i < 2) ? 0.4f : -0.4f;
+                leg.transform.localPosition = new Vector3(side, -0.4f, fwd);
+                leg.transform.localScale = new Vector3(0.2f, 0.5f, 0.2f);
+                leg.GetComponent<Renderer>().sharedMaterial = hcMat;
+            }
+        }
+
+        var zHealth = zombie.AddComponent<HealthSystem>();
+        zHealth.maxHealth = 100f;
+        var zBar = zombie.AddComponent<WorldSpaceHealthBar>();
+        zBar.heightOffset = 2.15f;
+        zombie.AddComponent<G1DeathPhysics>();
+        zombie.AddComponent<G1ZombieAI>();
+    }
+
+    static Transform FindBone(Transform parent, string name)
+    {
+        if (parent.name == name) return parent;
+        foreach (Transform child in parent)
+        {
+            var found = FindBone(child, name);
+            if (found != null) return found;
+        }
+        return null;
     }
 
     static GameObject SpawnCharacter(string fbxPath, Vector3 pos,
