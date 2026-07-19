@@ -15,9 +15,57 @@ public static class G1SceneBuilder
     const string MatDir = "Assets/G1/Materials";
     const string ScenePath = "Assets/Scenes/TestScene.unity";
 
-    [MenuItem("G1/Build Test Scene")]
-    public static void BuildScene()
+    /// Arena generation parameters. Geometry randomness comes exclusively from
+    /// an independent System.Random seeded with Seed, so rebuilds are exactly
+    /// reproducible and the global UnityEngine.Random state is never touched.
+    public sealed class ArenaConfig
     {
+        public int Seed = 1337;
+        public int Soldiers = 1;
+        public int Zombies = 1;
+        public int Aliens = 1;
+        public int Crates = 6;
+        public int CoverBlocks = 8;
+        public int MaxActiveSoldiers = 4;
+        public float RelaxDuration = 8f;
+
+        public static ArenaConfig Standard() => new ArenaConfig();
+        public static ArenaConfig SoloHecu() => new ArenaConfig
+        {
+            Seed = 101, Soldiers = 1, Zombies = 0, Aliens = 0,
+            MaxActiveSoldiers = 1,
+        };
+        public static ArenaConfig Horde() => new ArenaConfig
+        {
+            Seed = 666, Soldiers = 2, Zombies = 3, Aliens = 3,
+            Crates = 4, CoverBlocks = 10, MaxActiveSoldiers = 8,
+            RelaxDuration = 3f,
+        };
+        public static ArenaConfig LowCover() => new ArenaConfig
+        {
+            Seed = 42, Soldiers = 2, Zombies = 1, Aliens = 1,
+            Crates = 2, CoverBlocks = 2,
+        };
+    }
+
+    [MenuItem("G1/Build Test Scene")]
+    public static void BuildScene() => BuildScene(ArenaConfig.Standard());
+
+    [MenuItem("G1/Rebuild Arena/Standard Arena")]
+    static void MenuStandard() => BuildScene(ArenaConfig.Standard());
+
+    [MenuItem("G1/Rebuild Arena/Solo HECU Test")]
+    static void MenuSoloHecu() => BuildScene(ArenaConfig.SoloHecu());
+
+    [MenuItem("G1/Rebuild Arena/Horde Overwhelm Test")]
+    static void MenuHorde() => BuildScene(ArenaConfig.Horde());
+
+    [MenuItem("G1/Rebuild Arena/Low Cover Test")]
+    static void MenuLowCover() => BuildScene(ArenaConfig.LowCover());
+
+    public static void BuildScene(ArenaConfig cfg)
+    {
+        var rng = new System.Random(cfg.Seed);
         AssetDatabase.Refresh();
         EnsureFolder(AnimDir);
         EnsureFolder(MatDir);
@@ -46,9 +94,9 @@ public static class G1SceneBuilder
             NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         BuildLighting();
-        BuildArena();
+        BuildArena(cfg, rng);
         GameObject player = BuildPlayer(pistolCtrl, smgCtrl, shotgunCtrl, magnumCtrl);
-        BuildNpcs(protagonistCtrl, villainCtrl, player.transform.position);
+        BuildNpcs(protagonistCtrl, villainCtrl, player.transform.position, cfg, rng);
 
         // Bake NavMesh in Editor
         UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
@@ -57,7 +105,9 @@ public static class G1SceneBuilder
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         AssetDatabase.SaveAssets();
-        Debug.Log("G1 BUILD OK");
+        Debug.Log($"G1 BUILD OK (seed {cfg.Seed}: {cfg.Soldiers} soldiers, "
+                  + $"{cfg.Zombies} zombies, {cfg.Aliens} aliens, "
+                  + $"{cfg.CoverBlocks} cover blocks)");
     }
 
     // ------------------------------------------------------------- assets
@@ -232,7 +282,7 @@ public static class G1SceneBuilder
         return go;
     }
 
-    static void BuildArena()
+    static void BuildArena(ArenaConfig cfg, System.Random rng)
     {
         Material concrete = MakeMat("Concrete", new Color(0.33f, 0.34f, 0.32f));
         Material floorMat = MakeMat("Floor", new Color(0.26f, 0.27f, 0.26f));
@@ -240,6 +290,7 @@ public static class G1SceneBuilder
         Material wood = MakeMat("CrateWood", new Color(0.38f, 0.25f, 0.12f));
         Material doorMat = MakeMat("DoorSteel", new Color(0.45f, 0.36f, 0.16f), 0.4f);
 
+        // fixed shell — identical for every preset
         Slab("Ground", new Vector3(0, -0.25f, 0), new Vector3(40, 0.5f, 40), floorMat);
         Slab("WallN", new Vector3(0, 1.5f, 16), new Vector3(32.5f, 3, 0.5f), concrete);
         Slab("WallS", new Vector3(0, 1.5f, -16), new Vector3(32.5f, 3, 0.5f), concrete);
@@ -253,19 +304,38 @@ public static class G1SceneBuilder
             Slab("Pillar", new Vector3(x, 1.5f, z), new Vector3(0.7f, 3f, 0.7f), hazard);
         }
 
-        Vector3[] cratePos =
+        // seeded crate scatter
+        for (int i = 0; i < cfg.Crates; i++)
         {
-            new Vector3(3.5f, 0.4f, 1.5f), new Vector3(4.4f, 0.4f, 2.1f),
-            new Vector3(3.9f, 1.2f, 1.8f), new Vector3(-5f, 0.4f, 6f),
-            new Vector3(1f, 0.4f, 9f), new Vector3(-2.5f, 0.4f, -4f),
-        };
-        foreach (var p in cratePos)
-        {
-            var crate = Slab("Crate", p, Vector3.one * 0.8f, wood);
+            Vector3 p = ScatterPoint(rng);
+            var crate = Slab("Crate", new Vector3(p.x, 0.4f, p.z),
+                             Vector3.one * 0.8f, wood);
             crate.AddComponent<Breakable>();            // auto-adds HealthSystem
             crate.GetComponent<HealthSystem>().maxHealth = 50f;
             var bar = crate.AddComponent<WorldSpaceHealthBar>();
             bar.heightOffset = 1.1f;
+        }
+
+        // seeded cover blocks; each broad side gets a G1CoverPoint marker so
+        // soldiers can actually claim cover (validation picks the safe side)
+        var coverParent = new GameObject("CoverPoints").transform;
+        for (int i = 0; i < cfg.CoverBlocks; i++)
+        {
+            Vector3 p = ScatterPoint(rng);
+            bool rotated = rng.Next(2) == 1;
+            var block = Slab($"CoverBlock_{i}", new Vector3(p.x, 0.55f, p.z),
+                             new Vector3(1.7f, 1.1f, 0.4f), concrete);
+            if (rotated)
+                block.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+            Vector3 normal = rotated ? Vector3.right : Vector3.forward;
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var cp = new GameObject($"CoverPoint_{i}_{(side < 0 ? "a" : "b")}");
+                cp.transform.SetParent(coverParent, false);
+                cp.transform.position = block.transform.position
+                    + normal * (0.75f * side) + Vector3.up * 0.05f;
+                cp.AddComponent<G1CoverPoint>();
+            }
         }
 
         var door = Slab("SlidingDoor", new Vector3(7f, 1.1f, 6f),
@@ -275,6 +345,25 @@ public static class G1SceneBuilder
         Slab("DoorFrameR", new Vector3(8f, 1.25f, 6f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
         Slab("DoorLintel", new Vector3(7f, 2.6f, 6f), new Vector3(2.4f, 0.3f, 0.4f), concrete);
     }
+
+    /// Seeded point in the arena, kept clear of the player spawn and doorway.
+    static Vector3 ScatterPoint(System.Random rng)
+    {
+        for (int attempt = 0; attempt < 40; attempt++)
+        {
+            var p = new Vector3(RandRange(rng, -12f, 12f), 0f,
+                                RandRange(rng, -12f, 13f));
+            if ((p - new Vector3(0f, 0f, -8f)).sqrMagnitude < 16f)
+                continue;                               // player spawn area
+            if ((p - new Vector3(7f, 0f, 6f)).sqrMagnitude < 9f)
+                continue;                               // doorway
+            return p;
+        }
+        return new Vector3(0f, 0f, 12f);
+    }
+
+    static float RandRange(System.Random rng, float min, float max)
+        => (float)(min + rng.NextDouble() * (max - min));
 
     static GameObject BuildPlayer(RuntimeAnimatorController pistolCtrl, RuntimeAnimatorController smgCtrl, RuntimeAnimatorController shotgunCtrl, RuntimeAnimatorController magnumCtrl)
     {
@@ -291,6 +380,7 @@ public static class G1SceneBuilder
         var health = player.AddComponent<HealthSystem>();
         health.maxHealth = 100f;
         player.AddComponent<PlayerHUD>();
+        player.AddComponent<ArenaDebugHUD>();
         var fx = player.AddComponent<G1WeaponFX>();
 
         var monitor = player.AddComponent<CombatArenaMonitor>();
@@ -435,7 +525,8 @@ public static class G1SceneBuilder
     }
 
     static void BuildNpcs(RuntimeAnimatorController protagonistCtrl,
-                          RuntimeAnimatorController villainCtrl, Vector3 playerPos)
+                          RuntimeAnimatorController villainCtrl, Vector3 playerPos,
+                          ArenaConfig cfg, System.Random rng)
     {
         var protagonist = SpawnCharacter($"{Models}/Protagonist.fbx",
                                          new Vector3(3f, 0f, 4f), protagonistCtrl);
@@ -604,6 +695,8 @@ public static class G1SceneBuilder
 
         var soldierAI = soldier.AddComponent<G1SoldierAI>();
         soldierAI.waypoints = sWaypoints;
+        soldier.AddComponent<AIDebugGizmos>();   // before prefab save: spawned
+                                                 // reinforcements get gizmos too
 
         // Configure NavMeshAgent properties
         var agent = soldier.GetComponent<UnityEngine.AI.NavMeshAgent>();
@@ -625,8 +718,8 @@ public static class G1SceneBuilder
         var director = directorGo.AddComponent<ThreatDirector>();
         director.soldierPrefab = soldierPrefab;
         director.mobPrefabs = new GameObject[] { zombiePrefab, alienPrefab };
-        director.maxActiveSoldiers = 4;
-        director.relaxDuration = 8f;
+        director.maxActiveSoldiers = cfg.MaxActiveSoldiers;
+        director.relaxDuration = cfg.RelaxDuration;
         director.intensityDecayRate = 0.08f;
 
         // Spawn nodes around map perimeter
@@ -651,6 +744,31 @@ public static class G1SceneBuilder
             spawnNodes[i] = node.transform;
         }
         director.spawnNodes = spawnNodes;
+
+        // ---- parameterized population from the preset (seeded) ----
+        PopulateCount(soldier, cfg.Soldiers, rng);
+        PopulateCount(zombie, cfg.Zombies, rng);
+        PopulateCount(alien, cfg.Aliens, rng);
+    }
+
+    /// Clone the fully configured template until `count` instances exist
+    /// (seeded placement in the arena's upper half), or remove the template
+    /// entirely when count is zero. Runs after the prefab save, so the
+    /// ThreatDirector keeps valid prefab references either way.
+    static void PopulateCount(GameObject template, int count, System.Random rng)
+    {
+        if (count <= 0)
+        {
+            Object.DestroyImmediate(template);
+            return;
+        }
+        for (int i = 1; i < count; i++)
+        {
+            var clone = Object.Instantiate(template);
+            clone.name = $"{template.name}_{i}";
+            clone.transform.position = new Vector3(
+                RandRange(rng, -12f, 12f), 0f, RandRange(rng, 2f, 13f));
+        }
     }
 
     static Transform FindBone(Transform parent, string name)

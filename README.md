@@ -82,6 +82,7 @@ docs/             documentation (start here: docs/asset-pipeline.md)
 - [Characters & animation](docs/characters-and-animation.md) — skeleton, skinning, clips, NPC driver
 - [Weapons](docs/weapons.md) — crowbar, 9mm pistol, and how to add the next weapon
 - [Combat & health](docs/combat-and-health.md) — IDamageable, HealthSystem events, debug health bars
+- [Observability](docs/observability.md) — F3 telemetry HUD, soldier AI gizmos, seeded arena presets
 - [Scene builder](docs/scene-builder.md) — what the generated test scene contains
 
 ## Roadmap

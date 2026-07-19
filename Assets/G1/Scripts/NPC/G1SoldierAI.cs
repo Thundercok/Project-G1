@@ -9,7 +9,7 @@ using UnityEngine;
 public class G1SoldierAI : MonoBehaviour
 {
     private enum SoldierState : byte { Patrol, Alert, BurstFire, Dead }
-    private enum CombatAction : byte { PopFire, MoveToCover, Suppress, Flank, Reload, Retreat, Opportunist }
+    public enum CombatAction : byte { PopFire, MoveToCover, Suppress, Flank, Reload, Retreat, Opportunist }
 
     [Header("Patrol & Movement")]
     public Transform[] waypoints;
@@ -49,6 +49,12 @@ public class G1SoldierAI : MonoBehaviour
     private CombatAction _currentAction = CombatAction.PopFire;
     private G1CoverPoint _claimedCover;
     private SquadRole _claimedRole = SquadRole.None;
+
+    // Read-only state exposure for observability tooling (AIDebugGizmos, HUDs)
+    public CombatAction CurrentAction => _currentAction;
+    public SquadRole ClaimedRole => _claimedRole;
+    public G1CoverPoint ClaimedCover => _claimedCover;
+    public Transform PlayerXform => player != null ? player.transform : null;
     private float _nextPlanTime;
     private const float PlanInterval = 0.4f;
     private bool _recentlyHit;
