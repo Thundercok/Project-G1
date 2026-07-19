@@ -1,4 +1,5 @@
 using System.Linq;
+using Unity.AI.Navigation;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
@@ -98,15 +99,22 @@ public static class G1SceneBuilder
         GameObject player = BuildPlayer(pistolCtrl, smgCtrl, shotgunCtrl, magnumCtrl);
         BuildNpcs(protagonistCtrl, villainCtrl, player.transform.position, cfg, rng);
 
-        // Save FIRST so the scene has a path, then bake: the legacy baker
-        // persists NavMesh data as an asset next to a *saved* scene. Baking an
-        // unsaved scene keeps the NavMesh only in memory, and it silently dies
-        // on the play-mode domain reload ("Failed to create agent because
-        // there is no valid NavMesh").
+        // Modern bake (com.unity.ai.navigation): a NavMeshSurface over the
+        // Default layer only, so NPCs (Enemy layer) and the player never get
+        // frozen into the mesh. The baked NavMeshData MUST be saved as an
+        // asset — an in-memory-only mesh silently dies on the play-mode domain
+        // reload ("Failed to create agent because there is no valid NavMesh").
+        var navGo = new GameObject("NavMesh");
+        var surface = navGo.AddComponent<NavMeshSurface>();
+        surface.collectObjects = CollectObjects.All;
+        surface.layerMask = 1 << 0;                     // Default layer geometry
+        surface.useGeometry = UnityEngine.AI.NavMeshCollectGeometry.RenderMeshes;
+        surface.BuildNavMesh();
         EnsureFolder("Assets/Scenes");
+        AssetDatabase.DeleteAsset("Assets/Scenes/TestSceneNavMesh.asset");
+        AssetDatabase.DeleteAsset("Assets/Scenes/TestScene");   // stale legacy bake
+        AssetDatabase.CreateAsset(surface.navMeshData, "Assets/Scenes/TestSceneNavMesh.asset");
         EditorSceneManager.SaveScene(scene, ScenePath);
-        UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
-        EditorSceneManager.SaveScene(scene);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         AssetDatabase.SaveAssets();
         Debug.Log($"G1 BUILD OK (seed {cfg.Seed}: {cfg.Soldiers} soldiers, "
@@ -282,7 +290,6 @@ public static class G1SceneBuilder
         go.transform.position = pos;
         go.transform.localScale = size;
         go.GetComponent<Renderer>().sharedMaterial = mat;
-        GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.NavigationStatic);
         return go;
     }
 
