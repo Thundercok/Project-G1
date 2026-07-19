@@ -273,20 +273,34 @@ public static class G1SceneBuilder
     // ------------------------------------------------------------- scene
     static void BuildLighting()
     {
+        // Faint directional fill representing ventilation shaft moonlight
         var sun = new GameObject("Sun").AddComponent<Light>();
         sun.type = LightType.Directional;
-        sun.transform.rotation = Quaternion.Euler(55f, -35f, 0f);
-        sun.intensity = 1.05f;
-        sun.color = new Color(1f, 0.95f, 0.88f);
-        sun.shadows = LightShadows.Soft;
+        sun.transform.rotation = Quaternion.Euler(65f, -45f, 0f);
+        sun.intensity = 0.12f;
+        sun.color = new Color(0.7f, 0.8f, 1f);
+        sun.shadows = LightShadows.None;
 
         RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.30f, 0.31f, 0.34f);
+        RenderSettings.ambientLight = new Color(0.06f, 0.07f, 0.10f); // dark cool facility shadow fill
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 25f;
-        RenderSettings.fogEndDistance = 80f;
-        RenderSettings.fogColor = new Color(0.34f, 0.36f, 0.39f);
+        RenderSettings.fogStartDistance = 15f;
+        RenderSettings.fogEndDistance = 65f;
+        RenderSettings.fogColor = new Color(0.08f, 0.09f, 0.12f);
+    }
+
+    static Light SpawnLight(string name, Vector3 pos, Color color, float range, float intensity, LightShadows shadows = LightShadows.Soft)
+    {
+        var go = new GameObject(name);
+        go.transform.position = pos;
+        var lt = go.AddComponent<Light>();
+        lt.type = LightType.Point;
+        lt.color = color;
+        lt.range = range;
+        lt.intensity = intensity;
+        lt.shadows = shadows;
+        return lt;
     }
 
     static GameObject Slab(string name, Vector3 pos, Vector3 size, Material mat)
@@ -410,6 +424,10 @@ public static class G1SceneBuilder
         // Spawn Pistol pickup on Locker Room table
         SpawnWeaponPickup("Pistol", G1WeaponPickup.WeaponType.Pistol, new Vector3(0f, 1.05f, -8f), Quaternion.identity, concrete);
 
+        // Spawn Locker Room Lights
+        SpawnLight("LockerRoom_Light1", new Vector3(-3f, 2.5f, -8f), new Color(0.85f, 0.9f, 1f), 10f, 1.4f);
+        SpawnLight("LockerRoom_Light2", new Vector3(3f, 2.5f, -8f), new Color(0.85f, 0.9f, 1f), 10f, 1.4f);
+
         // 2. LAB CORRIDOR
         Slab("CorridorFloor", new Vector3(0, -0.25f, 6.5f), new Vector3(4, 0.5f, 19), floorMat);
         Slab("CorridorWallW", new Vector3(-2f, 1.5f, 6.5f), new Vector3(0.5f, 3, 19), concrete);
@@ -425,6 +443,11 @@ public static class G1SceneBuilder
 
         // Spawn Shotgun pickup in Lab Corridor
         SpawnWeaponPickup("Shotgun", G1WeaponPickup.WeaponType.Shotgun, new Vector3(-1f, 0.4f, 8f), Quaternion.identity, wood);
+
+        // Spawn Lab Corridor Lights
+        var l3 = SpawnLight("Corridor_Light1", new Vector3(0f, 2.5f, 3f), new Color(0.95f, 0.95f, 0.9f), 9f, 1.3f);
+        l3.gameObject.AddComponent<G1LightEffects>().effectType = G1LightEffects.EffectType.Flicker;
+        SpawnLight("Corridor_Light2", new Vector3(0f, 2.5f, 11f), new Color(0.95f, 0.95f, 0.9f), 9f, 1.3f);
 
         // 3. CONTROL ROOM
         Slab("ControlRoomFloor", new Vector3(6f, -0.25f, 22f), new Vector3(16, 0.5f, 12), floorMat);
@@ -467,6 +490,9 @@ public static class G1SceneBuilder
 
         // Spawn SMG pickup in Control Room on table
         SpawnWeaponPickup("Smg", G1WeaponPickup.WeaponType.Smg, new Vector3(4f, 1.05f, 20f), Quaternion.identity, metalMat);
+
+        // Spawn Control Room Lights (cool blue terminal glow)
+        SpawnLight("ControlRoom_Light", new Vector3(8f, 2.3f, 22f), new Color(0.35f, 0.75f, 1f), 12f, 1.6f);
 
         // 4. INDUSTRIAL HALL (Ambush Faction Arena)
         Slab("IndustrialFloor", new Vector3(12f, -0.25f, 42f), new Vector3(32, 0.5f, 28), floorMat);
@@ -522,6 +548,12 @@ public static class G1SceneBuilder
         // Spawn Magnum pickup in Industrial Hall near generator
         SpawnWeaponPickup("Magnum", G1WeaponPickup.WeaponType.Magnum, new Vector3(18f, 0.4f, 40f), Quaternion.identity, hazard);
 
+        // Spawn Industrial Hall point lights
+        SpawnLight("Industrial_Light1", new Vector3(4f, 5f, 35f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
+        SpawnLight("Industrial_Light2", new Vector3(20f, 5f, 35f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
+        SpawnLight("Industrial_Light3", new Vector3(4f, 5f, 49f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
+        SpawnLight("Industrial_Light4", new Vector3(20f, 5f, 49f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
+
         // 5. ALIEN BREACH ZONE (Portal Chaos)
         Slab("BreachFloor", new Vector3(12f, -0.25f, 64f), new Vector3(8, 0.5f, 16), floorMat);
         Slab("BreachWallW", new Vector3(8f, 1.5f, 64f), new Vector3(0.5f, 3, 16), concrete);
@@ -555,6 +587,10 @@ public static class G1SceneBuilder
         hordeComp.spawnCenter = new Vector3(12f, 0f, 68f);
         hordeComp.spawnRadius = 4f;
 
+        // Spawn Portal Light (neon teal, pulsing effect)
+        var l10 = SpawnLight("Breach_PortalLight", new Vector3(12f, 2.5f, 64f), new Color(0f, 1f, 0.8f), 15f, 2.5f);
+        l10.gameObject.AddComponent<G1LightEffects>().effectType = G1LightEffects.EffectType.Pulse;
+
         // 6. EMERGENCY ELEVATOR (EXIT)
         Slab("ElevatorFloor", new Vector3(12f, -0.25f, 76f), new Vector3(6, 0.5f, 8), floorMat);
         Slab("ElevatorWallW", new Vector3(9f, 1.5f, 76f), new Vector3(0.5f, 3, 8), concrete);
@@ -564,6 +600,10 @@ public static class G1SceneBuilder
         var lift = SpawnModular("prop_generator_large", new Vector3(12f, 0.05f, 77.5f), Quaternion.identity, new Vector3(2.5f, 0.1f, 2.5f), metalMat);
         lift.name = "ElevatorPlatform";
         
+        // Spawn Elevator warning beacon (hazard orange, pulsing)
+        var l11 = SpawnLight("Elevator_WarningLight", new Vector3(12f, 2.6f, 77.5f), new Color(1f, 0.4f, 0f), 12f, 2.5f);
+        l11.gameObject.AddComponent<G1LightEffects>().effectType = G1LightEffects.EffectType.Pulse;
+
         // Add Level Complete Trigger Zone
         var triggerObj = new GameObject("LevelExitTrigger");
         triggerObj.transform.position = new Vector3(12f, 0.5f, 77.5f);
