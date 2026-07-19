@@ -113,9 +113,16 @@ public sealed class ThreatDirector : MonoBehaviour
 
         GeometryUtility.CalculateFrustumPlanes(_cam, _frustumPlanes);
 
-        foreach (var node in spawnNodes)
+        int count = spawnNodes.Length;
+        // Start from a randomized index to prevent prediction bias when player stands still
+        int startIdx = Random.Range(0, count);
+
+        for (int i = 0; i < count; i++)
         {
+            int idx = (startIdx + i) % count;
+            var node = spawnNodes[idx];
             if (node == null) continue;
+
             var bounds = new Bounds(node.position, Vector3.one * 1.5f);
             if (GeometryUtility.TestPlanesAABB(_frustumPlanes, bounds)) continue;
 
