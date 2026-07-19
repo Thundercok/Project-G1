@@ -18,6 +18,7 @@ public class G1Shotgun : WeaponBase
     public int clip = 8;
     public int reserve = 24;
     public float reloadShellTime = 0.5f; // time to insert one shell
+    public float reloadEndTime = 0.25f;   // time to return to idle after reload
 
     [Header("Wiring")]
     public Animator modelAnimator;
@@ -112,12 +113,18 @@ public class G1Shotgun : WeaponBase
                 yield return null;
             }
 
-            if (wantsToFireDuringReload)
-                break;
-
+            // FIX Bug 2: increment BEFORE checking for interrupt so the shell is not lost
             clip++;
             reserve--;
+
+            if (wantsToFireDuringReload)
+                break;
         }
+
+        // FIX Bug 1: CrossFade to Idle and wait for reloadEndTime to prevent instant snap
+        if (modelAnimator)
+            modelAnimator.CrossFade("Idle", 0.05f, 0, 0f);
+        yield return new WaitForSeconds(reloadEndTime);
 
         reloading = false;
 
