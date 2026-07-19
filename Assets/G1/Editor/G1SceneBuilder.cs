@@ -767,25 +767,8 @@ public static class G1SceneBuilder
         pBar.heightOffset = 2.15f;
         protagonist.AddComponent<G1DeathPhysics>();
 
-        var villain = SpawnCharacter($"{Models}/Villain.fbx",
-                                     new Vector3(-2f, 0f, -6f), villainCtrl);
-        Vector3 toPlayer = playerPos - villain.transform.position;
-        toPlayer.y = 0f;
-        villain.transform.rotation = Quaternion.LookRotation(toPlayer);
-
-        // the villain can now be hurt (debug bar included) — handles physical tipping death and attacks
-        var health = villain.AddComponent<HealthSystem>();
-        health.maxHealth = 100f;
-        var bar = villain.AddComponent<WorldSpaceHealthBar>();
-        bar.heightOffset = 2.15f;
-        villain.AddComponent<G1DeathPhysics>();
-        villain.AddComponent<G1NPCCombat>();
-
-        // Ensure Enemy Layer and claim/assign layers recursively
+        // Ensure Enemy Layer and SquadBlackboard
         int enemyLayer = EnsureLayer("Enemy");
-        SetLayerRecursive(villain, enemyLayer);
-
-        // Set up SquadBlackboard
         new GameObject("SquadBlackboard").AddComponent<SquadBlackboard>();
 
         // Spawn Zombie (sickly green skin + procedural Headcrab on head bone)

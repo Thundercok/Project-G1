@@ -23,17 +23,77 @@ public class PlayerMovement : MonoBehaviour
     float coyoteTimer;              // grace period after leaving ground
     const float CoyoteWindow = 0.12f;
 
+    [Header("Crouch Settings")]
+    public float crouchHeight = 1.0f;
+    public float crouchSpeedMult = 0.5f;
+    public float crouchCameraY = 0.85f;
+
+    private float defaultHeight = 1.8f;
+    private Vector3 defaultCameraLocalPos = new Vector3(0f, 1.62f, 0f);
+    private bool isCrouching = false;
+    private Transform cameraTransform;
+
     public Vector3 Velocity => velocity;
     public bool Grounded => wasGrounded;
+    public bool IsCrouching => isCrouching;
 
     void Awake()
     {
         cc = GetComponent<CharacterController>();
     }
 
+    void Start()
+    {
+        cameraTransform = GetComponentInChildren<Camera>()?.transform;
+        defaultHeight = cc.height;
+        if (cameraTransform != null)
+        {
+            defaultCameraLocalPos = cameraTransform.localPosition;
+        }
+    }
+
     void Update()
     {
         float dt = Time.deltaTime;
+
+        // Crouch input and ceiling check
+        bool wishCrouch = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.C);
+        if (!wishCrouch && isCrouching)
+        {
+            Vector3 centerCrouched = transform.position + Vector3.up * (crouchHeight * 0.5f);
+            float radius = cc.radius - 0.05f;
+            float checkDist = defaultHeight - crouchHeight;
+            if (Physics.SphereCast(centerCrouched, radius, Vector3.up, out RaycastHit hit, checkDist, ~LayerMask.GetMask("Player")))
+            {
+                wishCrouch = true; // Stay crouched under ceiling obstacles
+            }
+        }
+
+        // Apply crouch height transitions
+        if (wishCrouch != isCrouching)
+        {
+            isCrouching = wishCrouch;
+            float targetHeight = isCrouching ? crouchHeight : defaultHeight;
+            float lastHeight = cc.height;
+
+            cc.height = targetHeight;
+            cc.center = new Vector3(0f, targetHeight * 0.5f, 0f);
+            transform.position += Vector3.up * (lastHeight - targetHeight) * 0.5f * (isCrouching ? -1f : 1f);
+
+            if (cameraTransform != null)
+            {
+                Vector3 camPos = cameraTransform.localPosition;
+                camPos.y = isCrouching ? crouchCameraY : defaultCameraLocalPos.y;
+                cameraTransform.localPosition = camPos;
+            }
+        }
+
+        float currentMaxSpeed = maxSpeed;
+        if (isCrouching)
+        {
+            currentMaxSpeed *= crouchSpeedMult;
+        }
+
         Vector3 wish = transform.right * Input.GetAxisRaw("Horizontal")
                      + transform.forward * Input.GetAxisRaw("Vertical");
         wish.y = 0f;
@@ -50,22 +110,19 @@ public class PlayerMovement : MonoBehaviour
         if (grounded)
         {
             ApplyFriction(dt);
-            Accelerate(wish.normalized, wish.magnitude * maxSpeed, accelerate, dt);
+            Accelerate(wish.normalized, wish.magnitude * currentMaxSpeed, accelerate, dt);
             velocity.y = -1f;                       // keep the controller planted
-            // DESIGN INTENT: Auto-bhop (held button) — accessibility choice, not a bug.
-            // Change to GetButtonDown() to require tap-timing skill expression.
             if (Input.GetButton("Jump"))
                 velocity.y = jumpSpeed;
         }
         else
         {
-            // Coyote time: allow jump shortly after walking off an edge
             if (coyoteTimer > 0f && Input.GetButton("Jump"))
             {
                 velocity.y = jumpSpeed;
                 coyoteTimer = 0f;
             }
-            float wishSpeed = wish.magnitude * maxSpeed;
+            float wishSpeed = wish.magnitude * currentMaxSpeed;
             Accelerate(wish.normalized, wishSpeed, airAccelerate, dt);
             velocity.y -= gravity * dt;
         }
