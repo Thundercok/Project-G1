@@ -86,6 +86,26 @@ public class G1SoldierAI : MonoBehaviour
         if (player)
             playerHealth = player.GetComponent<HealthSystem>();
 
+        // Prefab-spawned soldiers carry stripped scene references: the array
+        // keeps its length but every entry is a fake-null UnassignedReference.
+        // Drop dead entries so the auto-resolve below can take over.
+        if (waypoints != null && waypoints.Length > 0)
+        {
+            int valid = 0;
+            for (int i = 0; i < waypoints.Length; i++)
+                if (waypoints[i])
+                    valid++;
+            if (valid < waypoints.Length)
+            {
+                var kept = new Transform[valid];
+                int k = 0;
+                for (int i = 0; i < waypoints.Length; i++)
+                    if (waypoints[i])
+                        kept[k++] = waypoints[i];
+                waypoints = kept;
+            }
+        }
+
         // Auto-resolve waypoints from global path if none assigned
         if (waypoints == null || waypoints.Length == 0)
         {
@@ -196,7 +216,13 @@ public class G1SoldierAI : MonoBehaviour
     {
         if (waypoints == null || waypoints.Length == 0) return;
 
-        Vector3 target = waypoints[waypointIdx].position;
+        Transform wp = waypoints[waypointIdx % waypoints.Length];
+        if (!wp)                                    // destroyed/unassigned entry
+        {
+            waypointIdx = (waypointIdx + 1) % waypoints.Length;
+            return;
+        }
+        Vector3 target = wp.position;
         target.y = transform.position.y;
         Vector3 to = target - transform.position;
 
