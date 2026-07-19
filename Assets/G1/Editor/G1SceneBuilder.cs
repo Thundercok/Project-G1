@@ -299,6 +299,41 @@ public static class G1SceneBuilder
         return go;
     }
 
+    static GameObject SpawnModular(string assetName, Vector3 pos, Quaternion rot, Vector3 scale, Material fallbackMat)
+    {
+        string modelPath = $"Assets/G1/Models/Environment/{assetName}.fbx";
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+        if (prefab != null)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            go.name = assetName;
+            go.transform.position = pos;
+            go.transform.rotation = rot;
+            go.transform.localScale = scale;
+            if (go.GetComponent<Collider>() == null && go.GetComponentInChildren<Collider>() == null)
+            {
+                var col = go.AddComponent<BoxCollider>();
+                var filter = go.GetComponentInChildren<MeshFilter>();
+                if (filter != null && filter.sharedMesh != null)
+                {
+                    col.center = filter.sharedMesh.bounds.center;
+                    col.size = filter.sharedMesh.bounds.size;
+                }
+            }
+            return go;
+        }
+        else
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = $"[Placeholder] {assetName}";
+            go.transform.position = pos;
+            go.transform.rotation = rot;
+            go.transform.localScale = scale;
+            go.GetComponent<Renderer>().sharedMaterial = fallbackMat;
+            return go;
+        }
+    }
+
     static void BuildArena(ArenaConfig cfg, System.Random rng)
     {
         Material concrete = MakeMat("Concrete", new Color(0.33f, 0.34f, 0.32f));
@@ -306,6 +341,8 @@ public static class G1SceneBuilder
         Material hazard = MakeMat("HazardOrange", new Color(0.72f, 0.29f, 0.05f));
         Material wood = MakeMat("CrateWood", new Color(0.38f, 0.25f, 0.12f));
         Material doorMat = MakeMat("DoorSteel", new Color(0.45f, 0.36f, 0.16f), 0.4f);
+        Material metalMat = MakeMat("PropMetal", new Color(0.4f, 0.42f, 0.45f));
+        Material greenMat = MakeMat("IndustrialGreen", new Color(0.29f, 0.37f, 0.29f));
 
         // fixed shell — identical for every preset
         Slab("Ground", new Vector3(0, -0.25f, 0), new Vector3(40, 0.5f, 40), floorMat);
@@ -318,15 +355,17 @@ public static class G1SceneBuilder
         {
             float x = i < 2 ? -8f : 8f;
             float z = i % 2 == 0 ? -8f : 8f;
-            Slab("Pillar", new Vector3(x, 1.5f, z), new Vector3(0.7f, 3f, 0.7f), hazard);
+            var pillar = SpawnModular("prop_pillar_structural", new Vector3(x, 1.5f, z), Quaternion.identity, new Vector3(0.7f, 3f, 0.7f), hazard);
+            pillar.name = "Pillar";
         }
 
         // seeded crate scatter
         for (int i = 0; i < cfg.Crates; i++)
         {
             Vector3 p = ScatterPoint(rng);
-            var crate = Slab("Crate", new Vector3(p.x, 0.4f, p.z),
-                             Vector3.one * 0.8f, wood);
+            var crate = SpawnModular("prop_crate_wooden", new Vector3(p.x, 0.4f, p.z),
+                             Quaternion.identity, Vector3.one * 0.8f, wood);
+            crate.name = "Crate";
             crate.AddComponent<Breakable>();            // auto-adds HealthSystem
             crate.GetComponent<HealthSystem>().maxHealth = 50f;
             var bar = crate.AddComponent<WorldSpaceHealthBar>();
@@ -340,10 +379,10 @@ public static class G1SceneBuilder
         {
             Vector3 p = ScatterPoint(rng);
             bool rotated = rng.Next(2) == 1;
-            var block = Slab($"CoverBlock_{i}", new Vector3(p.x, 0.55f, p.z),
+            var block = SpawnModular("wall_straight_panel", new Vector3(p.x, 0.55f, p.z),
+                             rotated ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity,
                              new Vector3(1.7f, 1.1f, 0.4f), concrete);
-            if (rotated)
-                block.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+            block.name = $"CoverBlock_{i}";
             Vector3 normal = rotated ? Vector3.right : Vector3.forward;
             for (int side = -1; side <= 1; side += 2)
             {
@@ -355,12 +394,25 @@ public static class G1SceneBuilder
             }
         }
 
-        var door = Slab("SlidingDoor", new Vector3(7f, 1.1f, 6f),
+        var door = SpawnModular("door_sliding_auto", new Vector3(7f, 1.1f, 6f), Quaternion.identity,
                         new Vector3(1.6f, 2.2f, 0.18f), doorMat);
+        door.name = "SlidingDoor";
         door.AddComponent<SlidingDoor>();
         Slab("DoorFrameL", new Vector3(6f, 1.25f, 6f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
         Slab("DoorFrameR", new Vector3(8f, 1.25f, 6f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
         Slab("DoorLintel", new Vector3(7f, 2.6f, 6f), new Vector3(2.4f, 0.3f, 0.4f), concrete);
+
+        // Spawn decorative lab/industrial props using the seeded rng
+        SpawnModular("prop_generator_large", new Vector3(-14f, 0.75f, -14f), Quaternion.identity, new Vector3(1.2f, 1.5f, 1.8f), greenMat);
+        SpawnModular("prop_generator_large", new Vector3(14f, 0.75f, -14f), Quaternion.identity, new Vector3(1.2f, 1.5f, 1.8f), greenMat);
+        
+        for (int i = 0; i < 3; i++)
+        {
+            SpawnModular("prop_filing_cabinet", new Vector3(-15.3f, 0.9f, -4f + i * 1.2f), Quaternion.Euler(0f, 90f, 0f), new Vector3(0.6f, 1.8f, 0.6f), metalMat);
+        }
+
+        SpawnModular("prop_lab_table", new Vector3(-4f, 0.45f, 13.5f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
+        SpawnModular("prop_computer_terminal", new Vector3(-4f, 1.05f, 13.5f), Quaternion.identity, new Vector3(0.5f, 0.5f, 0.5f), floorMat);
     }
 
     /// Seeded point in the arena, kept clear of the player spawn and doorway.
