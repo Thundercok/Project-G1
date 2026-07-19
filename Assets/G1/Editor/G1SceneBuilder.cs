@@ -445,6 +445,15 @@ public static class G1SceneBuilder
         door3.AddComponent<SlidingDoor>();
 
         SpawnModular("prop_monitor_stack", new Vector3(8f, 0.9f, 23f), Quaternion.identity, Vector3.one, metalMat);
+
+        var cctvScreen = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        cctvScreen.name = "CCTV_Monitor_Screen";
+        cctvScreen.transform.position = new Vector3(8f, 1.42f, 22.65f);
+        cctvScreen.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+        cctvScreen.transform.localScale = new Vector3(1.1f, 0.8f, 1f);
+        Object.DestroyImmediate(cctvScreen.GetComponent<Collider>());
+        cctvScreen.AddComponent<G1CCTVScreen>();
+
         SpawnModular("prop_computer_terminal", new Vector3(6f, 0.9f, 23f), Quaternion.identity, Vector3.one * 0.8f, floorMat);
         SpawnModular("prop_computer_terminal", new Vector3(10f, 0.9f, 23f), Quaternion.identity, Vector3.one * 0.8f, floorMat);
         SpawnModular("prop_lab_table", new Vector3(4f, 0.45f, 20f), Quaternion.Euler(0f, 45f, 90f), new Vector3(1.6f, 0.9f, 0.8f), metalMat);
