@@ -111,11 +111,18 @@ public class G1ZombieAI : MonoBehaviour
         // Visual slash effect (short pop of arms forward-down)
         StartCoroutine(AttackVisualSwipe());
 
-        // Check if player is still in range to take damage
+        // Check if player is still in range and has clear line-of-sight (prevent hitting through walls/crates)
         float dist = Vector3.Distance(transform.position, player.transform.position);
         if (dist <= attackRange + 0.5f)
         {
-            playerHealth.TakeDamage(damage, player.transform.position + Vector3.up * 1f, -transform.forward);
+            Vector3 eyePos = transform.position + Vector3.up * 1.5f;
+            Vector3 targetPos = player.transform.position + Vector3.up * 1.5f;
+            Vector3 dir = targetPos - eyePos;
+            bool hitWall = Physics.Raycast(eyePos, dir.normalized, out RaycastHit hit, dir.magnitude, 1 << 0); // Default layer obstacles
+            if (!hitWall)
+            {
+                playerHealth.TakeDamage(damage, player.transform.position + Vector3.up * 1f, -transform.forward);
+            }
         }
     }
 

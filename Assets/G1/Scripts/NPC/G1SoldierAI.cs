@@ -39,14 +39,19 @@ public class G1SoldierAI : MonoBehaviour
 
     // Zero-alloc buffers
     private readonly Collider[] detectBuf = new Collider[4];
-    private static readonly int playerMask = 1 << 6; // Layer 6: Player (aligned with builder)
-    private static readonly int obstacleMask = (1 << 0) | (1 << 6); // Default + Player layers
+    private int playerMask;
+    private int obstacleMask;
 
     void Start()
     {
         myHealth = GetComponent<HealthSystem>();
         myHealth.OnDeath += HandleDeath;
         anim = GetComponent<Animator>();
+
+        int playerLayer = LayerMask.NameToLayer("Player");
+        if (playerLayer == -1) playerLayer = 8;
+        playerMask = 1 << playerLayer;
+        obstacleMask = (1 << 0) | (1 << playerLayer);
 
         player = GameObject.FindWithTag("Player");
         if (player)
@@ -128,7 +133,7 @@ public class G1SoldierAI : MonoBehaviour
 
     bool CheckLineOfSight()
     {
-        Vector3 eyePos = transform.position + Vector3.up * 1.5f;
+        Vector3 eyePos = transform.position + Vector3.up * 1.5f + transform.forward * 0.45f;
         Vector3 targetPos = player.transform.position + Vector3.up * 1.5f;
         Vector3 dir = targetPos - eyePos;
         float dist = dir.magnitude;
@@ -236,7 +241,7 @@ public class G1SoldierAI : MonoBehaviour
     {
         PlayMuzzleFlash();
 
-        Vector3 eyePos = transform.position + Vector3.up * 1.5f;
+        Vector3 eyePos = transform.position + Vector3.up * 1.5f + transform.forward * 0.45f;
         Vector3 targetPos = player.transform.position + Vector3.up * 1.5f;
         Vector3 dir = (targetPos - eyePos).normalized;
 
