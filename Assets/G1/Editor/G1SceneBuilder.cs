@@ -40,7 +40,7 @@ public static class G1SceneBuilder
         RuntimeAnimatorController shotgunCtrl =
             MakePistolController($"{Models}/Shotgun.fbx", $"{AnimDir}/Shotgun.controller");
         RuntimeAnimatorController magnumCtrl =
-            MakePistolController($"{Models}/Magnum.fbx", $"{AnimDir}/Magnum.controller");
+            MakeMagnumController($"{Models}/Magnum.fbx", $"{AnimDir}/Magnum.controller");
 
         Scene scene = EditorSceneManager.NewScene(
             NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -123,6 +123,37 @@ public static class G1SceneBuilder
             back.exitTime = 1f;
             back.duration = 0.05f;
         }
+        return ctrl;
+    }
+
+    static RuntimeAnimatorController MakeMagnumController(string fbxPath, string ctrlPath)
+    {
+        var ctrl = NewController(ctrlPath);
+        var sm = ctrl.layers[0].stateMachine;
+        var idle = sm.AddState("Idle");
+        idle.motion = LoadClip(fbxPath, "Idle");
+        sm.defaultState = idle;
+
+        var fire = sm.AddState("Fire");
+        fire.motion = LoadClip(fbxPath, "Fire");
+        var fireToIdle = fire.AddTransition(idle);
+        fireToIdle.hasExitTime = true;
+        fireToIdle.exitTime = 1f;
+        fireToIdle.duration = 0.05f;
+
+        var rOpen = sm.AddState("ReloadOpen");
+        rOpen.motion = LoadClip(fbxPath, "ReloadOpen");
+
+        var rInsert = sm.AddState("ReloadInsert");
+        rInsert.motion = LoadClip(fbxPath, "ReloadInsert");
+
+        var rClose = sm.AddState("ReloadClose");
+        rClose.motion = LoadClip(fbxPath, "ReloadClose");
+        var rCloseToIdle = rClose.AddTransition(idle);
+        rCloseToIdle.hasExitTime = true;
+        rCloseToIdle.exitTime = 1f;
+        rCloseToIdle.duration = 0.05f;
+
         return ctrl;
     }
 
