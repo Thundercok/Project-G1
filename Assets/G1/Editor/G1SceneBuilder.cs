@@ -26,6 +26,7 @@ public static class G1SceneBuilder
         ConfigureFbx($"{Models}/Villain.fbx", loopAll: true);
         ConfigureFbx($"{Models}/Pistol.fbx", loopAll: false);   // only Idle loops
         ConfigureFbx($"{Models}/Smg.fbx", loopAll: false);
+        ConfigureFbx($"{Models}/Shotgun.fbx", loopAll: false);
 
         RuntimeAnimatorController protagonistCtrl =
             MakeNpcController($"{Models}/Protagonist.fbx", $"{AnimDir}/Protagonist.controller");
@@ -35,13 +36,15 @@ public static class G1SceneBuilder
             MakePistolController($"{Models}/Pistol.fbx", $"{AnimDir}/Pistol.controller");
         RuntimeAnimatorController smgCtrl =
             MakePistolController($"{Models}/Smg.fbx", $"{AnimDir}/Smg.controller");
+        RuntimeAnimatorController shotgunCtrl =
+            MakePistolController($"{Models}/Shotgun.fbx", $"{AnimDir}/Shotgun.controller");
 
         Scene scene = EditorSceneManager.NewScene(
             NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         BuildLighting();
         BuildArena();
-        GameObject player = BuildPlayer(pistolCtrl, smgCtrl);
+        GameObject player = BuildPlayer(pistolCtrl, smgCtrl, shotgunCtrl);
         BuildNpcs(protagonistCtrl, villainCtrl, player.transform.position);
 
         EnsureFolder("Assets/Scenes");
@@ -235,7 +238,7 @@ public static class G1SceneBuilder
         Slab("DoorLintel", new Vector3(7f, 2.6f, 6f), new Vector3(2.4f, 0.3f, 0.4f), concrete);
     }
 
-    static GameObject BuildPlayer(RuntimeAnimatorController pistolCtrl, RuntimeAnimatorController smgCtrl)
+    static GameObject BuildPlayer(RuntimeAnimatorController pistolCtrl, RuntimeAnimatorController smgCtrl, RuntimeAnimatorController shotgunCtrl)
     {
         var player = new GameObject("Player");
         player.transform.position = new Vector3(0f, 0.05f, -8f);
@@ -324,8 +327,30 @@ public static class G1SceneBuilder
         smgAnim.runtimeAnimatorController = smgCtrl;
         smg.modelAnimator = smgAnim;
 
+        // --- shotgun
+        var shotgunHolder = new GameObject("ShotgunHolder");
+        shotgunHolder.transform.SetParent(camGo.transform, false);
+        shotgunHolder.transform.localPosition = new Vector3(0.24f, -0.28f, 0.45f);
+        var shotgun = shotgunHolder.AddComponent<G1Shotgun>();
+        shotgun.viewCamera = cam;
+        shotgun.movement = move;
+        shotgun.hitMask = shootable;
+        shotgun.weaponFX = fx;
+        shotgun.camFX = camFX;
+        var shotgunMuzzle = new GameObject("MuzzlePoint");
+        shotgunMuzzle.transform.SetParent(shotgunHolder.transform, false);
+        shotgunMuzzle.transform.localPosition = new Vector3(0f, 0.08f, 0.65f); // aligned to barrel end
+        shotgun.muzzlePoint = shotgunMuzzle.transform;
+        var shotgunModel = MountViewmodel($"{Models}/Shotgun.fbx", shotgunHolder.transform,
+                                         Vector3.zero, Quaternion.identity);
+        var shotgunAnim = shotgunModel.GetComponent<Animator>();
+        if (!shotgunAnim)
+            shotgunAnim = shotgunModel.AddComponent<Animator>();
+        shotgunAnim.runtimeAnimatorController = shotgunCtrl;
+        shotgun.modelAnimator = shotgunAnim;
+
         var switcher = camGo.AddComponent<WeaponSwitcher>();
-        switcher.weapons = new[] { crowbarHolder, pistolHolder, smgHolder };
+        switcher.weapons = new[] { crowbarHolder, pistolHolder, smgHolder, shotgunHolder };
 
         SetLayerRecursive(player, playerLayer);
         return player;
@@ -363,6 +388,11 @@ public static class G1SceneBuilder
             return wp;
         }).ToArray();
         protagonist.GetComponent<NPCController>().waypoints = waypoints;
+        var pHealth = protagonist.AddComponent<HealthSystem>();
+        pHealth.maxHealth = 100f;
+        var pBar = protagonist.AddComponent<WorldSpaceHealthBar>();
+        pBar.heightOffset = 2.15f;
+        protagonist.AddComponent<G1DeathPhysics>();
 
         var villain = SpawnCharacter($"{Models}/Villain.fbx",
                                      new Vector3(-4f, 0f, 2f), villainCtrl);
@@ -370,12 +400,13 @@ public static class G1SceneBuilder
         toPlayer.y = 0f;
         villain.transform.rotation = Quaternion.LookRotation(toPlayer);
 
-        // the villain can now be hurt (debug bar included) — no death anim yet
+        // the villain can now be hurt (debug bar included) — handles physical tipping death and attacks
         var health = villain.AddComponent<HealthSystem>();
         health.maxHealth = 100f;
         var bar = villain.AddComponent<WorldSpaceHealthBar>();
         bar.heightOffset = 2.15f;
-        villain.AddComponent<DeathDespawn>();
+        villain.AddComponent<G1DeathPhysics>();
+        villain.AddComponent<G1NPCCombat>();
     }
 
     static GameObject SpawnCharacter(string fbxPath, Vector3 pos,
