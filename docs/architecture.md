@@ -174,3 +174,14 @@ Preset generation seeds `System.Random` to ensure reproducible level layout:
 | **Solo HECU** | 101 | 1 | 0 | 0 | 8 |
 | **Horde Overwhelm** | 666 | 2 | 3 | 3 | 10 |
 | **Low Cover** | 42 | 2 | 1 | 1 | 2 |
+
+* **Play Mode Rebuild Safeguard**:
+  Rebuilding scenes via `NewScene` during play mode triggers an `InvalidOperationException` in Unity. A safeguard check is implemented at the entry point of `BuildScene`:
+  ```csharp
+  if (EditorApplication.isPlaying)
+  {
+      Debug.LogWarning("G1: Cannot rebuild scene during Play Mode. Please exit Play Mode first.");
+      return;
+  }
+  ```
+  This cleanly prevents editor state disruption and console errors.
