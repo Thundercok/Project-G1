@@ -499,6 +499,10 @@ public static class G1SceneBuilder
             bar.heightOffset = 1.1f;
         }
 
+        // Catwalk for Suppress soldier
+        Slab("Catwalk", new Vector3(4f, 3f, 49f), new Vector3(4f, 0.2f, 3f), metalMat);
+        Slab("CatwalkRailing", new Vector3(4f, 3.6f, 47.5f), new Vector3(4f, 0.4f, 0.1f), metalMat);
+
         // Spawn Magnum pickup in Industrial Hall near generator
         SpawnWeaponPickup("Magnum", G1WeaponPickup.WeaponType.Magnum, new Vector3(18f, 0.4f, 40f), Quaternion.identity, hazard);
 
@@ -522,6 +526,18 @@ public static class G1SceneBuilder
         rub1.transform.rotation = Quaternion.Euler(20f, 30f, 10f);
         var rub2 = Slab("Rubble2", new Vector3(14f, 0.1f, 68f), new Vector3(1.2f, 0.2f, 1.6f), concrete);
         rub2.transform.rotation = Quaternion.Euler(-15f, 45f, -5f);
+
+        // Horde trigger — player steps into zone to activate 8 aliens
+        var hordeTrigger = new GameObject("HordeTrigger_Breach");
+        hordeTrigger.transform.position = new Vector3(12f, 1f, 60f);
+        var hordeColl = hordeTrigger.AddComponent<BoxCollider>();
+        hordeColl.isTrigger = true;
+        hordeColl.size = new Vector3(8f, 3f, 4f);
+
+        var hordeComp = hordeTrigger.AddComponent<G1HordeTrigger>();
+        hordeComp.spawnCount = 8;
+        hordeComp.spawnCenter = new Vector3(12f, 0f, 68f);
+        hordeComp.spawnRadius = 4f;
 
         // 6. EMERGENCY ELEVATOR (EXIT)
         Slab("ElevatorFloor", new Vector3(12f, -0.25f, 76f), new Vector3(6, 0.5f, 8), floorMat);
@@ -916,6 +932,30 @@ public static class G1SceneBuilder
         GameObject soldierPrefab = PrefabUtility.SaveAsPrefabAsset(soldier, "Assets/G1/Prefabs/HECUSoldier.prefab");
         GameObject zombiePrefab = PrefabUtility.SaveAsPrefabAsset(zombie, "Assets/G1/Prefabs/Zombie.prefab");
         GameObject alienPrefab = PrefabUtility.SaveAsPrefabAsset(alien, "Assets/G1/Prefabs/Alien.prefab");
+
+        // === INDUSTRIAL HALL — 3 HECU SOLDIERS AMBUSH ===
+        if (soldierPrefab != null)
+        {
+            // Suppress — catwalk position (elevated)
+            var suppress = (GameObject)Object.Instantiate(soldierPrefab, new Vector3(4f, 3.1f, 49f), Quaternion.Euler(0f, 180f, 0f));
+            suppress.name = "HECU_Suppress";
+            suppress.AddComponent<AgentNavMeshWarp>();
+
+            // FlankLeft — enter from left
+            var flankL = (GameObject)Object.Instantiate(soldierPrefab, new Vector3(-3f, 0f, 42f), Quaternion.Euler(0f, 90f, 0f));
+            flankL.name = "HECU_FlankLeft";
+            flankL.AddComponent<AgentNavMeshWarp>();
+
+            // FlankRight — enter from right
+            var flankR = (GameObject)Object.Instantiate(soldierPrefab, new Vector3(27f, 0f, 42f), Quaternion.Euler(0f, -90f, 0f));
+            flankR.name = "HECU_FlankRight";
+            flankR.AddComponent<AgentNavMeshWarp>();
+            
+            // Last Stand HECU in Alien Breach Zone
+            var lastStand = (GameObject)Object.Instantiate(soldierPrefab, new Vector3(10f, 0f, 65f), Quaternion.Euler(0f, 90f, 0f));
+            lastStand.name = "HECU_LastStand";
+            lastStand.AddComponent<AgentNavMeshWarp>();
+        }
 
         // Set up ThreatDirector
         var directorGo = new GameObject("ThreatDirector");

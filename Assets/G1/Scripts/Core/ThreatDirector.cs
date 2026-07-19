@@ -201,4 +201,29 @@ public sealed class ThreatDirector : MonoBehaviour
             yield return new WaitForSeconds(0.15f); // Staggered spawn rate
         }
     }
+
+    public void ForceSpawnHorde(Vector3 pos, bool isZombie)
+    {
+        if (mobPrefabs == null || mobPrefabs.Length == 0) return;
+        int index = isZombie ? 0 : 1;
+        if (index >= mobPrefabs.Length) index = 0;
+        var prefab = mobPrefabs[index];
+        if (prefab == null) return;
+
+        var mob = Instantiate(prefab, pos, Quaternion.identity);
+        mob.SetActive(true);
+
+        if (mob.TryGetComponent<UnityEngine.AI.NavMeshAgent>(out var agent))
+        {
+            agent.speed *= hordeSpeedMult;
+        }
+        if (mob.TryGetComponent<G1ZombieAI>(out var zombie))
+        {
+            zombie.speed *= hordeSpeedMult;
+        }
+        if (mob.TryGetComponent<G1AlienAI>(out var alien))
+        {
+            alien.speed *= hordeSpeedMult;
+        }
+    }
 }
