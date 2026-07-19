@@ -826,6 +826,9 @@ public static class G1SceneBuilder
             zAgent.height = 1.8f;
             zAgent.radius = 0.35f;
             zAgent.speed = 1.6f;
+            zAgent.angularSpeed = 400f;
+            zAgent.acceleration = 14f;
+            zAgent.stoppingDistance = 1.3f;   // just inside 1.8 attack range
         }
 
         // Spawn Alien AI (cloned template, tinted neon purple)
@@ -856,6 +859,9 @@ public static class G1SceneBuilder
             aAgent.height = 1.8f;
             aAgent.radius = 0.35f;
             aAgent.speed = 2.2f;
+            aAgent.angularSpeed = 480f;
+            aAgent.acceleration = 16f;
+            aAgent.stoppingDistance = 1.3f;   // just inside 1.8 attack range
         }
 
         // Spawn Soldier AI (HECU soldier style - blue/grey camouflage tint)
@@ -908,6 +914,9 @@ public static class G1SceneBuilder
             agent.height = 1.8f;
             agent.radius = 0.35f;
             agent.speed = 1.0f;
+            agent.angularSpeed = 360f;
+            agent.acceleration = 12f;
+            agent.stoppingDistance = 0.6f;
         }
 
         // Save prefabs
@@ -1019,6 +1028,7 @@ public static class G1SceneBuilder
             anim = go.AddComponent<Animator>();
         anim.runtimeAnimatorController = ctrl;
         go.AddComponent<NPCController>();
+        go.AddComponent<NPCLocomotionSync>();
         var col = go.AddComponent<CapsuleCollider>();
         col.height = 1.8f;
         col.radius = 0.35f;

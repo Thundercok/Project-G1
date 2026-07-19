@@ -145,8 +145,8 @@ public sealed class ThreatDirector : MonoBehaviour
 
     private IEnumerator SpawnHordeBurst()
     {
-        // Roar alert warning message
-        Debug.LogWarning("⚠️ WARNING: HORDE BURST TRIGGERED! (Infected roar in distance)");
+        // Roar alert message (info-level: this is normal director behavior)
+        Debug.Log("Horde burst triggered (infected roar in the distance)");
 
         int spawnedCount = 0;
         if (spawnNodes == null || spawnNodes.Length == 0 || mobPrefabs == null || mobPrefabs.Length == 0)
