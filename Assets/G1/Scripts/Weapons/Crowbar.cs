@@ -28,6 +28,7 @@ public class Crowbar : WeaponBase
     {
         swinging = true;
         G1Audio.Play2D("swing", 0.5f);
+        if (camFX) camFX.Shake(0.015f);
         bool hitDone = false;
         float t = 0f;
         while (t < swingTime)
@@ -54,6 +55,7 @@ public class Crowbar : WeaponBase
                     {
                         ApplyHit(hit, damage, hitForce);
                         G1Audio.Play("hit_thunk", hit.point, 0.8f);
+                        if (camFX) camFX.Shake(0.05f);
                     }
                 }
                 float k = (t - impactMoment) / (swingTime - impactMoment);

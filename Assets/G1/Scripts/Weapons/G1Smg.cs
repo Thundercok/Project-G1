@@ -59,7 +59,11 @@ public class G1Smg : WeaponBase
             modelAnimator.CrossFade("Fire", 0.02f, 0, 0f);
         if (weaponFX && muzzlePoint)
             weaponFX.PlayMuzzleFlash(muzzlePoint);
-        if (camFX) camFX.Punch(0.8f);
+        if (camFX)
+        {
+            camFX.Punch(0.8f);
+            camFX.Shake(0.05f);
+        }
         G1Audio.Play2D("fire_smg", 0.55f);
         if (RayHit(range, out RaycastHit hit))
         {

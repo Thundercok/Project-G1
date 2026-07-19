@@ -72,7 +72,10 @@ public class G1Shotgun : WeaponBase
         if (weaponFX && muzzlePoint)
             weaponFX.PlayMuzzleFlash(muzzlePoint);
         if (camFX)
-            camFX.Punch(3.5f); // substantial recoil kick for shotgun
+        {
+            camFX.Punch(3.5f);
+            camFX.Shake(0.16f);
+        }
         G1Audio.Play2D("fire_shotgun", 0.85f);
 
         bool hitAnyEnemy = false;

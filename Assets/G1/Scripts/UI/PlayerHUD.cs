@@ -23,6 +23,9 @@ public class PlayerHUD : MonoBehaviour
     string _pickupWeaponName;
     float _pickupDisplayUntil;
 
+    string _terminalLogMessage;
+    float _terminalLogDisplayUntil;
+
     void Start()
     {
         playerHealth = GetComponent<HealthSystem>();
@@ -41,6 +44,12 @@ public class PlayerHUD : MonoBehaviour
         _pickupDisplayUntil = Time.time + 2f;
     }
 
+    public void ShowTerminalLog(string msg)
+    {
+        _terminalLogMessage = msg;
+        _terminalLogDisplayUntil = Time.time + 5f;
+    }
+
     void OnGUI()
     {
         // 1. Draw Crosshair in center
@@ -53,6 +62,7 @@ public class PlayerHUD : MonoBehaviour
         DrawHealthHUD();
         DrawAmmoHUD();
         DrawWeaponPickup();
+        DrawTerminalLog();
 
         // Hit marker
         if (camFX && camFX.HitMarkerActive)
@@ -220,5 +230,29 @@ public class PlayerHUD : MonoBehaviour
         }
         tex.Apply();
         return tex;
+    }
+
+    void DrawTerminalLog()
+    {
+        if (string.IsNullOrEmpty(_terminalLogMessage)) return;
+        float remaining = _terminalLogDisplayUntil - Time.time;
+        if (remaining <= 0f) { _terminalLogMessage = null; return; }
+
+        float alpha = Mathf.Clamp01(remaining);
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 18,
+            fontStyle = FontStyle.Normal,
+            alignment = TextAnchor.MiddleCenter,
+            font = _hudFont,
+            wordWrap = true
+        };
+
+        // Draw shadow
+        style.normal.textColor = new Color(0f, 0f, 0f, 0.7f * alpha);
+        GUI.Label(new Rect(Screen.width/2f - 300 + 1, Screen.height - 180 + 1, 600, 80), _terminalLogMessage, style);
+        // Draw text (retro green/cyan terminal look)
+        style.normal.textColor = new Color(0.2f, 0.9f, 0.6f, alpha);
+        GUI.Label(new Rect(Screen.width/2f - 300, Screen.height - 180, 600, 80), _terminalLogMessage, style);
     }
 }

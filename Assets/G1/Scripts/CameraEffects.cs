@@ -31,7 +31,12 @@ public class CameraEffects : MonoBehaviour
     float damageFlashTimer;
     public float DamageFlashAlpha => Mathf.Clamp01(damageFlashTimer / 0.35f);
 
+    // camera shake state
+    float shakeIntensity;
+    public float shakeDecay = 6f;
+
     MouseLook mouseLook;
+    Vector3 defaultCameraLocalPos = new Vector3(0f, 1.62f, 0f);
 
     void Start()
     {
@@ -39,6 +44,7 @@ public class CameraEffects : MonoBehaviour
         movement = GetComponentInParent<PlayerMovement>();
         mouseLook = GetComponent<MouseLook>();
         if (cam) baseFOV = cam.fieldOfView;
+        defaultCameraLocalPos = transform.localPosition;
     }
 
     void LateUpdate()
@@ -70,6 +76,25 @@ public class CameraEffects : MonoBehaviour
             cam.fieldOfView = baseFOV + currentFOVBoost;
         }
 
+        // --- Apply camera shake (relative to base camera local position)
+        Vector3 basePos = defaultCameraLocalPos;
+        if (movement != null && movement.IsCrouching)
+        {
+            basePos.y = movement.crouchCameraY;
+        }
+
+        Vector3 shakeOffset = Vector3.zero;
+        if (shakeIntensity > 0.001f)
+        {
+            shakeIntensity = Mathf.Lerp(shakeIntensity, 0f, shakeDecay * dt);
+            shakeOffset = Random.insideUnitSphere * shakeIntensity;
+        }
+        else
+        {
+            shakeIntensity = 0f;
+        }
+        transform.localPosition = basePos + shakeOffset;
+
         // --- Tick timers
         if (hitMarkerTimer > 0f) hitMarkerTimer -= dt;
         if (damageFlashTimer > 0f) damageFlashTimer -= dt;
@@ -79,6 +104,11 @@ public class CameraEffects : MonoBehaviour
     public void Punch(float degrees)
     {
         punchAngle -= degrees;
+    }
+
+    public void Shake(float intensity)
+    {
+        shakeIntensity = Mathf.Max(shakeIntensity, intensity);
     }
 
     /// Called by weapons when a hitscan hit connects with an IDamageable.
@@ -91,5 +121,6 @@ public class CameraEffects : MonoBehaviour
     public void ShowDamageFlash()
     {
         damageFlashTimer = 0.35f;
+        Shake(0.24f); // Shake hard on damage!
     }
 }

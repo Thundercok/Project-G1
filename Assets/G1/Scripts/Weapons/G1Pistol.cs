@@ -60,7 +60,11 @@ public class G1Pistol : WeaponBase
             modelAnimator.CrossFade("Fire", 0.02f, 0, 0f);
         if (weaponFX && muzzlePoint)
             weaponFX.PlayMuzzleFlash(muzzlePoint);
-        if (camFX) camFX.Punch(1.5f);
+        if (camFX)
+        {
+            camFX.Punch(1.5f);
+            camFX.Shake(0.04f);
+        }
         G1Audio.Play2D("fire_pistol", 0.7f);
         if (RayHit(range, out RaycastHit hit))
         {

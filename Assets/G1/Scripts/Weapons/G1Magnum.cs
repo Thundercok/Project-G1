@@ -105,7 +105,10 @@ public class G1Magnum : WeaponBase
 
         recoilAccum = Mathf.Min(recoilAccum + 6.0f, 9.0f);
         if (camFX)
-            camFX.Punch(recoilAccum); // Additive stacking recoil punch!
+        {
+            camFX.Punch(recoilAccum);
+            camFX.Shake(0.24f);
+        }
 
         if (RayHit(range, out RaycastHit hit))
         {

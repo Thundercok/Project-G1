@@ -403,7 +403,9 @@ public static class G1SceneBuilder
         for (int i = 0; i < 4; i++)
             SpawnModular("prop_filing_cabinet", new Vector3(-5.3f, 0.9f, -11f + i * 1.2f), Quaternion.Euler(0f, 90f, 0f), new Vector3(0.6f, 1.8f, 0.6f), metalMat);
         SpawnModular("prop_lab_table", new Vector3(0f, 0.45f, -8f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
-        SpawnModular("prop_computer_terminal", new Vector3(0f, 1.05f, -8f), Quaternion.identity, new Vector3(0.5f, 0.5f, 0.5f), floorMat);
+        var lrTerminal = SpawnModular("prop_computer_terminal", new Vector3(0f, 1.05f, -8f), Quaternion.identity, new Vector3(0.5f, 0.5f, 0.5f), floorMat);
+        var lrTermComp = lrTerminal.AddComponent<G1Terminal>();
+        lrTermComp.logMessage = "LOG: PORTAL CORE COLLAPSE DETECTED IN SECTOR C. CONTAINMENT DOORS SEALED. SYSTEM SHUTDOWN IMMINENT.";
 
         // Spawn Pistol pickup on Locker Room table
         SpawnWeaponPickup("Pistol", G1WeaponPickup.WeaponType.Pistol, new Vector3(0f, 1.05f, -8f), Quaternion.identity, concrete);
@@ -454,8 +456,13 @@ public static class G1SceneBuilder
         Object.DestroyImmediate(cctvScreen.GetComponent<Collider>());
         cctvScreen.AddComponent<G1CCTVScreen>();
 
-        SpawnModular("prop_computer_terminal", new Vector3(6f, 0.9f, 23f), Quaternion.identity, Vector3.one * 0.8f, floorMat);
-        SpawnModular("prop_computer_terminal", new Vector3(10f, 0.9f, 23f), Quaternion.identity, Vector3.one * 0.8f, floorMat);
+        var crTerminal1 = SpawnModular("prop_computer_terminal", new Vector3(6f, 0.9f, 23f), Quaternion.identity, Vector3.one * 0.8f, floorMat);
+        var crTermComp1 = crTerminal1.AddComponent<G1Terminal>();
+        crTermComp1.logMessage = "MEMO: HECU COMBAT UNITS DISPATCHED FOR 'CLEANUP'. ALL RESEARCH PERSONNEL SUB-SURFACE ACCESS REVOKED.";
+
+        var crTerminal2 = SpawnModular("prop_computer_terminal", new Vector3(10f, 0.9f, 23f), Quaternion.identity, Vector3.one * 0.8f, floorMat);
+        var crTermComp2 = crTerminal2.AddComponent<G1Terminal>();
+        crTermComp2.logMessage = "WARNING: EMERGENCY ESCAPE ELEVATOR OVERRIDE CODES REQUIRED. ACCESS VIA LOWER BREACH ZONE ONLY.";
         SpawnModular("prop_lab_table", new Vector3(4f, 0.45f, 20f), Quaternion.Euler(0f, 45f, 90f), new Vector3(1.6f, 0.9f, 0.8f), metalMat);
 
         // Spawn SMG pickup in Control Room on table
