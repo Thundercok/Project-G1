@@ -1,19 +1,18 @@
 using System.Collections;
 using UnityEngine;
 
-/// Zombie AI: detects the player, chases them down using NavMeshAgent & separation steering,
-/// overrides arm bones in LateUpdate to walk with hands raised forward,
-/// and performs high-damage double claw swipes when close.
+/// Alien AI: Cloned from Zombie AI, serves as a distinct horde enemy type.
+/// Uses NavMeshAgent and separation steering (Boids-lite) to chase the player.
 [RequireComponent(typeof(Animator), typeof(HealthSystem), typeof(UnityEngine.AI.NavMeshAgent))]
-public class G1ZombieAI : MonoBehaviour
+public class G1AlienAI : MonoBehaviour
 {
-    [Header("Zombie Stats")]
+    [Header("Stats")]
     public float detectionRange = 16f;
-    public float speed = 1.6f;            // slower but constant chase speed
+    public float speed = 2.2f;            // Slightly faster than standard zombie
     public float turnSpeed = 240f;
     public float attackRange = 1.8f;
-    public float attackInterval = 1.5f;
-    public float damage = 20f;            // high warning damage
+    public float attackInterval = 1.2f;   // Attacks slightly faster
+    public float damage = 15f;
 
     GameObject player;
     HealthSystem playerHealth;
@@ -39,7 +38,7 @@ public class G1ZombieAI : MonoBehaviour
         myHealth = GetComponent<HealthSystem>();
         patrol = GetComponent<NPCController>();
         anim = GetComponent<Animator>();
-
+        
         agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
         agent.updateRotation = false; // Manually rotate for retro aesthetic
 
@@ -47,7 +46,7 @@ public class G1ZombieAI : MonoBehaviour
         if (enemyLayer == -1) enemyLayer = 10;
         _mobMask = 1 << enemyLayer;
 
-        // Recursively locate arm bones for procedural arm-raise posing
+        // Locate arms for override posing
         leftArm = FindBone(transform, "upper_arm.L");
         rightArm = FindBone(transform, "upper_arm.R");
     }
@@ -65,7 +64,6 @@ public class G1ZombieAI : MonoBehaviour
 
         if (!isChasing)
         {
-            // Scan for player or aggro if damaged
             if (dist <= detectionRange || myHealth.CurrentHealth < myHealth.maxHealth)
             {
                 isChasing = true;
@@ -114,10 +112,9 @@ public class G1ZombieAI : MonoBehaviour
 
     void LateUpdate()
     {
-        // Override animations programmatically to raise zombie arms forward
         if (isChasing && !myHealth.IsDead)
         {
-            // Raise upper arms forward and slightly inward
+            // Raise arms forward
             if (leftArm) leftArm.localRotation = Quaternion.Euler(-80f, 0f, 40f);
             if (rightArm) rightArm.localRotation = Quaternion.Euler(-80f, 0f, -40f);
         }
@@ -126,18 +123,15 @@ public class G1ZombieAI : MonoBehaviour
     void PerformClawAttack()
     {
         nextAttack = Time.time + attackInterval;
-
-        // Visual slash effect (short pop of arms forward-down)
         StartCoroutine(AttackVisualSwipe());
 
-        // Check if player is still in range and has clear line-of-sight (prevent hitting through walls/crates)
         float dist = Vector3.Distance(transform.position, player.transform.position);
         if (dist <= attackRange + 0.5f)
         {
             Vector3 eyePos = transform.position + Vector3.up * 1.5f;
             Vector3 targetPos = player.transform.position + Vector3.up * 1.5f;
             Vector3 dir = targetPos - eyePos;
-            bool hitWall = Physics.Raycast(eyePos, dir.normalized, out RaycastHit hit, dir.magnitude, 1 << 0); // Default layer obstacles
+            bool hitWall = Physics.Raycast(eyePos, dir.normalized, out RaycastHit hit, dir.magnitude, 1 << 0);
             if (!hitWall)
             {
                 playerHealth.TakeDamage(damage, player.transform.position + Vector3.up * 1f, -transform.forward);
@@ -153,7 +147,7 @@ public class G1ZombieAI : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float t = elapsed / duration;
-            float angleOffset = Mathf.Sin(t * Mathf.PI) * 35f; // dip arms down
+            float angleOffset = Mathf.Sin(t * Mathf.PI) * 35f;
 
             if (leftArm) leftArm.localRotation = Quaternion.Euler(-80f + angleOffset, 0f, 40f);
             if (rightArm) rightArm.localRotation = Quaternion.Euler(-80f + angleOffset, 0f, -40f);

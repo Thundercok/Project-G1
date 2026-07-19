@@ -469,9 +469,17 @@ public static class G1SceneBuilder
         villain.AddComponent<G1DeathPhysics>();
         villain.AddComponent<G1NPCCombat>();
 
+        // Ensure Enemy Layer and claim/assign layers recursively
+        int enemyLayer = EnsureLayer("Enemy");
+        SetLayerRecursive(villain, enemyLayer);
+
+        // Set up SquadBlackboard
+        new GameObject("SquadBlackboard").AddComponent<SquadBlackboard>();
+
         // Spawn Zombie (sickly green skin + procedural Headcrab on head bone)
         var zombie = SpawnCharacter($"{Models}/Villain.fbx", new Vector3(0f, 0f, 4f), villainCtrl);
         zombie.name = "Zombie";
+        SetLayerRecursive(zombie, enemyLayer);
 
         // Sickly green-decay skin color
         foreach (var r in zombie.GetComponentsInChildren<Renderer>())
@@ -516,9 +524,47 @@ public static class G1SceneBuilder
         zombie.AddComponent<G1DeathPhysics>();
         zombie.AddComponent<G1ZombieAI>();
 
+        var zAgent = zombie.GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (zAgent)
+        {
+            zAgent.height = 1.8f;
+            zAgent.radius = 0.35f;
+            zAgent.speed = 1.6f;
+        }
+
+        // Spawn Alien AI (cloned template, tinted neon purple)
+        var alien = SpawnCharacter($"{Models}/Villain.fbx", new Vector3(2f, 0f, 6f), villainCtrl);
+        alien.name = "Alien";
+        SetLayerRecursive(alien, enemyLayer);
+
+        foreach (var r in alien.GetComponentsInChildren<Renderer>())
+        {
+            var m = new Material(r.sharedMaterial);
+            m.color = new Color(0.6f, 0.1f, 0.9f); // Neon purple
+            m.SetColor("_EmissionColor", new Color(0.2f, 0.05f, 0.3f));
+            m.EnableKeyword("_EMISSION");
+            r.sharedMaterial = m;
+        }
+
+        var aHealth = alien.AddComponent<HealthSystem>();
+        aHealth.maxHealth = 80f; // alien slightly squishier but faster
+        var aBar = alien.AddComponent<WorldSpaceHealthBar>();
+        aBar.heightOffset = 2.15f;
+        alien.AddComponent<G1DeathPhysics>();
+        alien.AddComponent<G1AlienAI>();
+
+        var aAgent = alien.GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (aAgent)
+        {
+            aAgent.height = 1.8f;
+            aAgent.radius = 0.35f;
+            aAgent.speed = 2.2f;
+        }
+
         // Spawn Soldier AI (HECU soldier style - blue/grey camouflage tint)
         var soldier = SpawnCharacter($"{Models}/Protagonist.fbx", new Vector3(-8f, 0f, 6f), protagonistCtrl);
         soldier.name = "HECUSoldier";
+        SetLayerRecursive(soldier, enemyLayer);
 
         // HECU blue-grey and dark vest tinting
         int renderIdx = 0;
@@ -564,15 +610,17 @@ public static class G1SceneBuilder
             agent.speed = 1.0f;
         }
 
-        // Save as prefab
+        // Save prefabs
         EnsureFolder("Assets/G1/Prefabs");
-        string prefabPath = "Assets/G1/Prefabs/HECUSoldier.prefab";
-        GameObject soldierPrefab = PrefabUtility.SaveAsPrefabAsset(soldier, prefabPath);
+        GameObject soldierPrefab = PrefabUtility.SaveAsPrefabAsset(soldier, "Assets/G1/Prefabs/HECUSoldier.prefab");
+        GameObject zombiePrefab = PrefabUtility.SaveAsPrefabAsset(zombie, "Assets/G1/Prefabs/Zombie.prefab");
+        GameObject alienPrefab = PrefabUtility.SaveAsPrefabAsset(alien, "Assets/G1/Prefabs/Alien.prefab");
 
         // Set up ThreatDirector
         var directorGo = new GameObject("ThreatDirector");
         var director = directorGo.AddComponent<ThreatDirector>();
         director.soldierPrefab = soldierPrefab;
+        director.mobPrefabs = new GameObject[] { zombiePrefab, alienPrefab };
         director.maxActiveSoldiers = 4;
         director.relaxDuration = 8f;
         director.intensityDecayRate = 0.08f;

@@ -2,12 +2,14 @@ using System.Collections;
 using UnityEngine;
 
 /// Burst-fire Patrol Soldier AI.
-/// Scans for player, patrols waypoints, chases player when alerted,
-/// shoots in 3-shot bursts, and drops procedurally generated health/ammo packs on death.
+/// Scans for player, patrols waypoints, and uses a F.E.A.R.-style GOAP-lite planner
+/// to coordinate squad roles (blackboard claims), seek cover (dynamic cover points),
+/// shoot in 3-shot bursts, and drop supply packs on death.
 [RequireComponent(typeof(Animator), typeof(HealthSystem), typeof(UnityEngine.AI.NavMeshAgent))]
 public class G1SoldierAI : MonoBehaviour
 {
     private enum SoldierState : byte { Patrol, Alert, BurstFire, Dead }
+    private enum CombatAction : byte { PopFire, MoveToCover, Suppress, Flank, Reload, Retreat }
 
     [Header("Patrol & Movement")]
     public Transform[] waypoints;
@@ -30,13 +32,22 @@ public class G1SoldierAI : MonoBehaviour
     private Animator anim;
     private GameObject player;
     private HealthSystem playerHealth;
-
     private UnityEngine.AI.NavMeshAgent agent;
+
     private int waypointIdx;
     private float nextBurstTime;
     private float nextShotTime;
     private int shotsLeftInBurst;
     private bool playerSpotted;
+
+    // GOAP-lite Variables
+    private CombatAction _currentAction = CombatAction.PopFire;
+    private G1CoverPoint _claimedCover;
+    private SquadRole _claimedRole = SquadRole.None;
+    private float _nextPlanTime;
+    private const float PlanInterval = 0.4f;
+    private bool _recentlyHit;
+    private float _recentlyHitResetTime;
 
     // Zero-alloc buffers
     private readonly Collider[] detectBuf = new Collider[4];
@@ -75,6 +86,13 @@ public class G1SoldierAI : MonoBehaviour
             }
         }
 
+        // Hook up hit notification
+        myHealth.OnHealthChanged += (cur, max) =>
+        {
+            _recentlyHit = true;
+            _recentlyHitResetTime = Time.time + 3.0f;
+        };
+
         state = SoldierState.Patrol;
         waypointIdx = 0;
         
@@ -91,17 +109,19 @@ public class G1SoldierAI : MonoBehaviour
         // Perform periodic player detection check
         PollDetection();
 
-        switch (state)
+        // Decay hit registration
+        if (_recentlyHit && Time.time > _recentlyHitResetTime)
         {
-            case SoldierState.Patrol:
-                TickPatrol();
-                break;
-            case SoldierState.Alert:
-                TickAlert();
-                break;
-            case SoldierState.BurstFire:
-                TickBurstFire();
-                break;
+            _recentlyHit = false;
+        }
+
+        if (state == SoldierState.Patrol)
+        {
+            TickPatrol();
+        }
+        else
+        {
+            TickGOAP();
         }
     }
 
@@ -110,7 +130,6 @@ public class G1SoldierAI : MonoBehaviour
         playerSpotted = false;
         int count = Physics.OverlapSphereNonAlloc(transform.position, detectRadius, detectBuf, playerMask);
         
-        // Fix for micro-quiz bug: iterate through all overlaps to check for line-of-sight
         for (int i = 0; i < count; i++)
         {
             if (detectBuf[i].CompareTag("Player"))
@@ -123,24 +142,13 @@ public class G1SoldierAI : MonoBehaviour
             }
         }
 
-        // Transition states
-        if (playerSpotted)
+        if (playerSpotted && state == SoldierState.Patrol)
         {
-            if (state == SoldierState.Patrol)
-            {
-                state = SoldierState.Alert;
-                if (anim) anim.CrossFade("Walk", 0.1f);
-            }
-
-            float dist = Vector3.Distance(transform.position, player.transform.position);
-            if (dist <= attackRadius && Time.time >= nextBurstTime && state != SoldierState.BurstFire)
-            {
-                BeginBurst();
-            }
+            state = SoldierState.Alert;
+            if (anim) anim.CrossFade("Walk", 0.1f);
         }
-        else if (state == SoldierState.Alert)
+        else if (!playerSpotted && state != SoldierState.Patrol)
         {
-            // Lose alert status if player runs too far and is unseen
             float dist = Vector3.Distance(transform.position, player.transform.position);
             if (dist > detectRadius * 1.5f)
             {
@@ -156,16 +164,14 @@ public class G1SoldierAI : MonoBehaviour
         Vector3 dir = targetPos - eyePos;
         float dist = dir.magnitude;
 
-        // Angle check (120 degrees full angle)
         float angle = Vector3.Angle(transform.forward, dir.normalized);
         if (angle > 60f)
             return false;
 
-        // Raycast check for wall obstacles
         if (Physics.Raycast(eyePos, dir.normalized, out RaycastHit hit, dist, obstacleMask))
         {
             if (hit.collider.gameObject != player)
-                return false; // hit wall/crate first
+                return false;
         }
         return true;
     }
@@ -187,7 +193,6 @@ public class G1SoldierAI : MonoBehaviour
             agent.speed = patrolSpeed;
             agent.SetDestination(target);
 
-            // Rotate smoothly towards movement velocity or target
             Vector3 moveDir = agent.velocity;
             moveDir.y = 0f;
             if (moveDir.sqrMagnitude > 0.05f)
@@ -203,36 +208,182 @@ public class G1SoldierAI : MonoBehaviour
         }
     }
 
-    void TickAlert()
+    private void TickGOAP()
     {
-        if (player == null) return;
-
-        Vector3 toPlayer = player.transform.position - transform.position;
-        toPlayer.y = 0f;
-        float dist = toPlayer.magnitude;
-
-        agent.speed = chaseSpeed;
-
-        if (dist > attackRadius - 1f)
+        if (Time.time >= _nextPlanTime)
         {
-            SeekFlankPosition();
-
-            if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
-                anim.CrossFade("Walk", 0.1f);
+            _nextPlanTime = Time.time + PlanInterval;
+            _currentAction = ScoreActions();
         }
-        else
-        {
-            agent.ResetPath();
+        ExecuteAction(_currentAction);
+    }
 
-            if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
-                anim.CrossFade("Idle", 0.1f);
+    private CombatAction ScoreActions()
+    {
+        float hpPct = myHealth.CurrentHealth / myHealth.maxHealth;
+        if (hpPct < 0.25f)
+        {
+            ReleaseCover();
+            ReleaseRole();
+            return CombatAction.Retreat;
         }
 
-        // Face player
-        if (toPlayer.sqrMagnitude > 0.001f)
+        if (shotsLeftInBurst <= 0 && Time.time > nextBurstTime && Random.value < 0.3f)
         {
-            Quaternion look = Quaternion.LookRotation(toPlayer);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
+            ReleaseCover();
+            ReleaseRole();
+            return CombatAction.Reload;
+        }
+
+        if (_recentlyHit && _claimedCover == null)
+        {
+            var cp = G1CoverPoint.FindNearestValid(transform.position, player.transform.position, 15f);
+            if (cp != null)
+            {
+                cp.Claimed = true;
+                _claimedCover = cp;
+                ReleaseRole();
+                return CombatAction.MoveToCover;
+            }
+        }
+
+        if (_claimedCover != null)
+        {
+            if (Vector3.Distance(transform.position, player.transform.position) < 5f)
+            {
+                ReleaseCover();
+            }
+            else
+            {
+                return CombatAction.PopFire;
+            }
+        }
+
+        var flankRole = SquadBlackboard.Instance != null && SquadBlackboard.Instance.IsFree(SquadRole.FlankLeft) ? SquadRole.FlankLeft
+                       : SquadBlackboard.Instance != null && SquadBlackboard.Instance.IsFree(SquadRole.FlankRight) ? SquadRole.FlankRight
+                       : SquadRole.None;
+        if (flankRole != SquadRole.None && SquadBlackboard.Instance != null && SquadBlackboard.Instance.TryClaim(flankRole, this))
+        {
+            _claimedRole = flankRole;
+            return CombatAction.Flank;
+        }
+
+        if (SquadBlackboard.Instance != null && SquadBlackboard.Instance.TryClaim(SquadRole.Suppress, this))
+        {
+            _claimedRole = SquadRole.Suppress;
+            return CombatAction.Suppress;
+        }
+
+        return CombatAction.PopFire;
+    }
+
+    private void ExecuteAction(CombatAction action)
+    {
+        ResetHeight();
+
+        switch (action)
+        {
+            case CombatAction.Retreat:
+                Vector3 retreatDir = (transform.position - player.transform.position).normalized;
+                Vector3 retreatTarget = transform.position + retreatDir * 8f;
+                agent.speed = chaseSpeed;
+                agent.SetDestination(retreatTarget);
+                if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+                    anim.CrossFade("Walk", 0.1f);
+                break;
+
+            case CombatAction.Reload:
+                agent.ResetPath();
+                if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                    anim.CrossFade("Idle", 0.1f);
+                break;
+
+            case CombatAction.MoveToCover:
+                if (_claimedCover != null)
+                {
+                    agent.speed = chaseSpeed;
+                    agent.SetDestination(_claimedCover.transform.position);
+
+                    float distToCover = Vector3.Distance(transform.position, _claimedCover.transform.position);
+                    if (distToCover < 0.8f)
+                    {
+                        Crouch();
+                        agent.ResetPath();
+                        if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                            anim.CrossFade("Idle", 0.1f);
+                    }
+                    else
+                    {
+                        if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+                            anim.CrossFade("Walk", 0.1f);
+                    }
+                }
+                break;
+
+            case CombatAction.PopFire:
+            case CombatAction.Suppress:
+                agent.ResetPath();
+                FacePlayer();
+                if (Time.time >= nextBurstTime && state != SoldierState.BurstFire)
+                {
+                    BeginBurst();
+                }
+                else if (state == SoldierState.BurstFire)
+                {
+                    TickBurstFire();
+                }
+                break;
+
+            case CombatAction.Flank:
+                SeekFlankPosition();
+                float d = Vector3.Distance(transform.position, player.transform.position);
+                if (d <= attackRadius && Time.time >= nextBurstTime && state != SoldierState.BurstFire)
+                {
+                    BeginBurst();
+                }
+                else if (state == SoldierState.BurstFire)
+                {
+                    TickBurstFire();
+                }
+                else
+                {
+                    if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+                        anim.CrossFade("Walk", 0.1f);
+                }
+                break;
+        }
+    }
+
+    private void Crouch()
+    {
+        agent.height = 1.0f;
+        var col = GetComponent<CapsuleCollider>();
+        if (col)
+        {
+            col.height = 1.0f;
+            col.center = new Vector3(0f, 0.5f, 0f);
+        }
+    }
+
+    private void ResetHeight()
+    {
+        agent.height = 1.8f;
+        var col = GetComponent<CapsuleCollider>();
+        if (col)
+        {
+            col.height = 1.8f;
+            col.center = new Vector3(0f, 0.9f, 0f);
+        }
+    }
+
+    private void FacePlayer()
+    {
+        Vector3 lookDir = player.transform.position - transform.position;
+        lookDir.y = 0f;
+        if (lookDir.sqrMagnitude > 0.001f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(lookDir);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeed * Time.deltaTime);
         }
     }
 
@@ -249,12 +400,10 @@ public class G1SoldierAI : MonoBehaviour
             return;
         }
 
-        // L4D2 flanking: maintain 90-180 degree offset from another soldier
         Vector3 perp = Vector3.Cross(toPlayer.normalized, Vector3.up);
         int side = (gameObject.GetInstanceID() % 2 == 0) ? 1 : -1;
         Vector3 flankTarget = player.transform.position + perp * (side * 5f);
 
-        // Validate flank position on NavMesh
         if (UnityEngine.AI.NavMesh.SamplePosition(flankTarget, out UnityEngine.AI.NavMeshHit hit, 3f, UnityEngine.AI.NavMesh.AllAreas))
         {
             agent.SetDestination(hit.position);
@@ -268,7 +417,7 @@ public class G1SoldierAI : MonoBehaviour
     void BeginBurst()
     {
         state = SoldierState.BurstFire;
-        if (agent) agent.ResetPath(); // Stop movement during burst
+        if (agent) agent.ResetPath();
         shotsLeftInBurst = 3;
         nextShotTime = Time.time;
         if (anim) anim.CrossFade("Idle", 0.05f);
@@ -276,14 +425,7 @@ public class G1SoldierAI : MonoBehaviour
 
     void TickBurstFire()
     {
-        // Face player while firing
-        Vector3 lookDir = player.transform.position - transform.position;
-        lookDir.y = 0f;
-        if (lookDir.sqrMagnitude > 0.001f)
-        {
-            Quaternion targetRot = Quaternion.LookRotation(lookDir);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeed * Time.deltaTime);
-        }
+        FacePlayer();
 
         if (Time.time >= nextShotTime)
         {
@@ -295,7 +437,6 @@ public class G1SoldierAI : MonoBehaviour
             }
             else
             {
-                // Burst finished, transition back to Alert and start cooldown
                 state = SoldierState.Alert;
                 nextBurstTime = Time.time + fireRate;
             }
@@ -310,7 +451,6 @@ public class G1SoldierAI : MonoBehaviour
         Vector3 targetPos = player.transform.position + Vector3.up * 1.5f;
         Vector3 dir = (targetPos - eyePos).normalized;
 
-        // Apply inaccuracy spread
         dir = Quaternion.Euler(
             Random.Range(-2.5f, 2.5f),
             Random.Range(-2.5f, 2.5f),
@@ -341,7 +481,7 @@ public class G1SoldierAI : MonoBehaviour
         flash.transform.localScale = Vector3.one * 0.12f;
 
         var mat = new Material(Shader.Find("Unlit/Color"));
-        mat.color = new Color(1f, 0.75f, 0.15f); // warning yellow-orange flash
+        mat.color = new Color(1f, 0.75f, 0.15f);
         flash.GetComponent<MeshRenderer>().sharedMaterial = mat;
 
         Destroy(flash, 0.05f);
@@ -366,10 +506,33 @@ public class G1SoldierAI : MonoBehaviour
         if (anim) anim.CrossFade(isWalking ? "Walk" : "Idle", 0.1f);
     }
 
+    private void ReleaseCover()
+    {
+        if (_claimedCover != null)
+        {
+            _claimedCover.Claimed = false;
+            _claimedCover = null;
+        }
+    }
+
+    private void ReleaseRole()
+    {
+        if (_claimedRole != SquadRole.None)
+        {
+            if (SquadBlackboard.Instance != null)
+            {
+                SquadBlackboard.Instance.Release(_claimedRole, this);
+            }
+            _claimedRole = SquadRole.None;
+        }
+    }
+
     void HandleDeath(Vector3 hitPoint, Vector3 hitNormal)
     {
         state = SoldierState.Dead;
-        if (agent) agent.enabled = false; // Disable NavMeshAgent so corpse physics tip works
+        ReleaseCover();
+        ReleaseRole();
+        if (agent) agent.enabled = false;
         if (ThreatDirector.Instance != null)
         {
             ThreatDirector.Instance.ReportSoldierDead();
@@ -383,7 +546,6 @@ public class G1SoldierAI : MonoBehaviour
 
         Vector3 dropPos = transform.position + Vector3.up * 0.12f;
         
-        // 50/50 chance for Health Kit vs Ammo Pack
         if (Random.value < 0.5f)
         {
             G1HealthPack.Create(dropPos);
@@ -398,5 +560,7 @@ public class G1SoldierAI : MonoBehaviour
     {
         if (myHealth)
             myHealth.OnDeath -= HandleDeath;
+        ReleaseCover();
+        ReleaseRole();
     }
 }
