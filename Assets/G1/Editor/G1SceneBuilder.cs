@@ -66,6 +66,12 @@ public static class G1SceneBuilder
 
     public static void BuildScene(ArenaConfig cfg)
     {
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogWarning("G1: Cannot rebuild scene during Play Mode. Please exit Play Mode first.");
+            return;
+        }
+
         var rng = new System.Random(cfg.Seed);
         AssetDatabase.Refresh();
         EnsureFolder(AnimDir);
