@@ -129,6 +129,7 @@ public class G1SoldierAI : MonoBehaviour
 
         state = SoldierState.Patrol;
         waypointIdx = 0;
+        _nextPlanTime = Time.time + Random.Range(0f, PlanInterval);
         
         // Start patrol animation
         bool isWalking = waypoints != null && waypoints.Length > 1;
@@ -254,7 +255,7 @@ public class G1SoldierAI : MonoBehaviour
     {
         if (Time.time >= _nextPlanTime)
         {
-            _nextPlanTime = Time.time + PlanInterval;
+            _nextPlanTime = Time.time + PlanInterval + Random.Range(-0.05f, 0.05f);
             _currentAction = ScoreActions();
         }
         ExecuteAction(_currentAction);

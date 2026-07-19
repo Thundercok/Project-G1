@@ -98,6 +98,10 @@ public sealed class ThreatDirector : MonoBehaviour
                 {
                     _dirState   = DirectorState.Relax;
                     _relaxTimer = relaxDuration;
+                    if (SquadBlackboard.Instance != null)
+                    {
+                        SquadBlackboard.Instance.ResetAlphaStrike();
+                    }
                 }
                 break;
         }

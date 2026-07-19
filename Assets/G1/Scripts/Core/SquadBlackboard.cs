@@ -42,9 +42,23 @@ public sealed class SquadBlackboard : MonoBehaviour
 
     public bool IsFree(SquadRole role) => !_claims.TryGetValue(role, out var h) || h == null;
 
+    private bool _alphaStrikeFired;
+
     public void RegisterOpportunist(G1SoldierAI s)   { if (!_opportunists.Contains(s)) _opportunists.Add(s); }
     public void UnregisterOpportunist(G1SoldierAI s) => _opportunists.Remove(s);
 
     public float AlphaStrikeTimestamp { get; private set; } = -1f;
-    public void TriggerAlphaStrike() => AlphaStrikeTimestamp = Time.time;
+    
+    public void TriggerAlphaStrike()
+    {
+        if (_alphaStrikeFired) return;
+        _alphaStrikeFired = true;
+        AlphaStrikeTimestamp = Time.time;
+    }
+
+    public void ResetAlphaStrike()
+    {
+        _alphaStrikeFired = false;
+        AlphaStrikeTimestamp = -1f;
+    }
 }
