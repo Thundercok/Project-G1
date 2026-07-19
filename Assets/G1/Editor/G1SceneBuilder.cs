@@ -334,6 +334,46 @@ public static class G1SceneBuilder
         }
     }
 
+    static GameObject SpawnWeaponPickup(string assetName, G1WeaponPickup.WeaponType type, Vector3 pos, Quaternion rot, Material mat)
+    {
+        string modelPath = $"Assets/G1/Models/{assetName}.fbx";
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+        GameObject go;
+        if (prefab != null)
+        {
+            go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            go.name = $"{assetName}_Pickup";
+            go.transform.position = pos;
+            go.transform.rotation = rot;
+            go.AddComponent<G1WeaponSpinner>();
+        }
+        else
+        {
+            go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = $"[Pickup Placeholder] {assetName}";
+            go.transform.position = pos;
+            go.transform.rotation = rot;
+            go.transform.localScale = new Vector3(0.5f, 0.2f, 0.2f);
+            go.GetComponent<Renderer>().sharedMaterial = mat;
+        }
+
+        var col = go.GetComponent<Collider>();
+        if (col != null)
+        {
+            col.isTrigger = true;
+        }
+        else
+        {
+            var triggerCol = go.AddComponent<BoxCollider>();
+            triggerCol.isTrigger = true;
+            triggerCol.size = new Vector3(0.8f, 0.8f, 0.8f);
+        }
+
+        var pickup = go.AddComponent<G1WeaponPickup>();
+        pickup.weaponType = type;
+        return go;
+    }
+
     static void BuildArena(ArenaConfig cfg, System.Random rng)
     {
         Material concrete = MakeMat("Concrete", new Color(0.33f, 0.34f, 0.32f));
@@ -344,75 +384,161 @@ public static class G1SceneBuilder
         Material metalMat = MakeMat("PropMetal", new Color(0.4f, 0.42f, 0.45f));
         Material greenMat = MakeMat("IndustrialGreen", new Color(0.29f, 0.37f, 0.29f));
 
-        // fixed shell — identical for every preset
-        Slab("Ground", new Vector3(0, -0.25f, 0), new Vector3(40, 0.5f, 40), floorMat);
-        Slab("WallN", new Vector3(0, 1.5f, 16), new Vector3(32.5f, 3, 0.5f), concrete);
-        Slab("WallS", new Vector3(0, 1.5f, -16), new Vector3(32.5f, 3, 0.5f), concrete);
-        Slab("WallE", new Vector3(16, 1.5f, 0), new Vector3(0.5f, 3, 32.5f), concrete);
-        Slab("WallW", new Vector3(-16, 1.5f, 0), new Vector3(0.5f, 3, 32.5f), concrete);
+        // 1. LOCKER ROOM (START)
+        Slab("LockerRoomFloor", new Vector3(0, -0.25f, -8f), new Vector3(12, 0.5f, 10), floorMat);
+        Slab("LockerRoomWallS", new Vector3(0, 1.5f, -13f), new Vector3(12, 3, 0.5f), concrete);
+        Slab("LockerRoomWallW", new Vector3(-6f, 1.5f, -8f), new Vector3(0.5f, 3, 10), concrete);
+        Slab("LockerRoomWallE", new Vector3(6f, 1.5f, -8f), new Vector3(0.5f, 3, 10), concrete);
+        Slab("LockerRoomWallNW", new Vector3(-4.5f, 1.5f, -3f), new Vector3(3, 3, 0.5f), concrete);
+        Slab("LockerRoomWallNE", new Vector3(4.5f, 1.5f, -3f), new Vector3(3, 3, 0.5f), concrete);
+        
+        // Doorframe 1 (Locker Room to Corridor)
+        Slab("LockerRoomFrameL", new Vector3(-1.6f, 1.25f, -3f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
+        Slab("LockerRoomFrameR", new Vector3(1.6f, 1.25f, -3f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
+        Slab("LockerRoomLintel", new Vector3(0, 2.6f, -3f), new Vector3(3.6f, 0.3f, 0.4f), concrete);
+        var door1 = SpawnModular("door_sliding_auto", new Vector3(0, 1.1f, -3f), Quaternion.identity, new Vector3(1.6f, 2.2f, 0.18f), doorMat);
+        door1.name = "SlidingDoor_1";
+        door1.AddComponent<SlidingDoor>();
 
         for (int i = 0; i < 4; i++)
+            SpawnModular("prop_filing_cabinet", new Vector3(-5.3f, 0.9f, -11f + i * 1.2f), Quaternion.Euler(0f, 90f, 0f), new Vector3(0.6f, 1.8f, 0.6f), metalMat);
+        SpawnModular("prop_lab_table", new Vector3(0f, 0.45f, -8f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
+        SpawnModular("prop_computer_terminal", new Vector3(0f, 1.05f, -8f), Quaternion.identity, new Vector3(0.5f, 0.5f, 0.5f), floorMat);
+
+        // Spawn Pistol pickup on Locker Room table
+        SpawnWeaponPickup("Pistol", G1WeaponPickup.WeaponType.Pistol, new Vector3(0f, 1.05f, -8f), Quaternion.identity, concrete);
+
+        // 2. LAB CORRIDOR
+        Slab("CorridorFloor", new Vector3(0, -0.25f, 6.5f), new Vector3(4, 0.5f, 19), floorMat);
+        Slab("CorridorWallW", new Vector3(-2f, 1.5f, 6.5f), new Vector3(0.5f, 3, 19), concrete);
+        Slab("CorridorWallE", new Vector3(2f, 1.5f, 6.5f), new Vector3(0.5f, 3, 19), concrete);
+        
+        // Doorframe 2 (Corridor to Control Room)
+        Slab("CorridorFrameL", new Vector3(-1f, 1.25f, 16f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
+        Slab("CorridorFrameR", new Vector3(1f, 1.25f, 16f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
+        Slab("CorridorLintel", new Vector3(0, 2.6f, 16f), new Vector3(2.4f, 0.3f, 0.4f), concrete);
+        var door2 = SpawnModular("door_sliding_auto", new Vector3(0, 1.1f, 16f), Quaternion.identity, new Vector3(1.0f, 2.2f, 0.18f), doorMat);
+        door2.name = "SlidingDoor_2";
+        door2.AddComponent<SlidingDoor>();
+
+        // Spawn Shotgun pickup in Lab Corridor
+        SpawnWeaponPickup("Shotgun", G1WeaponPickup.WeaponType.Shotgun, new Vector3(-1f, 0.4f, 8f), Quaternion.identity, wood);
+
+        // 3. CONTROL ROOM
+        Slab("ControlRoomFloor", new Vector3(6f, -0.25f, 22f), new Vector3(16, 0.5f, 12), floorMat);
+        Slab("ControlRoomWallS_R", new Vector3(8f, 1.5f, 16f), new Vector3(12, 3, 0.5f), concrete);
+        Slab("ControlRoomWallW", new Vector3(-2f, 1.5f, 22f), new Vector3(0.5f, 3, 12), concrete);
+        Slab("ControlRoomWallE", new Vector3(14f, 1.5f, 22f), new Vector3(0.5f, 3, 12), concrete);
+        Slab("ControlRoomWallN_L", new Vector3(2f, 1.5f, 28f), new Vector3(8, 3, 0.5f), concrete);
+        Slab("ControlRoomWallN_R", new Vector3(12f, 1.5f, 28f), new Vector3(4, 3, 0.5f), concrete);
+        
+        // Window overlooking Industrial Hall
+        var glass = Slab("ControlRoomWindow", new Vector3(8f, 1.5f, 28f), new Vector3(4, 3, 0.1f), MakeMat("WindowGlass", new Color(0.2f, 0.6f, 0.7f, 0.3f), 0.9f));
+        glass.GetComponent<Collider>().isTrigger = true;
+
+        // Doorframe 3 (Control Room to Industrial Hall)
+        Slab("ControlRoomExitFrameL", new Vector3(-2.2f, 1.25f, 28f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
+        Slab("ControlRoomExitFrameR", new Vector3(0.2f, 1.25f, 28f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
+        Slab("ControlRoomExitLintel", new Vector3(-1f, 2.6f, 28f), new Vector3(2.4f, 0.3f, 0.4f), concrete);
+        var door3 = SpawnModular("door_sliding_auto", new Vector3(-1f, 1.1f, 28f), Quaternion.identity, new Vector3(1.6f, 2.2f, 0.18f), doorMat);
+        door3.name = "SlidingDoor_3";
+        door3.AddComponent<SlidingDoor>();
+
+        SpawnModular("prop_monitor_stack", new Vector3(8f, 0.9f, 23f), Quaternion.identity, Vector3.one, metalMat);
+        SpawnModular("prop_computer_terminal", new Vector3(6f, 0.9f, 23f), Quaternion.identity, Vector3.one * 0.8f, floorMat);
+        SpawnModular("prop_computer_terminal", new Vector3(10f, 0.9f, 23f), Quaternion.identity, Vector3.one * 0.8f, floorMat);
+        SpawnModular("prop_lab_table", new Vector3(4f, 0.45f, 20f), Quaternion.Euler(0f, 45f, 90f), new Vector3(1.6f, 0.9f, 0.8f), metalMat);
+
+        // Spawn SMG pickup in Control Room on table
+        SpawnWeaponPickup("Smg", G1WeaponPickup.WeaponType.Smg, new Vector3(4f, 1.05f, 20f), Quaternion.identity, metalMat);
+
+        // 4. INDUSTRIAL HALL (Ambush Faction Arena)
+        Slab("IndustrialFloor", new Vector3(12f, -0.25f, 42f), new Vector3(32, 0.5f, 28), floorMat);
+        Slab("IndustrialWallS_L", new Vector3(-3f, 1.5f, 28f), new Vector3(2, 3, 0.5f), concrete);
+        Slab("IndustrialWallS_R", new Vector3(21f, 1.5f, 28f), new Vector3(14, 3, 0.5f), concrete);
+        Slab("IndustrialWallW", new Vector3(-4f, 1.5f, 42f), new Vector3(0.5f, 3, 28), concrete);
+        Slab("IndustrialWallE", new Vector3(28f, 1.5f, 42f), new Vector3(0.5f, 3, 28), concrete);
+        Slab("IndustrialWallN_L", new Vector3(2f, 1.5f, 56f), new Vector3(12, 3, 0.5f), concrete);
+        Slab("IndustrialWallN_R", new Vector3(22f, 1.5f, 56f), new Vector3(12, 3, 0.5f), concrete);
+
+        SpawnModular("prop_pillar_structural", new Vector3(4f, 1.5f, 35f), Quaternion.identity, new Vector3(0.7f, 3f, 0.7f), hazard);
+        SpawnModular("prop_pillar_structural", new Vector3(20f, 1.5f, 35f), Quaternion.identity, new Vector3(0.7f, 3f, 0.7f), hazard);
+        SpawnModular("prop_pillar_structural", new Vector3(4f, 1.5f, 49f), Quaternion.identity, new Vector3(0.7f, 3f, 0.7f), hazard);
+        SpawnModular("prop_pillar_structural", new Vector3(20f, 1.5f, 49f), Quaternion.identity, new Vector3(0.7f, 3f, 0.7f), hazard);
+
+        SpawnModular("prop_generator_large", new Vector3(-2f, 0.75f, 31f), Quaternion.identity, new Vector3(1.2f, 1.5f, 1.8f), greenMat);
+        SpawnModular("prop_generator_large", new Vector3(26f, 0.75f, 53f), Quaternion.identity, new Vector3(1.2f, 1.5f, 1.8f), greenMat);
+
+        for (int i = 0; i < 3; i++)
+            SpawnModular("prop_filing_cabinet", new Vector3(-3.3f, 0.9f, 40f + i * 1.2f), Quaternion.Euler(0f, 90f, 0f), new Vector3(0.6f, 1.8f, 0.6f), metalMat);
+
+        // Ambush cover blocks and points
+        var coverParent = new GameObject("CoverPoints").transform;
+        Vector3[] coverPts = { new Vector3(8f, 0.55f, 40f), new Vector3(16f, 0.55f, 45f), new Vector3(12f, 0.55f, 50f) };
+        for (int i = 0; i < coverPts.Length; i++)
         {
-            float x = i < 2 ? -8f : 8f;
-            float z = i % 2 == 0 ? -8f : 8f;
-            var pillar = SpawnModular("prop_pillar_structural", new Vector3(x, 1.5f, z), Quaternion.identity, new Vector3(0.7f, 3f, 0.7f), hazard);
-            pillar.name = "Pillar";
+            var block = SpawnModular("wall_straight_panel", coverPts[i], Quaternion.identity, new Vector3(1.7f, 1.1f, 0.4f), concrete);
+            block.name = $"CoverBlock_{i}";
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var cp = new GameObject($"CoverPoint_{i}_{(side < 0 ? "a" : "b")}");
+                cp.transform.SetParent(coverParent, false);
+                cp.transform.position = block.transform.position + Vector3.forward * (0.75f * side) + Vector3.up * 0.05f;
+                cp.AddComponent<G1CoverPoint>();
+            }
         }
 
-        // seeded crate scatter
-        for (int i = 0; i < cfg.Crates; i++)
+        Vector3[] cratePts = { new Vector3(6f, 0.4f, 38f), new Vector3(14f, 0.4f, 48f), new Vector3(22f, 0.4f, 42f) };
+        for (int i = 0; i < cratePts.Length; i++)
         {
-            Vector3 p = ScatterPoint(rng);
-            var crate = SpawnModular("prop_crate_wooden", new Vector3(p.x, 0.4f, p.z),
-                             Quaternion.identity, Vector3.one * 0.8f, wood);
+            var crate = SpawnModular("prop_crate_wooden", cratePts[i], Quaternion.identity, Vector3.one * 0.8f, wood);
             crate.name = "Crate";
-            crate.AddComponent<Breakable>();            // auto-adds HealthSystem
+            crate.AddComponent<Breakable>();
             crate.GetComponent<HealthSystem>().maxHealth = 50f;
             var bar = crate.AddComponent<WorldSpaceHealthBar>();
             bar.heightOffset = 1.1f;
         }
 
-        // seeded cover blocks; each broad side gets a G1CoverPoint marker so
-        // soldiers can actually claim cover (validation picks the safe side)
-        var coverParent = new GameObject("CoverPoints").transform;
-        for (int i = 0; i < cfg.CoverBlocks; i++)
-        {
-            Vector3 p = ScatterPoint(rng);
-            bool rotated = rng.Next(2) == 1;
-            var block = SpawnModular("wall_straight_panel", new Vector3(p.x, 0.55f, p.z),
-                             rotated ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity,
-                             new Vector3(1.7f, 1.1f, 0.4f), concrete);
-            block.name = $"CoverBlock_{i}";
-            Vector3 normal = rotated ? Vector3.right : Vector3.forward;
-            for (int side = -1; side <= 1; side += 2)
-            {
-                var cp = new GameObject($"CoverPoint_{i}_{(side < 0 ? "a" : "b")}");
-                cp.transform.SetParent(coverParent, false);
-                cp.transform.position = block.transform.position
-                    + normal * (0.75f * side) + Vector3.up * 0.05f;
-                cp.AddComponent<G1CoverPoint>();
-            }
-        }
+        // Spawn Magnum pickup in Industrial Hall near generator
+        SpawnWeaponPickup("Magnum", G1WeaponPickup.WeaponType.Magnum, new Vector3(18f, 0.4f, 40f), Quaternion.identity, hazard);
 
-        var door = SpawnModular("door_sliding_auto", new Vector3(7f, 1.1f, 6f), Quaternion.identity,
-                        new Vector3(1.6f, 2.2f, 0.18f), doorMat);
-        door.name = "SlidingDoor";
-        door.AddComponent<SlidingDoor>();
-        Slab("DoorFrameL", new Vector3(6f, 1.25f, 6f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
-        Slab("DoorFrameR", new Vector3(8f, 1.25f, 6f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
-        Slab("DoorLintel", new Vector3(7f, 2.6f, 6f), new Vector3(2.4f, 0.3f, 0.4f), concrete);
+        // 5. ALIEN BREACH ZONE (Portal Chaos)
+        Slab("BreachFloor", new Vector3(12f, -0.25f, 64f), new Vector3(8, 0.5f, 16), floorMat);
+        Slab("BreachWallW", new Vector3(8f, 1.5f, 64f), new Vector3(0.5f, 3, 16), concrete);
+        Slab("BreachWallE", new Vector3(16f, 1.5f, 64f), new Vector3(0.5f, 3, 16), concrete);
+        Slab("BreachWallN_L", new Vector3(9f, 1.5f, 72f), new Vector3(2, 3, 0.5f), concrete);
+        Slab("BreachWallN_R", new Vector3(15f, 1.5f, 72f), new Vector3(2, 3, 0.5f), concrete);
 
-        // Spawn decorative lab/industrial props using the seeded rng
-        SpawnModular("prop_generator_large", new Vector3(-14f, 0.75f, -14f), Quaternion.identity, new Vector3(1.2f, 1.5f, 1.8f), greenMat);
-        SpawnModular("prop_generator_large", new Vector3(14f, 0.75f, -14f), Quaternion.identity, new Vector3(1.2f, 1.5f, 1.8f), greenMat);
+        // Doorframe 4 (Breach Zone to Elevator)
+        Slab("BreachExitFrameL", new Vector3(9.8f, 1.25f, 72f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
+        Slab("BreachExitFrameR", new Vector3(14.2f, 1.25f, 72f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
+        Slab("BreachExitLintel", new Vector3(12f, 2.6f, 72f), new Vector3(4.8f, 0.3f, 0.4f), concrete);
+        var door4 = SpawnModular("door_sliding_auto", new Vector3(12f, 1.1f, 72f), Quaternion.identity, new Vector3(1.6f, 2.2f, 0.18f), doorMat);
+        door4.name = "SlidingDoor_4";
+        door4.AddComponent<SlidingDoor>();
+
+        // Decorative Rubble
+        var rub1 = Slab("Rubble1", new Vector3(10f, 0.2f, 60f), new Vector3(1.5f, 0.3f, 2.0f), concrete);
+        rub1.transform.rotation = Quaternion.Euler(20f, 30f, 10f);
+        var rub2 = Slab("Rubble2", new Vector3(14f, 0.1f, 68f), new Vector3(1.2f, 0.2f, 1.6f), concrete);
+        rub2.transform.rotation = Quaternion.Euler(-15f, 45f, -5f);
+
+        // 6. EMERGENCY ELEVATOR (EXIT)
+        Slab("ElevatorFloor", new Vector3(12f, -0.25f, 76f), new Vector3(6, 0.5f, 8), floorMat);
+        Slab("ElevatorWallW", new Vector3(9f, 1.5f, 76f), new Vector3(0.5f, 3, 8), concrete);
+        Slab("ElevatorWallE", new Vector3(15f, 1.5f, 76f), new Vector3(0.5f, 3, 8), concrete);
+        Slab("ElevatorWallN", new Vector3(12f, 1.5f, 80f), new Vector3(6, 3, 0.5f), concrete);
+
+        var lift = SpawnModular("prop_generator_large", new Vector3(12f, 0.05f, 77.5f), Quaternion.identity, new Vector3(2.5f, 0.1f, 2.5f), metalMat);
+        lift.name = "ElevatorPlatform";
         
-        for (int i = 0; i < 3; i++)
-        {
-            SpawnModular("prop_filing_cabinet", new Vector3(-15.3f, 0.9f, -4f + i * 1.2f), Quaternion.Euler(0f, 90f, 0f), new Vector3(0.6f, 1.8f, 0.6f), metalMat);
-        }
-
-        SpawnModular("prop_lab_table", new Vector3(-4f, 0.45f, 13.5f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
-        SpawnModular("prop_computer_terminal", new Vector3(-4f, 1.05f, 13.5f), Quaternion.identity, new Vector3(0.5f, 0.5f, 0.5f), floorMat);
+        // Add Level Complete Trigger Zone
+        var triggerObj = new GameObject("LevelExitTrigger");
+        triggerObj.transform.position = new Vector3(12f, 0.5f, 77.5f);
+        var triggerCol = triggerObj.AddComponent<BoxCollider>();
+        triggerCol.isTrigger = true;
+        triggerCol.size = new Vector3(2.5f, 2.0f, 2.5f);
+        triggerObj.AddComponent<G1LevelExitTrigger>();
     }
 
     /// Seeded point in the arena, kept clear of the player spawn and doorway.
@@ -575,6 +701,12 @@ public static class G1SceneBuilder
 
         var switcher = camGo.AddComponent<WeaponSwitcher>();
         switcher.weapons = new[] { crowbarHolder, pistolHolder, smgHolder, shotgunHolder, magnumHolder };
+        switcher.unlocked = new bool[] { true, false, false, false, false };
+
+        pistolHolder.SetActive(false);
+        smgHolder.SetActive(false);
+        shotgunHolder.SetActive(false);
+        magnumHolder.SetActive(false);
 
         SetLayerRecursive(player, playerLayer);
         return player;
