@@ -67,8 +67,7 @@ public class G1Magnum : WeaponBase
     {
         if (reloadPhase != ReloadPhase.None)
         {
-            // Allow interrupting the insert phase by pressing Fire1
-            if (Input.GetButtonDown("Fire1") && reloadPhase == ReloadPhase.InsertBullet && clip > 0)
+            if (Input.GetButtonDown("Fire1"))
             {
                 wantsToInterrupt = true;
             }
