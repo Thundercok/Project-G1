@@ -18,7 +18,7 @@ public class G1HealthPack : MonoBehaviour
             var health = other.GetComponent<HealthSystem>();
             if (health != null && health.CurrentHealth < health.maxHealth)
             {
-                health.CurrentHealth = Mathf.Min(health.CurrentHealth + healAmount, health.maxHealth);
+                health.Heal(healAmount);
                 
                 // Play simple visual cue (flash screen green or log)
                 Debug.Log("Healed 25 HP!");
