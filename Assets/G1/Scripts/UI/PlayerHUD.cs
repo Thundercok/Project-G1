@@ -110,7 +110,7 @@ public class PlayerHUD : MonoBehaviour
         if (playerHealth == null) return;
         int hp = Mathf.CeilToInt(playerHealth.CurrentHealth);
         if (hp < 0) hp = 0;
-        string hpText = $"+  {hp}";
+        string hpText = playerHealth.godMode ? "+  GOD" : $"+  {hp}";
 
         // Pulse red when low HP
         Color hpColor = hp < 25

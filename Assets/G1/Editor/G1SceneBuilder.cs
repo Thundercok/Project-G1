@@ -599,7 +599,7 @@ public static class G1SceneBuilder
         hordeColl.size = new Vector3(8f, 3f, 4f);
 
         var hordeComp = hordeTrigger.AddComponent<G1HordeTrigger>();
-        hordeComp.spawnCount = 8;
+        hordeComp.spawnCount = 5;
         hordeComp.spawnCenter = new Vector3(12f, 0f, 68f);
         hordeComp.spawnRadius = 4f;
 
