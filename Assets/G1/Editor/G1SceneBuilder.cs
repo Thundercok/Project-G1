@@ -27,6 +27,7 @@ public static class G1SceneBuilder
         ConfigureFbx($"{Models}/Pistol.fbx", loopAll: false);   // only Idle loops
         ConfigureFbx($"{Models}/Smg.fbx", loopAll: false);
         ConfigureFbx($"{Models}/Shotgun.fbx", loopAll: false);
+        ConfigureFbx($"{Models}/Magnum.fbx", loopAll: false);
 
         RuntimeAnimatorController protagonistCtrl =
             MakeNpcController($"{Models}/Protagonist.fbx", $"{AnimDir}/Protagonist.controller");
@@ -38,13 +39,15 @@ public static class G1SceneBuilder
             MakePistolController($"{Models}/Smg.fbx", $"{AnimDir}/Smg.controller");
         RuntimeAnimatorController shotgunCtrl =
             MakePistolController($"{Models}/Shotgun.fbx", $"{AnimDir}/Shotgun.controller");
+        RuntimeAnimatorController magnumCtrl =
+            MakePistolController($"{Models}/Magnum.fbx", $"{AnimDir}/Magnum.controller");
 
         Scene scene = EditorSceneManager.NewScene(
             NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         BuildLighting();
         BuildArena();
-        GameObject player = BuildPlayer(pistolCtrl, smgCtrl, shotgunCtrl);
+        GameObject player = BuildPlayer(pistolCtrl, smgCtrl, shotgunCtrl, magnumCtrl);
         BuildNpcs(protagonistCtrl, villainCtrl, player.transform.position);
 
         EnsureFolder("Assets/Scenes");
@@ -238,7 +241,7 @@ public static class G1SceneBuilder
         Slab("DoorLintel", new Vector3(7f, 2.6f, 6f), new Vector3(2.4f, 0.3f, 0.4f), concrete);
     }
 
-    static GameObject BuildPlayer(RuntimeAnimatorController pistolCtrl, RuntimeAnimatorController smgCtrl, RuntimeAnimatorController shotgunCtrl)
+    static GameObject BuildPlayer(RuntimeAnimatorController pistolCtrl, RuntimeAnimatorController smgCtrl, RuntimeAnimatorController shotgunCtrl, RuntimeAnimatorController magnumCtrl)
     {
         var player = new GameObject("Player");
         player.tag = "Player";
@@ -350,8 +353,30 @@ public static class G1SceneBuilder
         shotgunAnim.runtimeAnimatorController = shotgunCtrl;
         shotgun.modelAnimator = shotgunAnim;
 
+        // --- magnum
+        var magnumHolder = new GameObject("MagnumHolder");
+        magnumHolder.transform.SetParent(camGo.transform, false);
+        magnumHolder.transform.localPosition = new Vector3(0.24f, -0.27f, 0.44f);
+        var magnum = magnumHolder.AddComponent<G1Magnum>();
+        magnum.viewCamera = cam;
+        magnum.movement = move;
+        magnum.hitMask = shootable;
+        magnum.weaponFX = fx;
+        magnum.camFX = camFX;
+        var magnumMuzzle = new GameObject("MuzzlePoint");
+        magnumMuzzle.transform.SetParent(magnumHolder.transform, false);
+        magnumMuzzle.transform.localPosition = new Vector3(0f, 0.08f, 0.35f); // aligned to barrel end
+        magnum.muzzlePoint = magnumMuzzle.transform;
+        var magnumModel = MountViewmodel($"{Models}/Magnum.fbx", magnumHolder.transform,
+                                         Vector3.zero, Quaternion.identity);
+        var magnumAnim = magnumModel.GetComponent<Animator>();
+        if (!magnumAnim)
+            magnumAnim = magnumModel.AddComponent<Animator>();
+        magnumAnim.runtimeAnimatorController = magnumCtrl;
+        magnum.modelAnimator = magnumAnim;
+
         var switcher = camGo.AddComponent<WeaponSwitcher>();
-        switcher.weapons = new[] { crowbarHolder, pistolHolder, smgHolder, shotgunHolder };
+        switcher.weapons = new[] { crowbarHolder, pistolHolder, smgHolder, shotgunHolder, magnumHolder };
 
         SetLayerRecursive(player, playerLayer);
         return player;
