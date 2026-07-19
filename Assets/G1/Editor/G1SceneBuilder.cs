@@ -50,6 +50,9 @@ public static class G1SceneBuilder
         GameObject player = BuildPlayer(pistolCtrl, smgCtrl, shotgunCtrl, magnumCtrl);
         BuildNpcs(protagonistCtrl, villainCtrl, player.transform.position);
 
+        // Bake NavMesh in Editor
+        UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
+
         EnsureFolder("Assets/Scenes");
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -225,6 +228,7 @@ public static class G1SceneBuilder
         go.transform.position = pos;
         go.transform.localScale = size;
         go.GetComponent<Renderer>().sharedMaterial = mat;
+        GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.NavigationStatic);
         return go;
     }
 
@@ -550,6 +554,51 @@ public static class G1SceneBuilder
 
         var soldierAI = soldier.AddComponent<G1SoldierAI>();
         soldierAI.waypoints = sWaypoints;
+
+        // Configure NavMeshAgent properties
+        var agent = soldier.GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (agent)
+        {
+            agent.height = 1.8f;
+            agent.radius = 0.35f;
+            agent.speed = 1.0f;
+        }
+
+        // Save as prefab
+        EnsureFolder("Assets/G1/Prefabs");
+        string prefabPath = "Assets/G1/Prefabs/HECUSoldier.prefab";
+        GameObject soldierPrefab = PrefabUtility.SaveAsPrefabAsset(soldier, prefabPath);
+
+        // Set up ThreatDirector
+        var directorGo = new GameObject("ThreatDirector");
+        var director = directorGo.AddComponent<ThreatDirector>();
+        director.soldierPrefab = soldierPrefab;
+        director.maxActiveSoldiers = 4;
+        director.relaxDuration = 8f;
+        director.intensityDecayRate = 0.08f;
+
+        // Spawn nodes around map perimeter
+        var nodesParent = new GameObject("SpawnNodes").transform;
+        Vector3[] nodePositions = {
+            new Vector3(-14f, 0.5f, 14f),
+            new Vector3(14f, 0.5f, 14f),
+            new Vector3(14f, 0.5f, -14f),
+            new Vector3(-14f, 0.5f, -14f),
+            new Vector3(-14f, 0.5f, 0f),
+            new Vector3(14f, 0.5f, 0f),
+            new Vector3(0f, 0.5f, 14f),
+            new Vector3(0f, 0.5f, -14f)
+        };
+        var spawnNodes = new Transform[nodePositions.Length];
+        for (int i = 0; i < nodePositions.Length; i++)
+        {
+            var node = new GameObject($"SpawnNode_{i}");
+            node.transform.SetParent(nodesParent, false);
+            node.transform.position = nodePositions[i];
+            node.transform.LookAt(new Vector3(0f, 0.5f, 0f));
+            spawnNodes[i] = node.transform;
+        }
+        director.spawnNodes = spawnNodes;
     }
 
     static Transform FindBone(Transform parent, string name)

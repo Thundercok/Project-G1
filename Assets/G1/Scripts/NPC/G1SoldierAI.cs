@@ -4,7 +4,7 @@ using UnityEngine;
 /// Burst-fire Patrol Soldier AI.
 /// Scans for player, patrols waypoints, chases player when alerted,
 /// shoots in 3-shot bursts, and drops procedurally generated health/ammo packs on death.
-[RequireComponent(typeof(Animator), typeof(HealthSystem))]
+[RequireComponent(typeof(Animator), typeof(HealthSystem), typeof(UnityEngine.AI.NavMeshAgent))]
 public class G1SoldierAI : MonoBehaviour
 {
     private enum SoldierState : byte { Patrol, Alert, BurstFire, Dead }
@@ -31,6 +31,7 @@ public class G1SoldierAI : MonoBehaviour
     private GameObject player;
     private HealthSystem playerHealth;
 
+    private UnityEngine.AI.NavMeshAgent agent;
     private int waypointIdx;
     private float nextBurstTime;
     private float nextShotTime;
@@ -48,6 +49,9 @@ public class G1SoldierAI : MonoBehaviour
         myHealth.OnDeath += HandleDeath;
         anim = GetComponent<Animator>();
 
+        agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+        agent.updateRotation = false; // Rotate manually for smooth control
+
         int playerLayer = LayerMask.NameToLayer("Player");
         if (playerLayer == -1) playerLayer = 8;
         playerMask = 1 << playerLayer;
@@ -56,6 +60,20 @@ public class G1SoldierAI : MonoBehaviour
         player = GameObject.FindWithTag("Player");
         if (player)
             playerHealth = player.GetComponent<HealthSystem>();
+
+        // Auto-resolve waypoints from global path if none assigned
+        if (waypoints == null || waypoints.Length == 0)
+        {
+            var patrolPathObj = GameObject.Find("SoldierPatrolPath");
+            if (patrolPathObj != null)
+            {
+                waypoints = new Transform[patrolPathObj.transform.childCount];
+                for (int i = 0; i < waypoints.Length; i++)
+                {
+                    waypoints[i] = patrolPathObj.transform.GetChild(i);
+                }
+            }
+        }
 
         state = SoldierState.Patrol;
         waypointIdx = 0;
@@ -160,15 +178,28 @@ public class G1SoldierAI : MonoBehaviour
         target.y = transform.position.y;
         Vector3 to = target - transform.position;
 
-        if (to.magnitude < 0.3f)
+        if (to.magnitude < 0.8f)
         {
             waypointIdx = (waypointIdx + 1) % waypoints.Length;
         }
         else
         {
-            Quaternion look = Quaternion.LookRotation(to);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
-            transform.position += transform.forward * patrolSpeed * Time.deltaTime;
+            agent.speed = patrolSpeed;
+            agent.SetDestination(target);
+
+            // Rotate smoothly towards movement velocity or target
+            Vector3 moveDir = agent.velocity;
+            moveDir.y = 0f;
+            if (moveDir.sqrMagnitude > 0.05f)
+            {
+                Quaternion look = Quaternion.LookRotation(moveDir.normalized);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
+            }
+            else if (to.sqrMagnitude > 0.01f)
+            {
+                Quaternion look = Quaternion.LookRotation(to.normalized);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
+            }
         }
     }
 
@@ -180,30 +211,64 @@ public class G1SoldierAI : MonoBehaviour
         toPlayer.y = 0f;
         float dist = toPlayer.magnitude;
 
-        // Keep moving towards the player
+        agent.speed = chaseSpeed;
+
         if (dist > attackRadius - 1f)
         {
-            Quaternion look = Quaternion.LookRotation(toPlayer);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
-            transform.position += transform.forward * chaseSpeed * Time.deltaTime;
+            SeekFlankPosition();
 
             if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
                 anim.CrossFade("Walk", 0.1f);
         }
         else
         {
-            // Face the player when close
-            Quaternion look = Quaternion.LookRotation(toPlayer);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
+            agent.ResetPath();
 
             if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
                 anim.CrossFade("Idle", 0.1f);
+        }
+
+        // Face player
+        if (toPlayer.sqrMagnitude > 0.001f)
+        {
+            Quaternion look = Quaternion.LookRotation(toPlayer);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
+        }
+    }
+
+    void SeekFlankPosition()
+    {
+        if (player == null) return;
+
+        Vector3 toPlayer = player.transform.position - transform.position;
+
+        int activeCount = ThreatDirector.Instance != null ? ThreatDirector.Instance.ActiveSoldiersCount : 1;
+        if (activeCount <= 1 || toPlayer.magnitude < 5f)
+        {
+            agent.SetDestination(player.transform.position);
+            return;
+        }
+
+        // L4D2 flanking: maintain 90-180 degree offset from another soldier
+        Vector3 perp = Vector3.Cross(toPlayer.normalized, Vector3.up);
+        int side = (gameObject.GetInstanceID() % 2 == 0) ? 1 : -1;
+        Vector3 flankTarget = player.transform.position + perp * (side * 5f);
+
+        // Validate flank position on NavMesh
+        if (UnityEngine.AI.NavMesh.SamplePosition(flankTarget, out UnityEngine.AI.NavMeshHit hit, 3f, UnityEngine.AI.NavMesh.AllAreas))
+        {
+            agent.SetDestination(hit.position);
+        }
+        else
+        {
+            agent.SetDestination(player.transform.position);
         }
     }
 
     void BeginBurst()
     {
         state = SoldierState.BurstFire;
+        if (agent) agent.ResetPath(); // Stop movement during burst
         shotsLeftInBurst = 3;
         nextShotTime = Time.time;
         if (anim) anim.CrossFade("Idle", 0.05f);
@@ -257,6 +322,10 @@ public class G1SoldierAI : MonoBehaviour
             if (hit.collider.gameObject == player)
             {
                 playerHealth.TakeDamage(damage, hit.point, hit.normal);
+                if (ThreatDirector.Instance != null)
+                {
+                    ThreatDirector.Instance.ReportPlayerHit();
+                }
             }
         }
     }
@@ -292,6 +361,7 @@ public class G1SoldierAI : MonoBehaviour
     void ResetPatrol()
     {
         state = SoldierState.Patrol;
+        if (agent) agent.ResetPath();
         bool isWalking = waypoints != null && waypoints.Length > 1;
         if (anim) anim.CrossFade(isWalking ? "Walk" : "Idle", 0.1f);
     }
@@ -299,6 +369,11 @@ public class G1SoldierAI : MonoBehaviour
     void HandleDeath(Vector3 hitPoint, Vector3 hitNormal)
     {
         state = SoldierState.Dead;
+        if (agent) agent.enabled = false; // Disable NavMeshAgent so corpse physics tip works
+        if (ThreatDirector.Instance != null)
+        {
+            ThreatDirector.Instance.ReportSoldierDead();
+        }
         TryDropPack();
     }
 
