@@ -14,7 +14,6 @@ public class PlayerMovement : MonoBehaviour
     [Header("Acceleration")]
     public float accelerate = 10f;       // sv_accelerate
     public float airAccelerate = 10f;    // sv_airaccelerate
-    public float airWishCap = 0.76f;     // 30 ups air wish clamp -> strafe gain
     public float friction = 4f;          // sv_friction
     public float gravity = 20.3f;        // 800 ups^2
 
@@ -53,7 +52,9 @@ public class PlayerMovement : MonoBehaviour
             ApplyFriction(dt);
             Accelerate(wish.normalized, wish.magnitude * maxSpeed, accelerate, dt);
             velocity.y = -1f;                       // keep the controller planted
-            if (Input.GetButton("Jump"))            // held = auto-bunnyhop
+            // DESIGN INTENT: Auto-bhop (held button) — accessibility choice, not a bug.
+            // Change to GetButtonDown() to require tap-timing skill expression.
+            if (Input.GetButton("Jump"))
                 velocity.y = jumpSpeed;
         }
         else
@@ -64,7 +65,7 @@ public class PlayerMovement : MonoBehaviour
                 velocity.y = jumpSpeed;
                 coyoteTimer = 0f;
             }
-            float wishSpeed = Mathf.Min(wish.magnitude * maxSpeed, airWishCap);
+            float wishSpeed = wish.magnitude * maxSpeed;
             Accelerate(wish.normalized, wishSpeed, airAccelerate, dt);
             velocity.y -= gravity * dt;
         }
