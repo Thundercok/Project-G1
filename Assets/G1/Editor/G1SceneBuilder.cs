@@ -561,6 +561,22 @@ public static class G1SceneBuilder
         Slab("BreachWallN_L", new Vector3(9f, 1.5f, 72f), new Vector3(2, 3, 0.5f), concrete);
         Slab("BreachWallN_R", new Vector3(15f, 1.5f, 72f), new Vector3(2, 3, 0.5f), concrete);
 
+        // Toxic radiation puddle
+        Material toxicMat = MakeMat("ToxicWaste", new Color(0.12f, 0.85f, 0.16f), 0.1f);
+        toxicMat.EnableKeyword("_EMISSION");
+        toxicMat.SetColor("_EmissionColor", new Color(0.04f, 0.45f, 0.04f));
+        var toxicWaste = Slab("ToxicWastePuddle", new Vector3(12f, -0.15f, 64f), new Vector3(6f, 0.4f, 4f), toxicMat);
+        toxicWaste.AddComponent<G1HazardZone>();
+        toxicWaste.GetComponent<Collider>().isTrigger = true;
+
+        // Xen Jump Pad
+        Material jumpPadMat = MakeMat("XenJumpPad", new Color(0f, 0.95f, 0.85f), 0.2f);
+        jumpPadMat.EnableKeyword("_EMISSION");
+        jumpPadMat.SetColor("_EmissionColor", new Color(0f, 0.65f, 0.55f));
+        var jumpPad = Slab("XenJumpPadPlatform", new Vector3(12f, -0.15f, 58.5f), new Vector3(2f, 0.3f, 2f), jumpPadMat);
+        jumpPad.AddComponent<G1JumpPad>().launchForce = 13.5f;
+        jumpPad.GetComponent<Collider>().isTrigger = true;
+
         // Doorframe 4 (Breach Zone to Elevator)
         Slab("BreachExitFrameL", new Vector3(9.8f, 1.25f, 72f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
         Slab("BreachExitFrameR", new Vector3(14.2f, 1.25f, 72f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
@@ -666,6 +682,7 @@ public static class G1SceneBuilder
         var look = camGo.AddComponent<MouseLook>();
         look.body = player.transform;
         var camFX = camGo.AddComponent<CameraEffects>();
+        camGo.AddComponent<G1Flashlight>();
 
         var use = player.AddComponent<PlayerUse>();
         use.viewCamera = cam;

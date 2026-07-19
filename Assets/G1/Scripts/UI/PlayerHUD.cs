@@ -24,7 +24,13 @@ public class PlayerHUD : MonoBehaviour
     float _pickupDisplayUntil;
 
     string _terminalLogMessage;
+    string _displayedTerminalLog = "";
     float _terminalLogDisplayUntil;
+    float _nextCharTime;
+    int _charIndex;
+
+    G1Flashlight flashlight;
+    float _radFlashTime;
 
     void Start()
     {
@@ -32,6 +38,7 @@ public class PlayerHUD : MonoBehaviour
         switcher = GetComponentInChildren<WeaponSwitcher>();
         camFX = GetComponentInChildren<CameraEffects>();
         vignetteTex = MakeVignette();
+        flashlight = GetComponentInChildren<G1Flashlight>();
 
         // Load Share Tech Mono
         var fontAsset = Resources.Load<Font>("Fonts/ShareTechMono-Regular");
@@ -47,7 +54,15 @@ public class PlayerHUD : MonoBehaviour
     public void ShowTerminalLog(string msg)
     {
         _terminalLogMessage = msg;
-        _terminalLogDisplayUntil = Time.time + 5f;
+        _displayedTerminalLog = "";
+        _charIndex = 0;
+        _nextCharTime = Time.time;
+        _terminalLogDisplayUntil = Time.time + 6f;
+    }
+
+    public void ShowRadWarning()
+    {
+        _radFlashTime = Time.time + 0.6f;
     }
 
     void OnGUI()
@@ -110,10 +125,51 @@ public class PlayerHUD : MonoBehaviour
             font = _hudFont
         };
 
+        // Draw Toxic Hazard warning overlay if active
+        if (Time.time < _radFlashTime)
+        {
+            var radStyle = new GUIStyle(style)
+            {
+                fontSize = 22,
+                alignment = TextAnchor.LowerLeft
+            };
+            Color radColor = Color.Lerp(Color.green, Color.red, Mathf.PingPong(Time.time * 8f, 1f));
+            
+            // Shadow
+            radStyle.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
+            GUI.Label(new Rect(42, Screen.height - 118, 200, 40), "[☢] TOXIC HAZARD", radStyle);
+            // Main text
+            radStyle.normal.textColor = radColor;
+            GUI.Label(new Rect(40, Screen.height - 120, 200, 40), "[☢] TOXIC HAZARD", radStyle);
+        }
+
+        // Draw Health
         style.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
         GUI.Label(new Rect(42, Screen.height - 78, 250, 60), hpText, style);
         style.normal.textColor = hpColor;
         GUI.Label(new Rect(40, Screen.height - 80, 250, 60), hpText, style);
+
+        // Draw Flashlight indicator if available
+        if (flashlight != null)
+        {
+            string flText = $"FL  {Mathf.CeilToInt(flashlight.Battery)}%";
+            Color flColor = flashlight.IsActive 
+                ? (flashlight.Battery < 20f ? Color.red : hudColor)
+                : new Color(hudColor.r, hudColor.g, hudColor.b, 0.4f);
+
+            var flStyle = new GUIStyle(style)
+            {
+                fontSize = 20,
+                alignment = TextAnchor.LowerLeft
+            };
+            
+            // Shadow
+            flStyle.normal.textColor = new Color(0f, 0f, 0f, 0.5f);
+            GUI.Label(new Rect(182, Screen.height - 70, 180, 50), flText, flStyle);
+            // Main text
+            flStyle.normal.textColor = flColor;
+            GUI.Label(new Rect(180, Screen.height - 72, 180, 50), flText, flStyle);
+        }
     }
 
     void DrawAmmoHUD()
@@ -238,6 +294,16 @@ public class PlayerHUD : MonoBehaviour
         float remaining = _terminalLogDisplayUntil - Time.time;
         if (remaining <= 0f) { _terminalLogMessage = null; return; }
 
+        // Typewriter character progression
+        if (_charIndex < _terminalLogMessage.Length && Time.time >= _nextCharTime)
+        {
+            _displayedTerminalLog += _terminalLogMessage[_charIndex];
+            _charIndex++;
+            _nextCharTime = Time.time + 0.025f; // Typewriter speed
+            // Very light digital beep/tick for each character printed
+            G1Audio.Play2D("pickup", 0.03f, 1.8f);
+        }
+
         float alpha = Mathf.Clamp01(remaining);
         var style = new GUIStyle(GUI.skin.label)
         {
@@ -250,9 +316,9 @@ public class PlayerHUD : MonoBehaviour
 
         // Draw shadow
         style.normal.textColor = new Color(0f, 0f, 0f, 0.7f * alpha);
-        GUI.Label(new Rect(Screen.width/2f - 300 + 1, Screen.height - 180 + 1, 600, 80), _terminalLogMessage, style);
+        GUI.Label(new Rect(Screen.width/2f - 300 + 1, Screen.height - 180 + 1, 600, 80), _displayedTerminalLog, style);
         // Draw text (retro green/cyan terminal look)
         style.normal.textColor = new Color(0.2f, 0.9f, 0.6f, alpha);
-        GUI.Label(new Rect(Screen.width/2f - 300, Screen.height - 180, 600, 80), _terminalLogMessage, style);
+        GUI.Label(new Rect(Screen.width/2f - 300, Screen.height - 180, 600, 80), _displayedTerminalLog, style);
     }
 }

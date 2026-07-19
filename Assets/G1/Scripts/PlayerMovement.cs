@@ -169,4 +169,10 @@ public class PlayerMovement : MonoBehaviour
         float accelSpeed = Mathf.Min(accel * wishSpeed * dt, add);
         velocity += wishDir * accelSpeed;
     }
+
+    public void Launch(float upwardForce)
+    {
+        velocity.y = upwardForce;
+        coyoteTimer = 0f;
+    }
 }
