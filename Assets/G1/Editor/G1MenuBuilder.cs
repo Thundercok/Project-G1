@@ -79,13 +79,22 @@ public static class G1MenuBuilder
             AssetDatabase.CreateFolder("Assets", "Scenes");
     }
 
-    /// Menu = build index 0 (when it exists), game scene = 1.
+    /// Menu = build index 0 (when it exists), then every campaign scene
+    /// that has been built so far.
     public static void RegisterScenes()
     {
         var list = new System.Collections.Generic.List<EditorBuildSettingsScene>();
-        if (AssetDatabase.LoadAssetAtPath<SceneAsset>(MenuScenePath) != null)
-            list.Add(new EditorBuildSettingsScene(MenuScenePath, true));
-        list.Add(new EditorBuildSettingsScene("Assets/Scenes/TestScene.unity", true));
+        foreach (string path in new[]
+        {
+            MenuScenePath,
+            "Assets/Scenes/TestScene.unity",
+            "Assets/Scenes/Level2.unity",
+            "Assets/Scenes/Level3.unity",
+        })
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) != null)
+                list.Add(new EditorBuildSettingsScene(path, true));
+        }
         EditorBuildSettings.scenes = list.ToArray();
     }
 }

@@ -1,0 +1,313 @@
+using Unity.AI.Navigation;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
+
+/// Campaign levels 2 and 3 (see docs/story.md). Level 1 lives in
+/// G1SceneBuilder; these reuse its public player rig.
+public static class G1CampaignBuilders
+{
+    // ---------------------------------------------------------- shared bits
+    static Material Mat(Color c, float emission = 0f)
+    {
+        var m = new Material(Shader.Find("Standard"));
+        m.color = c;
+        if (emission > 0f)
+        {
+            m.EnableKeyword("_EMISSION");
+            m.SetColor("_EmissionColor", c * emission);
+        }
+        return m;
+    }
+
+    static GameObject Slab(string name, Vector3 pos, Vector3 size, Material m)
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        go.name = name;
+        go.transform.position = pos;
+        go.transform.localScale = size;
+        go.GetComponent<Renderer>().sharedMaterial = m;
+        return go;
+    }
+
+    static void SpawnPrefab(string path, Vector3 pos, float yaw = 0f)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        if (!prefab)
+        {
+            Debug.LogWarning("Missing prefab " + path + " — build Level 1 first");
+            return;
+        }
+        var go = (GameObject)Object.Instantiate(
+            prefab, pos, Quaternion.Euler(0f, yaw, 0f));
+        go.name = prefab.name;
+    }
+
+    static void Cameo(Vector3 pos, float yaw)
+    {
+        var fbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/G1/Models/Villain.fbx");
+        var ctrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
+            "Assets/G1/Anim/Villain.controller");
+        if (!fbx)
+            return;
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(fbx);
+        go.name = "TheAuditor";
+        go.transform.position = pos;
+        go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+        var anim = go.GetComponent<Animator>();
+        if (!anim)
+            anim = go.AddComponent<Animator>();
+        if (ctrl)
+            anim.runtimeAnimatorController = ctrl;
+        go.AddComponent<G1GManCameo>();
+    }
+
+    static void Exit(string name, Vector3 pos, Vector3 size, string next)
+    {
+        var go = new GameObject(name);
+        go.transform.position = pos;
+        var col = go.AddComponent<BoxCollider>();
+        col.isTrigger = true;
+        col.size = size;
+        go.AddComponent<G1LevelExitTrigger>().nextScene = next;
+    }
+
+    static void Checkpoint(string name, Vector3 pos)
+    {
+        var go = new GameObject(name);
+        go.transform.position = pos;
+        go.AddComponent<G1Checkpoint>();
+    }
+
+    static void FinishScene(Scene scene, string path, string navAssetPath)
+    {
+        var navGo = new GameObject("NavMesh");
+        var surface = navGo.AddComponent<NavMeshSurface>();
+        surface.collectObjects = CollectObjects.All;
+        surface.layerMask = 1 << 0;
+        surface.useGeometry = UnityEngine.AI.NavMeshCollectGeometry.RenderMeshes;
+        surface.BuildNavMesh();
+        AssetDatabase.DeleteAsset(navAssetPath);
+        AssetDatabase.CreateAsset(surface.navMeshData, navAssetPath);
+        EditorSceneManager.SaveScene(scene, path);
+        G1MenuBuilder.RegisterScenes();
+        AssetDatabase.SaveAssets();
+    }
+
+    static GameObject Player(Vector3 pos, string chapter, string subtitle,
+                             string ambienceClip)
+    {
+        var player = G1SceneBuilder.BuildStandardPlayer();
+        var cc = player.GetComponent<CharacterController>();
+        cc.enabled = false;
+        player.transform.position = pos;
+        cc.enabled = true;
+        var card = player.GetComponent<G1StoryCard>();
+        card.title = chapter;
+        card.subtitle = subtitle;
+        player.GetComponent<G1Ambience>().zones = new[]
+        {
+            new G1Ambience.Zone { clip = ambienceClip, zMax = 9999f },
+        };
+        return player;
+    }
+
+    // ------------------------------------------------------------- LEVEL 2
+    [MenuItem("G1/Build Level 2 (Quarantine)")]
+    public static void BuildLevel2()
+    {
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogWarning("G1: exit Play Mode first.");
+            return;
+        }
+        Scene scene = EditorSceneManager.NewScene(
+            NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+        // overcast dawn: flat grey-blue ambient, no sun, distant fog
+        RenderSettings.ambientMode = AmbientMode.Flat;
+        RenderSettings.ambientLight = new Color(0.36f, 0.42f, 0.50f);
+        RenderSettings.fog = true;
+        RenderSettings.fogMode = FogMode.Linear;
+        RenderSettings.fogStartDistance = 30f;
+        RenderSettings.fogEndDistance = 90f;
+        RenderSettings.fogColor = new Color(0.45f, 0.50f, 0.56f);
+
+        var concrete = Mat(new Color(0.54f, 0.57f, 0.60f));
+        var asphalt = Mat(new Color(0.24f, 0.25f, 0.27f));
+        var green = Mat(new Color(0.29f, 0.37f, 0.29f));
+        var wood = Mat(new Color(0.38f, 0.25f, 0.12f));
+
+        Slab("Yard", new Vector3(0, -0.25f, 0), new Vector3(60, 0.5f, 40), asphalt);
+        Slab("WallN", new Vector3(0, 2f, 20), new Vector3(60.5f, 4, 0.6f), concrete);
+        Slab("WallS", new Vector3(0, 2f, -20), new Vector3(60.5f, 4, 0.6f), concrete);
+        Slab("WallW", new Vector3(-30, 2f, 0), new Vector3(0.6f, 4, 40.5f), concrete);
+        Slab("WallE", new Vector3(30, 2f, 0), new Vector3(0.6f, 4, 40.5f), concrete);
+
+        // elevator exit alcove (player spawn, west side)
+        Slab("ElevatorBox", new Vector3(-27f, 1.5f, 12f), new Vector3(4, 3, 4), concrete);
+
+        // helicopter on its pad (center-east)
+        Slab("HeliPad", new Vector3(12f, 0.05f, 0f), new Vector3(12, 0.1f, 12), concrete);
+        Slab("HeliBody", new Vector3(12f, 1.2f, 0f), new Vector3(4f, 1.4f, 1.8f), green);
+        Slab("HeliTail", new Vector3(15.4f, 1.5f, 0f), new Vector3(3f, 0.5f, 0.4f), green);
+        Slab("HeliSkidL", new Vector3(12f, 0.3f, 0.9f), new Vector3(3.4f, 0.12f, 0.15f), green);
+        Slab("HeliSkidR", new Vector3(12f, 0.3f, -0.9f), new Vector3(3.4f, 0.12f, 0.15f), green);
+        var rotor = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        rotor.name = "HeliRotor";
+        rotor.transform.position = new Vector3(12f, 2.1f, 0f);
+        rotor.transform.localScale = new Vector3(4.4f, 0.03f, 4.4f);
+        rotor.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.12f, 0.12f, 0.14f));
+
+        // scattered cover: crates + barrels
+        var cratePos = new[]
+        {
+            new Vector3(-12, 0.4f, 4), new Vector3(-8, 0.4f, -6),
+            new Vector3(0, 0.4f, 10), new Vector3(4, 0.4f, -10),
+            new Vector3(-2, 0.4f, -2), new Vector3(20, 0.4f, 8),
+        };
+        foreach (var p in cratePos)
+        {
+            var crate = Slab("Crate", p, Vector3.one * 0.8f, wood);
+            crate.AddComponent<Breakable>();
+            crate.GetComponent<HealthSystem>().maxHealth = 50f;
+        }
+
+        // sweeper patrol (prefabs carry full AI; they hold position and aggro)
+        SpawnPrefab("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(6f, 0f, 12f), 200f);
+        SpawnPrefab("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(2f, 0f, -12f), 320f);
+        SpawnPrefab("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(22f, 0f, -4f), 270f);
+
+        G1HealthPack.Create(new Vector3(-20f, 0.5f, -8f));
+        G1AmmoPack.Create(new Vector3(-14f, 0.5f, 10f));
+        G1AmmoPack.Create(new Vector3(18f, 0.5f, 12f));
+
+        Checkpoint("Checkpoint_Yard", new Vector3(0f, 0f, 0f));
+        Cameo(new Vector3(24f, 4.2f, 16f), 210f);   // on the perimeter wall
+
+        // maintenance shaft down (east corner) → Level 3
+        Slab("ShaftHousing", new Vector3(26f, 1.2f, -16f), new Vector3(4, 2.4f, 4), concrete);
+        Exit("ExitToUndercroft", new Vector3(26f, 1f, -16f),
+             new Vector3(2.5f, 2f, 2.5f), "Level3");
+
+        Player(new Vector3(-26f, 0.05f, 8f), "CHAPTER TWO",
+               "QUARANTINE — Surface Motor Pool, dawn", "ambient_industrial");
+
+        FinishScene(scene, "Assets/Scenes/Level2.unity",
+                    "Assets/Scenes/Level2NavMesh.asset");
+        Debug.Log("G1 LEVEL2 BUILD OK");
+    }
+
+    // ------------------------------------------------------------- LEVEL 3
+    [MenuItem("G1/Build Level 3 (Threshold)")]
+    public static void BuildLevel3()
+    {
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogWarning("G1: exit Play Mode first.");
+            return;
+        }
+        Scene scene = EditorSceneManager.NewScene(
+            NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+        RenderSettings.ambientMode = AmbientMode.Flat;
+        RenderSettings.ambientLight = new Color(0.05f, 0.09f, 0.10f);
+        RenderSettings.fog = true;
+        RenderSettings.fogMode = FogMode.Linear;
+        RenderSettings.fogStartDistance = 8f;
+        RenderSettings.fogEndDistance = 45f;
+        RenderSettings.fogColor = new Color(0.02f, 0.07f, 0.08f);
+
+        var rock = Mat(new Color(0.11f, 0.12f, 0.13f));
+        var teal = new Color(0.16f, 0.75f, 0.75f);
+
+        Slab("Floor", new Vector3(0, -0.25f, 20), new Vector3(30, 0.5f, 56), rock);
+        Slab("WallW", new Vector3(-15, 4f, 20), new Vector3(0.6f, 8, 56.5f), rock);
+        Slab("WallE", new Vector3(15, 4f, 20), new Vector3(0.6f, 8, 56.5f), rock);
+        Slab("WallS", new Vector3(0, 4f, -8), new Vector3(30.5f, 8, 0.6f), rock);
+        Slab("WallN", new Vector3(0, 4f, 48), new Vector3(30.5f, 8, 0.6f), rock);
+
+        // alien pods and spore lights along the hall
+        var podMat = Mat(teal, 0.8f);
+        for (int i = 0; i < 6; i++)
+        {
+            float x = (i % 2 == 0) ? -11f : 11f;
+            float z = 4f + i * 7f;
+            var pod = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            pod.name = "AlienPod_" + i;
+            pod.transform.position = new Vector3(x, 0.9f, z);
+            pod.transform.localScale = new Vector3(1.4f, 0.9f, 1.4f);
+            pod.GetComponent<Renderer>().sharedMaterial = podMat;
+            var lightGo = new GameObject("SporeLight_" + i);
+            lightGo.transform.position = new Vector3(x, 2.2f, z);
+            var li = lightGo.AddComponent<Light>();
+            li.type = LightType.Point;
+            li.color = teal;
+            li.range = 6f;
+            li.intensity = 0.9f;
+        }
+
+        // the taken and the strays defend the hall
+        SpawnPrefab("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-6f, 0f, 12f));
+        SpawnPrefab("Assets/G1/Prefabs/Zombie.prefab", new Vector3(6f, 0f, 18f));
+        SpawnPrefab("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-4f, 0f, 26f));
+        SpawnPrefab("Assets/G1/Prefabs/Alien.prefab", new Vector3(8f, 0f, 24f));
+        SpawnPrefab("Assets/G1/Prefabs/Alien.prefab", new Vector3(-8f, 0f, 32f));
+        SpawnPrefab("Assets/G1/Prefabs/Alien.prefab", new Vector3(4f, 0f, 38f));
+
+        G1HealthPack.Create(new Vector3(-12f, 0.5f, 10f));
+        G1HealthPack.Create(new Vector3(12f, 0.5f, 30f));
+        G1AmmoPack.Create(new Vector3(-12f, 0.5f, 22f));
+        G1AmmoPack.Create(new Vector3(12f, 0.5f, 14f));
+
+        Checkpoint("Checkpoint_Undercroft", new Vector3(0f, 0f, 2f));
+
+        // THE THRESHOLD: ring of emissive blocks at the far end
+        var ringMat = Mat(teal, 2.2f);
+        Vector3 center = new Vector3(0f, 2.4f, 44f);
+        for (int i = 0; i < 12; i++)
+        {
+            float a = i * Mathf.PI * 2f / 12f;
+            var block = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            block.name = "ThresholdRing_" + i;
+            Object.DestroyImmediate(block.GetComponent<Collider>());
+            block.transform.position = center
+                + new Vector3(Mathf.Cos(a) * 2.2f, Mathf.Sin(a) * 2.2f, 0f);
+            block.transform.localScale = new Vector3(0.5f, 0.5f, 0.3f);
+            block.transform.rotation = Quaternion.Euler(0, 0, a * Mathf.Rad2Deg);
+            block.GetComponent<Renderer>().sharedMaterial = ringMat;
+        }
+        var portalLight = new GameObject("ThresholdLight");
+        portalLight.transform.position = center;
+        var pl = portalLight.AddComponent<Light>();
+        pl.type = LightType.Point;
+        pl.color = teal;
+        pl.range = 14f;
+        pl.intensity = 2.5f;
+
+        Cameo(new Vector3(3.5f, 0f, 43f), 250f);   // beside the ring, pleased
+
+        // ending beat card just before the ring, then the ring itself exits
+        var endCard = new GameObject("EndingCard");
+        endCard.transform.position = new Vector3(0f, 1.5f, 38f);
+        var endCol = endCard.AddComponent<BoxCollider>();
+        endCol.isTrigger = true;
+        endCol.size = new Vector3(12f, 3f, 2f);
+        var ec = endCard.AddComponent<G1StoryCard>();
+        ec.showOnStart = false;
+        ec.title = "ASSESSMENT COMPLETE";
+        ec.subtitle = "SUBJECT: DANG — DISPOSITION: RETAINED";
+
+        Exit("ThresholdExit", new Vector3(0f, 2f, 44f),
+             new Vector3(4f, 4f, 1.5f), "MenuScene");
+
+        Player(new Vector3(0f, 0.05f, 0f), "CHAPTER THREE",
+               "THRESHOLD — The Undercroft", "ambient_alien");
+
+        FinishScene(scene, "Assets/Scenes/Level3.unity",
+                    "Assets/Scenes/Level3NavMesh.asset");
+        Debug.Log("G1 LEVEL3 BUILD OK");
+    }
+}

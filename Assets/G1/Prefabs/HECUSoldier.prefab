@@ -270,6 +270,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+  godMode: 0
 --- !u!114 &7274459672762766116
 MonoBehaviour:
   m_ObjectHideFlags: 0

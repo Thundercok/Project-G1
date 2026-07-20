@@ -98,6 +98,7 @@ docs/             documentation (start here: docs/asset-pipeline.md)
 - [Audio](docs/audio.md) — the procedural SFX pipeline and G1Audio API
 - [Observability](docs/observability.md) — F3 telemetry HUD, soldier AI gizmos, seeded arena presets
 - [Scene builder](docs/scene-builder.md) — how the level is generated from code
+- [Story bible](docs/story.md) — the Corvus Annex, the Threshold event, chapters, characters
 - [Architecture](docs/architecture.md) — full technical spec
 - [Art bible](docs/art_bible.md) — art direction and asset list
 

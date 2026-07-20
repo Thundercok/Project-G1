@@ -52,6 +52,22 @@ public static class G1SceneBuilder
     [MenuItem("G1/Build Test Scene")]
     public static void BuildScene() => BuildScene(ArenaConfig.Standard());
 
+    /// Standard player rig for other level builders (Level 2/3): configures
+    /// the weapon FBX, rebuilds their controllers, and assembles the full
+    /// player hierarchy exactly as Level 1 does.
+    public static GameObject BuildStandardPlayer()
+    {
+        ConfigureFbx($"{Models}/Pistol.fbx", loopAll: false);
+        ConfigureFbx($"{Models}/Smg.fbx", loopAll: false);
+        ConfigureFbx($"{Models}/Shotgun.fbx", loopAll: false);
+        ConfigureFbx($"{Models}/Magnum.fbx", loopAll: false);
+        return BuildPlayer(
+            MakePistolController($"{Models}/Pistol.fbx", $"{AnimDir}/Pistol.controller"),
+            MakePistolController($"{Models}/Smg.fbx", $"{AnimDir}/Smg.controller"),
+            MakePistolController($"{Models}/Shotgun.fbx", $"{AnimDir}/Shotgun.controller"),
+            MakeMagnumController($"{Models}/Magnum.fbx", $"{AnimDir}/Magnum.controller"));
+    }
+
     [MenuItem("G1/Rebuild Arena/Standard Arena")]
     static void MenuStandard() => BuildScene(ArenaConfig.Standard());
 
@@ -653,7 +669,7 @@ public static class G1SceneBuilder
         var triggerCol = triggerObj.AddComponent<BoxCollider>();
         triggerCol.isTrigger = true;
         triggerCol.size = new Vector3(2.5f, 2.0f, 2.5f);
-        triggerObj.AddComponent<G1LevelExitTrigger>();
+        triggerObj.AddComponent<G1LevelExitTrigger>().nextScene = "Level2";
     }
 
     /// Seeded point in the arena, kept clear of the player spawn and doorway.
@@ -693,6 +709,9 @@ public static class G1SceneBuilder
         player.AddComponent<ArenaDebugHUD>();
         player.AddComponent<G1PlayerDeath>();
         player.AddComponent<G1CheckpointRestorer>();
+        var card = player.AddComponent<G1StoryCard>();
+        card.title = "CHAPTER ONE";
+        card.subtitle = "COLD START — Corvus Deep Research Annex, Sub-Level C";
         player.AddComponent<G1Footsteps>();
         player.AddComponent<G1SettingsApplier>();
         player.AddComponent<G1Music>();
