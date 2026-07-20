@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class G1WeaponPickup : MonoBehaviour
 {
-    public enum WeaponType { Pistol, Smg, Shotgun, Magnum }
+    public enum WeaponType { Pistol, Smg, Shotgun, Magnum, Grenade }
     public WeaponType weaponType;
 
     private void OnTriggerEnter(Collider other)
@@ -15,6 +15,12 @@ public class G1WeaponPickup : MonoBehaviour
         // index mapping: 0 = Crowbar, 1 = Pistol, 2 = Smg, 3 = Shotgun, 4 = Magnum
         int idx = (int)weaponType + 1;
         switcher.Unlock(idx);
+        if (weaponType == WeaponType.Grenade && idx < switcher.weapons.Length)
+        {
+            var g = switcher.weapons[idx].GetComponent<G1Grenade>();
+            if (g)
+                g.count = Mathf.Min(g.count + 3, g.maxCount);
+        }
 
         var hud = other.GetComponent<PlayerHUD>();
         if (hud != null) hud.ShowWeaponPickup(weaponType.ToString());

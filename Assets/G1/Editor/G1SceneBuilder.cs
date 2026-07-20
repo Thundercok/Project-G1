@@ -121,7 +121,7 @@ public static class G1SceneBuilder
         AssetDatabase.DeleteAsset("Assets/Scenes/TestScene");   // stale legacy bake
         AssetDatabase.CreateAsset(surface.navMeshData, "Assets/Scenes/TestSceneNavMesh.asset");
         EditorSceneManager.SaveScene(scene, ScenePath);
-        EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+        G1MenuBuilder.RegisterScenes();   // menu (if built) = index 0, game = 1
         AssetDatabase.SaveAssets();
         Debug.Log($"G1 BUILD OK (seed {cfg.Seed}: {cfg.Soldiers} soldiers, "
                   + $"{cfg.Zombies} zombies, {cfg.Aliens} aliens, "
@@ -592,6 +592,33 @@ public static class G1SceneBuilder
         rub2.transform.rotation = Quaternion.Euler(-15f, 45f, -5f);
 
         // Horde trigger — player steps into zone to activate 8 aliens
+        // Grenade pickup (slot 6) near the alien pods
+        var grenadePickup = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        grenadePickup.name = "GrenadePickup";
+        grenadePickup.transform.position = new Vector3(10f, 0.6f, 62f);
+        grenadePickup.transform.localScale = Vector3.one * 0.3f;
+        grenadePickup.GetComponent<Renderer>().sharedMaterial =
+            MakeMat("GrenadeOlive", new Color(0.5f, 0.5f, 0f));
+        var grenadeCol = grenadePickup.GetComponent<SphereCollider>();
+        grenadeCol.isTrigger = true;
+        grenadeCol.radius = 2.2f;
+        grenadePickup.AddComponent<G1WeaponPickup>().weaponType =
+            G1WeaponPickup.WeaponType.Grenade;
+        grenadePickup.AddComponent<G1WeaponSpinner>();
+
+        // Checkpoints: after Locker Room, Control Room, Industrial Hall
+        foreach (var (cpName, cpPos) in new (string, Vector3)[]
+        {
+            ("Checkpoint_Locker", new Vector3(0f, 0f, -1.5f)),
+            ("Checkpoint_Control", new Vector3(6f, 0f, 28f)),
+            ("Checkpoint_Industrial", new Vector3(12f, 0f, 54f)),
+        })
+        {
+            var cp = new GameObject(cpName);
+            cp.transform.position = cpPos;
+            cp.AddComponent<G1Checkpoint>();
+        }
+
         var hordeTrigger = new GameObject("HordeTrigger_Breach");
         hordeTrigger.transform.position = new Vector3(12f, 1f, 60f);
         var hordeColl = hordeTrigger.AddComponent<BoxCollider>();
@@ -665,6 +692,17 @@ public static class G1SceneBuilder
         player.AddComponent<PlayerHUD>();
         player.AddComponent<ArenaDebugHUD>();
         player.AddComponent<G1PlayerDeath>();
+        player.AddComponent<G1CheckpointRestorer>();
+        player.AddComponent<G1Footsteps>();
+        player.AddComponent<G1SettingsApplier>();
+        player.AddComponent<G1Music>();
+        var ambience = player.AddComponent<G1Ambience>();
+        ambience.zones = new[]
+        {
+            new G1Ambience.Zone { clip = "ambient_lab", zMax = 14f },
+            new G1Ambience.Zone { clip = "ambient_industrial", zMax = 52f },
+            new G1Ambience.Zone { clip = "ambient_alien", zMax = 9999f },
+        };
         var fx = player.AddComponent<G1WeaponFX>();
 
         var monitor = player.AddComponent<CombatArenaMonitor>();
@@ -790,7 +828,22 @@ public static class G1SceneBuilder
         magnum.modelAnimator = magnumAnim;
 
         var switcher = camGo.AddComponent<WeaponSwitcher>();
-        switcher.weapons = new[] { crowbarHolder, pistolHolder, smgHolder, shotgunHolder, magnumHolder };
+        // --- grenade (slot 6): no FBX viewmodel — a small olive sphere in hand
+        var grenadeHolder = new GameObject("GrenadeHolder");
+        grenadeHolder.transform.SetParent(camGo.transform, false);
+        grenadeHolder.transform.localPosition = new Vector3(0.26f, -0.3f, 0.45f);
+        var grenadeWeapon = grenadeHolder.AddComponent<G1Grenade>();
+        grenadeWeapon.viewCamera = cam;
+        grenadeWeapon.movement = move;
+        grenadeWeapon.hitMask = shootable;
+        var grenadeVm = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        Object.DestroyImmediate(grenadeVm.GetComponent<Collider>());
+        grenadeVm.transform.SetParent(grenadeHolder.transform, false);
+        grenadeVm.transform.localScale = Vector3.one * 0.14f;
+        grenadeVm.GetComponent<Renderer>().sharedMaterial =
+            MakeMat("GrenadeOlive", new Color(0.5f, 0.5f, 0f));
+
+        switcher.weapons = new[] { crowbarHolder, pistolHolder, smgHolder, shotgunHolder, magnumHolder, grenadeHolder };
         switcher.unlocked = new bool[] { true, false, false, false, false };
 
         pistolHolder.SetActive(false);

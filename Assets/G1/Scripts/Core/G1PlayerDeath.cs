@@ -35,7 +35,11 @@ public sealed class G1PlayerDeath : MonoBehaviour
     void Update()
     {
         if (dead && Time.time > diedAt + fadeTime + holdTime)
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        {
+            if (G1Checkpoint.HasSave)
+                G1Checkpoint.MarkRestorePending();   // restorer applies after load
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
     }
 
     void OnGUI()

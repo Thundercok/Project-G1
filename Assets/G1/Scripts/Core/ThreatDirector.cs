@@ -20,6 +20,7 @@ public sealed class ThreatDirector : MonoBehaviour
     public float hordeSpeedMult = 1.35f;
 
     public int ActiveSoldiersCount => _activeSoldiers;
+    public float Intensity => _intensity;      // read-only for G1Music/telemetry
 
     private enum DirectorState : byte { Relax, BuildUp, Peak }
     private DirectorState _dirState = DirectorState.Relax;

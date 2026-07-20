@@ -140,4 +140,56 @@ write_wav("horde_roar",
           [(low[i] * 0.8 + gr[i] * 0.7) * (0.65 + 0.35 * am[i]) * e[i]
            for i in range(n)])
 
+# grenade explosion: 40 Hz boom + heavy noise burst, long decay
+n = int(SR * 1.2)
+e = env_exp(n, 5)
+boom = sine(n, 40, 28)
+burst = lowpass(noise(n), 0.25)
+write_wav("explosion", [(boom[i] * 1.1 + burst[i] * 0.9) * e[i] for i in range(n)])
+
+# footsteps: 4 concrete variants — low thud + crunch, small recipe variations
+for v in range(4):
+    n = int(SR * 0.09)
+    e = env_exp(n, 55 + v * 6)
+    thud = sine(n, 120 + v * 8, 80)
+    crunch = lowpass(noise(n), 0.5 + v * 0.05)
+    write_wav(f"step_concrete_{v}",
+              [(thud[i] * 0.8 + crunch[i] * 0.45) * e[i] for i in range(n)])
+
+# alarm siren: two-tone sweep, 1.5 s
+n = int(SR * 1.5)
+out, phase = [], 0.0
+for i in range(n):
+    t = i / SR
+    f = 600 + 300 * (1 if int(t * 2) % 2 == 0 else 0)
+    phase += 2 * math.pi * f / SR
+    tri = 2 / math.pi * math.asin(math.sin(phase))
+    out.append(tri * (0.9 if t < 1.35 else (1.5 - t) / 0.15))
+write_wav("alarm_siren", out)
+
+
+# --- seamless ambient loops (8 s; all periodic components are integer-cycle
+# --- at the loop length so tail meets head without a pop)
+def ambient(name, layers):
+    n = SR * 8
+    out = [0.0] * n
+    for freq, amp, am_freq, am_depth in layers:
+        phase = 0.0
+        amp_phase = 0.0
+        for i in range(n):
+            phase += 2 * math.pi * freq / SR
+            amp_phase += 2 * math.pi * am_freq / SR
+            mod = 1.0 - am_depth + am_depth * math.sin(amp_phase)
+            out[i] += amp * mod * math.sin(phase)
+    write_wav(name, out)
+
+
+ambient("ambient_hum", [(60, 0.7, 0.25, 0.15), (120, 0.15, 0.125, 0.3)])
+ambient("ambient_lab", [(60, 0.6, 0.25, 0.1), (120, 0.2, 0.5, 0.4),
+                        (240, 0.06, 0.125, 0.5)])
+ambient("ambient_industrial", [(50, 0.8, 2.0, 0.35), (100, 0.25, 0.5, 0.3),
+                               (25, 0.3, 0.125, 0.2)])
+ambient("ambient_alien", [(33, 0.8, 0.5, 0.5), (66, 0.2, 0.125, 0.4),
+                          (190, 0.05, 1.0, 0.7)])
+
 print("ALL SFX DONE")
