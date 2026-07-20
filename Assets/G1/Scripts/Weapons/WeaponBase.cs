@@ -84,6 +84,7 @@ public abstract class WeaponBase : MonoBehaviour
     /// Returns true if an IDamageable was hit (for hit marker feedback).
     protected bool ApplyHit(RaycastHit hit, float damage, float force)
     {
+        damage *= G1Difficulty.OutgoingDamageMult;
         var target = hit.collider.GetComponentInParent<IDamageable>();
         target?.TakeDamage(damage, hit.point, hit.normal);
         if (hit.rigidbody)

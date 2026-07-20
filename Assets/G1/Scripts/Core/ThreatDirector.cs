@@ -38,6 +38,10 @@ public sealed class ThreatDirector : MonoBehaviour
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
         _cam = Camera.main;
+        // difficulty pacing (Easy: longer calm, smaller hordes, fewer soldiers)
+        relaxDuration *= G1Difficulty.RelaxDurationMult;
+        hordeSize = Mathf.Max(2, Mathf.RoundToInt(hordeSize * G1Difficulty.HordeSizeMult));
+        maxActiveSoldiers = Mathf.Max(1, maxActiveSoldiers + G1Difficulty.MaxSoldiersDelta);
         _relaxTimer = relaxDuration;
     }
 

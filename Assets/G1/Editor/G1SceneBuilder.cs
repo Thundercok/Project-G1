@@ -708,6 +708,7 @@ public static class G1SceneBuilder
         player.AddComponent<PlayerHUD>();
         player.AddComponent<ArenaDebugHUD>();
         player.AddComponent<G1PlayerDeath>();
+        player.AddComponent<G1PlayerRegen>();
         player.AddComponent<G1CheckpointRestorer>();
         var card = player.AddComponent<G1StoryCard>();
         card.title = "CHAPTER ONE";

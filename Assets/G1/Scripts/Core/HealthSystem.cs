@@ -25,6 +25,8 @@ public class HealthSystem : MonoBehaviour, IDamageable
     {
         if (IsDead || (CompareTag("Player") && godMode))
             return;
+        if (CompareTag("Player"))
+            damage *= G1Difficulty.IncomingDamageMult;
         CurrentHealth = Mathf.Max(CurrentHealth - damage, 0f);
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         var camFx = GetComponentInChildren<CameraEffects>();
