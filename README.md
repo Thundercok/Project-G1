@@ -12,32 +12,21 @@ a crowbar, and a man in a suit who is always watching.
 
 ## Current features
 
-- **Playable Level 1** — Locker Room → Lab Corridor → Control Room → Industrial
-  Hall (HECU ambush) → Alien Breach Zone → Emergency Elevator, generated
-  entirely by the scene builder from modular Blender-scripted environment kit.
+- **Campaign & Level Generation** — Complete 3-level campaign programmatically generated from modular Blender-scripted environment kits:
+  - **Level 1 (Corvus Facility)**: Locker Room → Lab Corridor → Control Room → Industrial Hall (HECU ambush) → Alien Breach Zone → Emergency Elevator.
+  - **Level 2 (Quarantine Zone)**: Outdoor industrial complex, toxic hazard zones, jump pads, and squad combat.
+  - **Level 3 (Threshold Breach)**: Anomaly chamber, Xen portal breach, and multi-phase boss arena.
+  - **Main Menu & Settings**: Retro UI with level select, volume controls, mouse sensitivity tuning, and FOV adjustments.
 - **Half-Life 1 movement physics** — real GoldSrc constants converted to meters:
-  Quake-lineage acceleration, friction, the authentic 30-ups air cap (strafe
-  steering + bhop speed gain), hold-to-bunnyhop, coyote time, crouch.
-- **Five weapons with progression** — crowbar → pistol → shotgun → SMG →
-  .357 magnum, found through the level as spinning pickups. Every model is
-  scripted in Blender with animated slides/bolts/cylinders; per-shell shotgun
-  reload, revolver cylinder FSM with emergency chamber.
-- **Enemies & AI** — zombies and aliens with separation steering, HECU
-  soldiers running a GOAP-lite planner (cover claims, squad roles, flanks,
-  opportunist alpha strikes), all paced by an L4D2-style ThreatDirector with
-  horde events.
-- **Procedural audio** — twelve synthesized retro SFX generated from pure
-  math (guns, impacts, doors, pickups, horde roar), pooled playback,
-  no external assets.
-- **Combat core** — `IDamageable` / `HealthSystem` events, breakables, damage
-  vignette + hit markers, world-space debug health bars, death → fade →
-  respawn.
-- **Retro HUD** — GoldSrc-amber health/ammo in Share Tech Mono, low-health
-  pulse, weapon pickup flash, green crosshair.
-- **Observability tooling** — F3 telemetry HUD, soldier AI state gizmos,
-  seeded arena presets for reproducible AI testing.
-- **Everything is procedural** — scene, models, animations, audio, navmesh:
-  all generated from code in the repo, nothing hand-placed.
+  Quake-lineage acceleration, friction, the authentic 30-ups air cap (strafe steering + bhop speed gain), hold-to-bunnyhop, coyote time, crouch.
+- **Weapons & Equipment** — crowbar → pistol → shotgun → SMG → .357 magnum → cookable grenades. Found as spinning pickups. Every model is scripted in Blender with animated slides/bolts/cylinders; per-shell shotgun reload, revolver cylinder FSM with emergency chamber. Includes a toggleable **Flashlight** (`F`).
+- **Pickups & Progression** — Health packs, ammo boxes, story lore cards, and checkpoint save points for seamless respawning upon death.
+- **Enemies & AI** — zombies and aliens with separation steering, HECU soldiers running a GOAP-lite planner (cover claims, squad roles, flanks, opportunist alpha strikes), all paced by an L4D2-style ThreatDirector with horde events. Features interactive CCTV monitoring screens and narrative G-Man cameos.
+- **Procedural Audio & Music** — Synthesized retro SFX generated from pure math (guns, impacts, doors, pickups, footsteps, horde roars), dynamic background ambience, and tension music tracks without external audio files.
+- **Combat core** — `IDamageable` / `HealthSystem` events, breakables, damage vignette + hit markers, world-space debug health bars, death → fade → checkpoint respawn.
+- **Retro HUD** — GoldSrc-amber health/ammo in Share Tech Mono, low-health pulse, weapon pickup flash, story cards, green crosshair.
+- **Observability tooling** — F3 telemetry HUD, soldier AI state gizmos, seeded arena presets for reproducible AI testing.
+- **Everything is procedural** — scenes, models, animations, audio, navmesh: all generated from code in the repo, nothing hand-placed.
 
 ## Requirements
 
@@ -54,8 +43,13 @@ a crowbar, and a man in a suit who is always watching.
 ## Getting started
 
 1. Clone and open the project in Unity Hub with 2022.3 LTS (first import takes a few minutes).
-2. Open `Assets/Scenes/TestScene.unity` and press **Play**.
-3. If the scene is missing or broken, regenerate it: **G1 → Build Test Scene**.
+2. Open `Assets/Scenes/TestScene.unity` or `Assets/Scenes/MainMenu.unity` and press **Play**.
+3. Rebuild levels anytime via the top editor menu:
+   - **G1 → Build Main Menu**
+   - **G1 → Build Test Scene** (Level 1)
+   - **G1 → Build Level 2 (Quarantine)**
+   - **G1 → Build Level 3 (Threshold)**
+   - **G1 → Rebuild Arena / [Preset]** (AI testing sandboxes)
 
 ### Controls
 
@@ -65,24 +59,25 @@ a crowbar, and a man in a suit who is always watching.
 | Mouse | Look |
 | Space (hold) | Jump / auto-bunnyhop |
 | Ctrl or C | Crouch |
-| Left mouse | Attack (swing / fire) |
+| Left mouse | Attack (swing / fire / cook grenade) |
 | R | Reload |
-| 1–5 / scroll | Switch weapon (unlocked slots only) |
+| 1–6 / scroll | Switch weapon (unlocked slots only; 6 = Grenade) |
+| F | Toggle Flashlight |
 | E | Use (doors, terminals) |
 | F3 | Toggle AI telemetry overlay |
-| Esc | Release mouse cursor |
+| Esc | Release mouse cursor / Open pause settings menu |
 
 ## Project layout
 
 ```
 Assets/
   G1/
-    Models/       Protagonist.fbx, Villain.fbx, Crowbar.fbx (Blender exports)
-    Scripts/      runtime gameplay code (movement, weapons, NPCs, interaction)
-    Editor/       G1SceneBuilder (scene generator), G1Screenshot (headless captures)
+    Models/       Protagonist.fbx, Villain.fbx, Crowbar.fbx, Gun FBXs (Blender exports)
+    Scripts/      runtime gameplay code (movement, weapons, NPCs, checkpoints, pickups, UI)
+    Editor/       G1SceneBuilder, G1CampaignBuilders, G1MenuBuilder, G1Screenshot
     Anim/         generated AnimatorControllers
     Materials/    generated scene materials
-  Scenes/         TestScene.unity (generated — safe to delete and rebuild)
+  Scenes/         MainMenu.unity, TestScene.unity, etc. (generated — safe to delete and rebuild)
 Tools/
   blender/        the asset pipeline: model, rig, and animate everything from code
 docs/             documentation (start here: docs/asset-pipeline.md)
@@ -93,19 +88,24 @@ docs/             documentation (start here: docs/asset-pipeline.md)
 - [Asset pipeline](docs/asset-pipeline.md) — how every model and animation is generated from Blender scripts
 - [Player movement](docs/player-movement.md) — the HL1 physics model and how to tune it
 - [Characters & animation](docs/characters-and-animation.md) — skeleton, skinning, clips, NPC driver
-- [Weapons](docs/weapons.md) — crowbar, 9mm pistol, and how to add the next weapon
+- [Weapons](docs/weapons.md) — crowbar, 9mm pistol, shotgun, SMG, magnum, grenades
 - [Combat & health](docs/combat-and-health.md) — IDamageable, HealthSystem events, health bars, death/respawn
-- [Audio](docs/audio.md) — the procedural SFX pipeline and G1Audio API
+- [Audio](docs/audio.md) — the procedural SFX pipeline, footsteps, ambience, and G1Audio API
 - [Observability](docs/observability.md) — F3 telemetry HUD, soldier AI gizmos, seeded arena presets
-- [Scene builder](docs/scene-builder.md) — how the level is generated from code
+- [Scene builder](docs/scene-builder.md) — how levels are generated from code
 - [Story bible](docs/story.md) — the Corvus Annex, the Threshold event, chapters, characters
 - [Architecture](docs/architecture.md) — full technical spec
 - [Art bible](docs/art_bible.md) — art direction and asset list
 
 ## Roadmap
 
-- ~~Firearms (pistol, SMG, shotgun, magnum)~~ ✓ · ~~audio~~ ✓ · ~~death/respawn~~ ✓ · ~~Level 1~~ ✓
-- Health & ammo pickups, grenades, flashlight
-- Checkpoints, main menu, settings (sensitivity/FOV)
-- Ambience + music, footsteps
-- Level 2 (outdoor escape, HECU helicopter) → Level 3 (Xen portal, boss)
+- ~~Firearms (pistol, SMG, shotgun, magnum)~~ ✓ · ~~Audio & footsteps~~ ✓ · ~~Death/respawn~~ ✓
+- ~~Health & ammo pickups, grenades, flashlight~~ ✓
+- ~~Checkpoints, main menu, settings (sensitivity/FOV/volume)~~ ✓
+- ~~Ambience + music soundscapes~~ ✓
+- ~~Level 1 (Corvus Annex) → Level 2 (Quarantine Zone) → Level 3 (Threshold Boss Arena)~~ ✓
+- Save/load game state serialization to disk
+- Secondary fire modes for firearms (SMG grenade launcher, shotgun double-barrel)
+- Advanced multi-phase alien boss mechanics in Level 3
+- Modding and custom procedural level seed export/import support
+

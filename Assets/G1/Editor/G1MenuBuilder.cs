@@ -90,6 +90,7 @@ public static class G1MenuBuilder
             "Assets/Scenes/TestScene.unity",
             "Assets/Scenes/Level2.unity",
             "Assets/Scenes/Level3.unity",
+            "Assets/Scenes/WeaponTestScene.unity",
         })
         {
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) != null)

@@ -864,7 +864,7 @@ public static class G1SceneBuilder
             MakeMat("GrenadeOlive", new Color(0.5f, 0.5f, 0f));
 
         switcher.weapons = new[] { crowbarHolder, pistolHolder, smgHolder, shotgunHolder, magnumHolder, grenadeHolder };
-        switcher.unlocked = new bool[] { true, false, false, false, false };
+        switcher.unlocked = new bool[] { true, false, false, false, false, false };
 
         pistolHolder.SetActive(false);
         smgHolder.SetActive(false);

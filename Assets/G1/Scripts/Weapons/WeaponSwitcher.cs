@@ -7,14 +7,30 @@ public class WeaponSwitcher : MonoBehaviour
     public bool[] unlocked;
     int index;
 
+    void EnsureUnlockedArray()
+    {
+        int targetLength = weapons != null ? weapons.Length : 0;
+        if (targetLength == 0) return;
+
+        if (unlocked == null || unlocked.Length != targetLength)
+        {
+            bool[] newUnlocked = new bool[targetLength];
+            newUnlocked[0] = true; // Crowbar unlocked by default
+            if (unlocked != null)
+            {
+                for (int i = 0; i < Mathf.Min(unlocked.Length, targetLength); i++)
+                {
+                    if (unlocked[i]) newUnlocked[i] = true;
+                }
+            }
+            unlocked = newUnlocked;
+        }
+    }
+
     void Start()
     {
-        if (unlocked == null || unlocked.Length != weapons.Length)
-        {
-            unlocked = new bool[weapons.Length];
-            unlocked[0] = true; // Crowbar unlocked by default
-        }
-        Select(0);
+        EnsureUnlockedArray();
+        Select(index);
     }
 
     void Update()
@@ -32,13 +48,14 @@ public class WeaponSwitcher : MonoBehaviour
 
     public bool IsUnlocked(int i)
     {
+        EnsureUnlockedArray();
         if (i < 0 || i >= weapons.Length) return false;
-        if (unlocked == null || i >= unlocked.Length) return true;
         return unlocked[i];
     }
 
     public void Unlock(int i)
     {
+        EnsureUnlockedArray();
         if (i >= 0 && i < unlocked.Length)
         {
             unlocked[i] = true;
@@ -48,6 +65,8 @@ public class WeaponSwitcher : MonoBehaviour
 
     public void Select(int i)
     {
+        EnsureUnlockedArray();
+        if (i < 0 || i >= weapons.Length) return;
         index = i;
         for (int j = 0; j < weapons.Length; j++)
             weapons[j].SetActive(j == i);
@@ -55,6 +74,7 @@ public class WeaponSwitcher : MonoBehaviour
 
     void SelectNext(int dir)
     {
+        EnsureUnlockedArray();
         int next = index;
         for (int attempt = 0; attempt < weapons.Length; attempt++)
         {
