@@ -166,7 +166,6 @@ public class G1MobSpawnerToolbox : MonoBehaviour
 
         if (!NavMesh.SamplePosition(want, out NavMeshHit navHit, 6f, NavMesh.AllAreas))
         {
-            // Expand search radius and try again
             if (!NavMesh.SamplePosition(transform.position + fwd * 4f, out navHit, 10f, NavMesh.AllAreas))
             {
                 Debug.LogWarning("[MOB SPAWNER] No NavMesh near spawn point. Run G1 > Build Weapon Testing Range first.");
@@ -174,61 +173,114 @@ public class G1MobSpawnerToolbox : MonoBehaviour
             }
         }
 
-        // Build capsule
-        var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-        go.name = $"{mob.label.Replace(" ", "")}_{_alive.Count}";
-        go.transform.position   = navHit.position + Vector3.up * 0.02f;
-        go.transform.localScale = Vector3.one * mob.scale;
-        go.tag = "Enemy";
+        // ── Try to load real prefab (editor only) ────────────────────────────
+        GameObject go = null;
 
-        // Visual material
-        var rend     = go.GetComponent<Renderer>();
-        var mat      = new Material(Shader.Find("Standard")) { color = mob.col };
-        mat.SetFloat("_Metallic",   0.1f);
-        mat.SetFloat("_Smoothness", 0.3f);
-        rend.sharedMaterial = mat;
+#if UNITY_EDITOR
+        string kind = mob.label.Split(' ')[0]; // "Zombie" / "Soldier" / "Alien" / "BOSS"
+        string prefabName = kind == "Soldier" ? "HECUSoldier" :
+                            kind == "BOSS"    ? "Zombie"      : kind;
+        string path = $"Assets/G1/Prefabs/{prefabName}.prefab";
 
-        // Head sphere
-        var head = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        head.transform.SetParent(go.transform, false);
-        head.transform.localPosition = new Vector3(0, 0.85f, 0);
-        head.transform.localScale    = Vector3.one * 0.55f;
-        head.GetComponent<Renderer>().sharedMaterial = mat;
-        Destroy(head.GetComponent<Collider>());
-
-        // HealthSystem
-        var hs       = go.AddComponent<HealthSystem>();
-        hs.maxHealth = mob.hp;
-
-        // Health bar
-        go.AddComponent<WorldSpaceHealthBar>();
-
-        // NavMeshAgent
-        var agent          = go.AddComponent<NavMeshAgent>();
-        agent.radius       = 0.38f;
-        agent.height       = 2f;
-        agent.speed        = mob.spd;
-        agent.angularSpeed = 240f;
-        agent.acceleration = 14f;
-        agent.stoppingDistance = mob.range * 0.65f;
-        agent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
-
-        // AI brain
-        var brain            = go.AddComponent<G1SandboxMob>();
-        brain.damage         = mob.dmg;
-        brain.attackRange    = mob.range;
-        brain.attackInterval = mob.interval;
-
-        // Track alive
-        _alive.Add(go);
-        hs.OnDeath += (p, n) =>
+        var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        if (prefab != null)
         {
-            _alive.Remove(go);
-            G1Audio.Play("enemy_death", p, 0.7f);
-        };
+            go = Instantiate(prefab, navHit.position, Quaternion.identity);
+            go.name = $"{mob.label.Replace(" ", "")}_{_alive.Count}";
+            go.tag  = "Enemy";
+
+            // Override HP on existing HealthSystem
+            var existingHs = go.GetComponent<HealthSystem>();
+            if (existingHs != null)
+            {
+                existingHs.maxHealth = mob.hp;
+                // Re-init health to new max
+                existingHs.Heal(mob.hp);
+            }
+            else
+            {
+                var hs       = go.AddComponent<HealthSystem>();
+                hs.maxHealth = mob.hp;
+            }
+
+            // Add the correct AI if not already on the prefab
+            if (kind == "Zombie" || kind == "BOSS")
+            {
+                if (go.GetComponent<G1ZombieAI>() == null)
+                    go.AddComponent<G1ZombieAI>();
+            }
+            else if (kind == "Soldier")
+            {
+                if (go.GetComponent<G1SoldierAI>() == null)
+                    go.AddComponent<G1SoldierAI>();
+            }
+            else if (kind == "Alien")
+            {
+                if (go.GetComponent<G1AlienAI>() == null)
+                    go.AddComponent<G1AlienAI>();
+            }
+
+            // Ensure health bar
+            if (go.GetComponent<WorldSpaceHealthBar>() == null)
+                go.AddComponent<WorldSpaceHealthBar>();
+
+            // Scale boss up
+            if (kind == "BOSS")
+                go.transform.localScale = Vector3.one * mob.scale;
+
+            Debug.Log($"[MOB SPAWNER] Spawned real prefab {go.name} at {navHit.position:F1}");
+        }
+#endif
+
+        // ── Capsule fallback if prefab failed ────────────────────────────────
+        if (go == null)
+        {
+            Debug.LogWarning($"[MOB SPAWNER] Prefab not found. Using capsule fallback for {mob.label}.");
+            go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            go.name = $"{mob.label.Replace(" ", "")}_{_alive.Count}";
+            go.transform.position   = navHit.position + Vector3.up * 0.02f;
+            go.transform.localScale = Vector3.one * mob.scale;
+            go.tag = "Enemy";
+
+            var mat = new Material(Shader.Find("Standard")) { color = mob.col };
+            mat.SetFloat("_Metallic",   0.1f);
+            mat.SetFloat("_Smoothness", 0.3f);
+            go.GetComponent<Renderer>().sharedMaterial = mat;
+
+            var hs       = go.AddComponent<HealthSystem>();
+            hs.maxHealth = mob.hp;
+            go.AddComponent<WorldSpaceHealthBar>();
+
+            var agent          = go.AddComponent<NavMeshAgent>();
+            agent.radius       = 0.38f;
+            agent.height       = 2f;
+            agent.speed        = mob.spd;
+            agent.angularSpeed = 240f;
+            agent.acceleration = 14f;
+            agent.stoppingDistance = mob.range * 0.65f;
+            agent.obstacleAvoidanceType = ObstacleAvoidanceType.LowQualityObstacleAvoidance;
+
+            var brain            = go.AddComponent<G1SandboxMob>();
+            brain.damage         = mob.dmg;
+            brain.attackRange    = mob.range;
+            brain.attackInterval = mob.interval;
+        }
+
+        // ── Track alive & hook death ─────────────────────────────────────────
+        go.transform.position = navHit.position + Vector3.up * 0.02f;
+        _alive.Add(go);
+
+        var healthSys = go.GetComponent<HealthSystem>();
+        if (healthSys != null)
+        {
+            healthSys.OnDeath += (p, n) =>
+            {
+                _alive.Remove(go);
+                G1Audio.Play("enemy_death", p, 0.7f);
+            };
+        }
 
         G1Audio.Play2D("door_servo", 0.4f, 1.75f);
-        Debug.Log($"[MOB SPAWNER] {go.name} spawned at {navHit.position:F1}");
     }
 
     void KillAll()
