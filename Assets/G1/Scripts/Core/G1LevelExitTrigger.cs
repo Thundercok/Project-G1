@@ -7,7 +7,9 @@ using UnityEngine.SceneManagement;
 public class G1LevelExitTrigger : MonoBehaviour
 {
     public string nextScene = "";
-    public float delay = 2.5f;
+    public float delay = 3.5f;
+    public bool requireUnlock = false;
+    public static bool ElevatorUnlocked = false;
 
     bool fired;
 
@@ -15,9 +17,27 @@ public class G1LevelExitTrigger : MonoBehaviour
     {
         if (fired || !other.CompareTag("Player"))
             return;
+
+        if (requireUnlock && !ElevatorUnlocked)
+        {
+            var hud = other.GetComponent<PlayerHUD>();
+            if (hud != null)
+            {
+                hud.ShowTerminalLog("ELEVATOR CONSOLE: EMERGENCY OVERRIDE CODES REQUIRED. ACCESS OVERRIDE TERMINAL.");
+            }
+            return;
+        }
+
         fired = true;
         Debug.Log("Level complete → " +
                   (string.IsNullOrEmpty(nextScene) ? "restart" : nextScene));
+
+        var playerHud = other.GetComponent<PlayerHUD>();
+        if (playerHud != null)
+        {
+            playerHud.ShowTerminalLog("ELEVATOR STATUS: ESCAPING FACILITY...");
+        }
+
         PlayerPrefs.DeleteKey("G1_CP_Data");
         G1Audio.Play2D("pickup", 0.8f, 0.8f);
         Invoke(nameof(LoadNext), delay);

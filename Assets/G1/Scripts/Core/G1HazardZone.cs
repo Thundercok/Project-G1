@@ -3,6 +3,7 @@ using UnityEngine;
 public class G1HazardZone : MonoBehaviour
 {
     public float damagePerSecond = 12f;
+    public bool warningOnly = false;
     private float nextDamageTime;
 
     private void OnTriggerStay(Collider other)
@@ -12,13 +13,22 @@ public class G1HazardZone : MonoBehaviour
             if (Time.time >= nextDamageTime)
             {
                 nextDamageTime = Time.time + 0.6f;
-                var hp = other.GetComponent<HealthSystem>();
-                if (hp != null)
+                var hud = other.GetComponent<PlayerHUD>();
+                if (hud != null)
                 {
-                    hp.TakeDamage(damagePerSecond * 0.6f, other.transform.position + Vector3.up, Vector3.up);
-                    // Pitch up hit_thunk to sound like a clicking Geiger Counter warning
-                    G1Audio.Play2D("hit_thunk", 0.35f, 2.3f);
+                    hud.ShowRadWarning();
                 }
+
+                if (!warningOnly)
+                {
+                    var hp = other.GetComponent<HealthSystem>();
+                    if (hp != null)
+                    {
+                        hp.TakeDamage(damagePerSecond * 0.6f, other.transform.position + Vector3.up, Vector3.up);
+                    }
+                }
+                // Pitch up hit_thunk to sound like a clicking Geiger Counter warning
+                G1Audio.Play2D("hit_thunk", 0.35f, 2.3f);
             }
         }
     }

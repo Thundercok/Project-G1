@@ -570,44 +570,132 @@ public static class G1SceneBuilder
         SpawnLight("Industrial_Light3", new Vector3(4f, 5f, 49f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
         SpawnLight("Industrial_Light4", new Vector3(20f, 5f, 49f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
 
-        // 5. ALIEN BREACH ZONE (Portal Chaos)
-        Slab("BreachFloor", new Vector3(12f, -0.25f, 64f), new Vector3(8, 0.5f, 16), floorMat);
-        Slab("BreachWallW", new Vector3(8f, 1.5f, 64f), new Vector3(0.5f, 3, 16), concrete);
-        Slab("BreachWallE", new Vector3(16f, 1.5f, 64f), new Vector3(0.5f, 3, 16), concrete);
-        Slab("BreachWallN_L", new Vector3(9f, 1.5f, 72f), new Vector3(2, 3, 0.5f), concrete);
-        Slab("BreachWallN_R", new Vector3(15f, 1.5f, 72f), new Vector3(2, 3, 0.5f), concrete);
+        // =====================================================================
+        // 5. ALIEN BREACH ZONE — redesigned with 3-beat Valve structure
+        // =====================================================================
+        // BEAT 1 (Z=56–63): Discovery. No enemies. Visual atmosphere + resources.
+        // BEAT 2 (Z=63–74): 3-wave encounter behind cover; waves are telegraphed.
+        // BEAT 3 (Z=74–83): Earned exit — override terminal gates Door 4.
+        // =====================================================================
 
-        // Toxic radiation puddle
+        // --- Geometry: wider (12 m, was 8 m) so player has room to strafe ---
+        Slab("BreachFloor", new Vector3(12f, -0.25f, 65f), new Vector3(12, 0.5f, 18), floorMat);
+        Slab("BreachWallW", new Vector3(6f,  1.5f, 65f), new Vector3(0.5f, 3, 18), concrete);
+        Slab("BreachWallE", new Vector3(18f, 1.5f, 65f), new Vector3(0.5f, 3, 18), concrete);
+        // Partial north walls frame Door 4 at Z=74
+        Slab("BreachWallN_L", new Vector3( 8f, 1.5f, 74f), new Vector3(4, 3, 0.5f), concrete);
+        Slab("BreachWallN_R", new Vector3(16f, 1.5f, 74f), new Vector3(4, 3, 0.5f), concrete);
+
+        // Ceiling — low oppressive 3 m ceiling reinforces the "closing in" feel
+        Slab("BreachCeiling", new Vector3(12f, 3.25f, 65f), new Vector3(12, 0.5f, 18), concrete);
+
+        // --- BEAT 1: Atmospheric dressing (no enemies, no damage) ---
+
+        // Torn wall sections at entry (visual storytelling — something broke through)
+        var rub1 = Slab("BreachRubble_W1", new Vector3(7.5f, 0.25f, 58f), new Vector3(2f, 0.5f, 1.2f), concrete);
+        rub1.transform.rotation = Quaternion.Euler(18f, 35f, 8f);
+        var rub2 = Slab("BreachRubble_E1", new Vector3(16.5f, 0.2f, 60f), new Vector3(1.8f, 0.4f, 1.5f), concrete);
+        rub2.transform.rotation = Quaternion.Euler(-12f, -20f, 5f);
+        var rub3 = Slab("BreachRubble_C",  new Vector3(12f,  0.15f, 57.5f), new Vector3(3.5f, 0.3f, 1.0f), concrete);
+        rub3.transform.rotation = Quaternion.Euler(5f, 15f, -6f);
+
+        // Alien pod glow objects — Beat 1 atmosphere, tell player what is in this zone
+        Material podMat = MakeMat("AlienPod", new Color(0f, 0.7f, 0.65f), 0.1f);
+        podMat.EnableKeyword("_EMISSION");
+        podMat.SetColor("_EmissionColor", new Color(0f, 0.35f, 0.32f));
+        for (int i = 0; i < 3; i++)
+        {
+            float px = (i == 0 ? 7.5f : (i == 1 ? 16.5f : 12f));
+            float pz = (i == 0 ? 60f  : (i == 1 ? 59f   : 62f));
+            var pod = Slab($"AlienPod_{i}", new Vector3(px, 0.3f, pz), new Vector3(0.5f, 0.6f, 0.5f), podMat);
+            pod.GetComponent<Renderer>().sharedMaterial = podMat;
+            // Teal accent point light per pod
+            SpawnLight($"PodLight_{i}", new Vector3(px, 1.1f, pz),
+                new Color(0f, 1f, 0.8f), 3.5f, 1.2f, LightShadows.None);
+        }
+
+        // Warning zone — NO damage, only triggers geiger counter click + HUD rad icon.
+        // Teaches the "toxic floor" mechanic safely before the real puddle.
+        Material warnMat = MakeMat("HazardWarnStripe", new Color(0.72f, 0.55f, 0.05f), 0.05f);
+        warnMat.EnableKeyword("_EMISSION");
+        warnMat.SetColor("_EmissionColor", new Color(0.25f, 0.18f, 0f));
+        var warnZone = Slab("HazardWarningFloor", new Vector3(12f, -0.19f, 62.5f), new Vector3(12f, 0.3f, 2f), warnMat);
+        var warnHazard = warnZone.AddComponent<G1HazardZone>();
+        warnHazard.warningOnly = true;
+        warnHazard.damagePerSecond = 0f;
+        warnZone.GetComponent<Collider>().isTrigger = true;
+
+        // Actual toxic puddle — tight against EAST wall, only 1.8 m wide.
+        // Player can always walk along the west half of the 12 m corridor safely.
         Material toxicMat = MakeMat("ToxicWaste", new Color(0.12f, 0.85f, 0.16f), 0.1f);
         toxicMat.EnableKeyword("_EMISSION");
         toxicMat.SetColor("_EmissionColor", new Color(0.04f, 0.45f, 0.04f));
-        var toxicWaste = Slab("ToxicWastePuddle", new Vector3(12f, -0.15f, 64f), new Vector3(6f, 0.4f, 4f), toxicMat);
-        toxicWaste.AddComponent<G1HazardZone>();
+        var toxicWaste = Slab("ToxicWastePuddle", new Vector3(17f, -0.15f, 67f), new Vector3(1.8f, 0.4f, 4f), toxicMat);
+        var toxicHazard = toxicWaste.AddComponent<G1HazardZone>();
+        toxicHazard.damagePerSecond = 12f;   // real damage — but it is avoidable
         toxicWaste.GetComponent<Collider>().isTrigger = true;
+        // Orange glow border so puddle edge is always readable
+        SpawnLight("ToxicPuddleLight", new Vector3(17f, 0.8f, 67f),
+            new Color(0.3f, 1f, 0.2f), 4f, 1.1f, LightShadows.None);
 
-        // Xen Jump Pad
+        // Jump pad — WEST wall, telegraphed with teal floor arrow stripe.
+        // Optional escape route / exploration, not required.
         Material jumpPadMat = MakeMat("XenJumpPad", new Color(0f, 0.95f, 0.85f), 0.2f);
         jumpPadMat.EnableKeyword("_EMISSION");
         jumpPadMat.SetColor("_EmissionColor", new Color(0f, 0.65f, 0.55f));
-        var jumpPad = Slab("XenJumpPadPlatform", new Vector3(12f, -0.15f, 58.5f), new Vector3(2f, 0.3f, 2f), jumpPadMat);
-        jumpPad.AddComponent<G1JumpPad>().launchForce = 13.5f;
+        var jumpPad = Slab("XenJumpPadPlatform", new Vector3(7.2f, -0.15f, 62f), new Vector3(1.8f, 0.3f, 1.8f), jumpPadMat);
+        jumpPad.AddComponent<G1JumpPad>().launchForce = 12.0f;
         jumpPad.GetComponent<Collider>().isTrigger = true;
+        // Arrow stripe pointing toward pad so player understands it is intentional
+        var arrowStripe = Slab("JumpPadArrow", new Vector3(7.2f, -0.22f, 60.5f), new Vector3(0.5f, 0.05f, 2.5f), jumpPadMat);
+        arrowStripe.GetComponent<Collider>().enabled = false;
 
-        // Doorframe 4 (Breach Zone to Elevator)
-        Slab("BreachExitFrameL", new Vector3(9.8f, 1.25f, 72f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
-        Slab("BreachExitFrameR", new Vector3(14.2f, 1.25f, 72f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
-        Slab("BreachExitLintel", new Vector3(12f, 2.6f, 72f), new Vector3(4.8f, 0.3f, 0.4f), concrete);
-        var door4 = SpawnModular("door_sliding_auto", new Vector3(12f, 1.1f, 72f), Quaternion.identity, new Vector3(1.6f, 2.2f, 0.18f), doorMat);
+        // --- BEAT 1: Pre-encounter resources — deliberately placed BEFORE trigger ---
+        // Player sees them, grabs them, then steps into the encounter.
+        SpawnModular("prop_health_pack", new Vector3(12f, 0.3f, 63f), Quaternion.identity, Vector3.one * 0.6f, concrete)
+            .AddComponent<G1HealthPack>();
+        SpawnModular("prop_ammo_box",    new Vector3(10f, 0.3f, 63f), Quaternion.identity, Vector3.one * 0.6f, metalMat)
+            .AddComponent<G1AmmoPack>();
+
+        // Shotgun pickup for players who missed it in the corridor (second chance)
+        // Only if player hasn't grabbed it — placed in a corner, not on the main path
+        SpawnWeaponPickup("Shotgun", G1WeaponPickup.WeaponType.Shotgun,
+            new Vector3(7.5f, 0.4f, 60.5f), Quaternion.identity, wood);
+
+        // --- BEAT 2: Three cover blocks — all have G1CoverPoints for soldier AI ---
+        // Block A: first cover visible right from entry — safe side (west of puddle)
+        var coverA = Slab("BreachCover_A", new Vector3(9.5f, 0.55f, 65f), new Vector3(1.8f, 1.1f, 0.4f), concrete);
+        var cpA1 = new GameObject("CP_A_South"); cpA1.transform.position = new Vector3(9.5f, 0.05f, 64.3f); cpA1.AddComponent<G1CoverPoint>();
+        var cpA2 = new GameObject("CP_A_North"); cpA2.transform.position = new Vector3(9.5f, 0.05f, 65.7f); cpA2.AddComponent<G1CoverPoint>();
+        // Block B: further in, on west side — flanking protection
+        var coverB = Slab("BreachCover_B", new Vector3(9f, 0.55f, 69f), new Vector3(1.8f, 1.1f, 0.4f), concrete);
+        var cpB1 = new GameObject("CP_B_South"); cpB1.transform.position = new Vector3(9f, 0.05f, 68.3f); cpB1.AddComponent<G1CoverPoint>();
+        var cpB2 = new GameObject("CP_B_North"); cpB2.transform.position = new Vector3(9f, 0.05f, 69.7f); cpB2.AddComponent<G1CoverPoint>();
+        // Block C: near exit — last stand position
+        var coverC = Slab("BreachCover_C", new Vector3(9.5f, 0.55f, 72f), new Vector3(1.8f, 1.1f, 0.4f), concrete);
+        var cpC1 = new GameObject("CP_C_South"); cpC1.transform.position = new Vector3(9.5f, 0.05f, 71.3f); cpC1.AddComponent<G1CoverPoint>();
+        var cpC2 = new GameObject("CP_C_North"); cpC2.transform.position = new Vector3(9.5f, 0.05f, 72.7f); cpC2.AddComponent<G1CoverPoint>();
+
+        // Signal light — dark until wave spawner activates it (player sees it flip on = warning)
+        var signalLightGo = new GameObject("WaveSignalLight");
+        signalLightGo.transform.position = new Vector3(12f, 2.8f, 65f);
+        var signalLt = signalLightGo.AddComponent<Light>();
+        signalLt.type      = LightType.Point;
+        signalLt.color     = new Color(0f, 1f, 0.8f);
+        signalLt.range     = 14f;
+        signalLt.intensity = 2.8f;
+        signalLt.shadows   = LightShadows.None;
+        signalLt.enabled   = false; // off until waves start
+
+        // --- Door 4 (locked until override terminal activated) ---
+        Slab("BreachExitFrameL", new Vector3( 9.8f, 1.25f, 74f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
+        Slab("BreachExitFrameR", new Vector3(14.2f, 1.25f, 74f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
+        Slab("BreachExitLintel", new Vector3(12f,   2.6f,  74f), new Vector3(4.8f, 0.3f, 0.4f), concrete);
+        var door4 = SpawnModular("door_sliding_auto", new Vector3(12f, 1.1f, 74f),
+            Quaternion.identity, new Vector3(1.6f, 2.2f, 0.18f), doorMat);
         door4.name = "SlidingDoor_4";
-        door4.AddComponent<SlidingDoor>();
+        var slideDoor4 = door4.AddComponent<SlidingDoor>();
 
-        // Decorative Rubble
-        var rub1 = Slab("Rubble1", new Vector3(10f, 0.2f, 60f), new Vector3(1.5f, 0.3f, 2.0f), concrete);
-        rub1.transform.rotation = Quaternion.Euler(20f, 30f, 10f);
-        var rub2 = Slab("Rubble2", new Vector3(14f, 0.1f, 68f), new Vector3(1.2f, 0.2f, 1.6f), concrete);
-        rub2.transform.rotation = Quaternion.Euler(-15f, 45f, -5f);
-
-        // Horde trigger — player steps into zone to activate 8 aliens
         // Grenade pickup (slot 6) near the alien pods
         var grenadePickup = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         grenadePickup.name = "GrenadePickup";
@@ -635,41 +723,88 @@ public static class G1SceneBuilder
             cp.AddComponent<G1Checkpoint>();
         }
 
-        var hordeTrigger = new GameObject("HordeTrigger_Breach");
-        hordeTrigger.transform.position = new Vector3(12f, 1f, 60f);
-        var hordeColl = hordeTrigger.AddComponent<BoxCollider>();
-        hordeColl.isTrigger = true;
-        hordeColl.size = new Vector3(8f, 3f, 4f);
+        // Override terminal — west wall, accessible from cover B/C position
+        var overrideTermGo = SpawnModular("prop_computer_terminal",
+            new Vector3(7.5f, 0.9f, 71.5f), Quaternion.Euler(0f, 90f, 0f),
+            Vector3.one * 0.9f, floorMat);
+        overrideTermGo.name = "OverrideTerminal";
+        var overrideTerm = overrideTermGo.AddComponent<G1OverrideTerminal>();
+        overrideTerm.targetDoor = slideDoor4;
+        overrideTerm.lockedMessage = "EMERGENCY CONSOLE: OVERRIDE LOCKED. ELIMINATE ALL SPECIMENS IN BREACH ZONE FIRST.";
 
-        var hordeComp = hordeTrigger.AddComponent<G1HordeTrigger>();
-        hordeComp.spawnCount = 5;
-        hordeComp.spawnCenter = new Vector3(12f, 0f, 68f);
-        hordeComp.spawnRadius = 4f;
+        // Wave spawner — wires signal light, override terminal, and Door 4 together
+        var waveTriggerGo = new GameObject("WaveTrigger_Breach");
+        waveTriggerGo.transform.position = new Vector3(12f, 1.5f, 63.5f);
+        var waveColl = waveTriggerGo.AddComponent<BoxCollider>();
+        waveColl.isTrigger = true;
+        waveColl.size = new Vector3(12f, 3f, 1.5f);
+        var waveSpawner = waveTriggerGo.AddComponent<G1WaveSpawner>();
+        waveSpawner.spawnFarCenter  = new Vector3(12f, 0f, 72f);
+        waveSpawner.spawnFlankLeft  = new Vector3( 7f, 0f, 68f);
+        waveSpawner.spawnFlankRight = new Vector3(17f, 0f, 68f);
+        waveSpawner.spawnElite      = new Vector3(12f, 0f, 73f);
+        waveSpawner.signalLight     = signalLt;
+        waveSpawner.overrideTerminal = overrideTerm;
 
-        // Spawn Portal Light (neon teal, pulsing effect)
-        var l10 = SpawnLight("Breach_PortalLight", new Vector3(12f, 2.5f, 64f), new Color(0f, 1f, 0.8f), 15f, 2.5f);
+        // Ambient portal light (atmosphere, always on)
+        var l10 = SpawnLight("Breach_PortalLight", new Vector3(12f, 2.5f, 68f),
+            new Color(0f, 1f, 0.8f), 12f, 1.8f);
         l10.gameObject.AddComponent<G1LightEffects>().effectType = G1LightEffects.EffectType.Pulse;
 
-        // 6. EMERGENCY ELEVATOR (EXIT)
-        Slab("ElevatorFloor", new Vector3(12f, -0.25f, 76f), new Vector3(6, 0.5f, 8), floorMat);
-        Slab("ElevatorWallW", new Vector3(9f, 1.5f, 76f), new Vector3(0.5f, 3, 8), concrete);
-        Slab("ElevatorWallE", new Vector3(15f, 1.5f, 76f), new Vector3(0.5f, 3, 8), concrete);
-        Slab("ElevatorWallN", new Vector3(12f, 1.5f, 80f), new Vector3(6, 3, 0.5f), concrete);
+        // Horde trigger node (now feeds ThreatDirector ambient horde, not the wave system)
+        // Moved to be in the back of the zone, only fires if ThreatDirector wants to
+        // escalate intensity naturally — not a level-scripted spike.
+        var ambientHordeTrigger = new GameObject("AmbientHordeTrigger_Breach");
+        ambientHordeTrigger.transform.position = new Vector3(12f, 1f, 71f);
+        var ambientHordeColl = ambientHordeTrigger.AddComponent<BoxCollider>();
+        ambientHordeColl.isTrigger = true;
+        ambientHordeColl.size = new Vector3(4f, 3f, 2f);
+        // No G1HordeTrigger — we intentionally leave this as a nav target only
 
-        var lift = SpawnModular("prop_generator_large", new Vector3(12f, 0.05f, 77.5f), Quaternion.identity, new Vector3(2.5f, 0.1f, 2.5f), metalMat);
-        lift.name = "ElevatorPlatform";
-        
-        // Spawn Elevator warning beacon (hazard orange, pulsing)
-        var l11 = SpawnLight("Elevator_WarningLight", new Vector3(12f, 2.6f, 77.5f), new Color(1f, 0.4f, 0f), 12f, 2.5f);
+        // =====================================================================
+        // 6. EMERGENCY ELEVATOR — narrative-dressed earned exit
+        // =====================================================================
+        Slab("ElevatorFloor", new Vector3(12f, -0.25f, 79f), new Vector3(7, 0.5f, 10), floorMat);
+        Slab("ElevatorWallW", new Vector3(8.5f, 1.5f, 79f), new Vector3(0.5f, 3, 10), concrete);
+        Slab("ElevatorWallE", new Vector3(15.5f,1.5f, 79f), new Vector3(0.5f, 3, 10), concrete);
+        Slab("ElevatorWallN", new Vector3(12f, 1.5f, 84f), new Vector3(7, 3, 0.5f), concrete);
+
+        // Narrative: dead HECU soldier — tells player HECU was here and lost
+        var deadHECU = SpawnModular("prop_body_soldier",
+            new Vector3(9.5f, 0f, 76.5f), Quaternion.Euler(0f, 40f, 0f),
+            new Vector3(0.8f, 0.8f, 0.8f), concrete);
+        deadHECU.name = "DeadHECU_Elevator";
+
+        // Narrative: scattered equipment — the chaos of a failed evac
+        var droppedKit = Slab("DroppedKit", new Vector3(14.5f, 0.1f, 76f), new Vector3(0.6f, 0.2f, 0.4f), metalMat);
+        droppedKit.transform.rotation = Quaternion.Euler(0f, 65f, 12f);
+
+        // Reward health pack inside elevator — earned, not free
+        SpawnModular("prop_health_pack", new Vector3(13f, 0.3f, 78f), Quaternion.identity, Vector3.one * 0.6f, concrete)
+            .AddComponent<G1HealthPack>();
+
+        // Elevator lift platform
+        var lift = Slab("ElevatorPlatform", new Vector3(12f, 0.05f, 81f), new Vector3(3f, 0.1f, 3f), metalMat);
+
+        // Stable amber light — opposite mood to the breach zone teal
+        SpawnLight("Elevator_MainLight", new Vector3(12f, 2.8f, 79f),
+            new Color(1f, 0.8f, 0.55f), 12f, 1.6f, LightShadows.Soft);
+        // Warning beacon above lift, pulsing orange
+        var l11 = SpawnLight("Elevator_WarningBeacon", new Vector3(12f, 2.9f, 81f),
+            new Color(1f, 0.4f, 0f), 6f, 2.2f, LightShadows.None);
         l11.gameObject.AddComponent<G1LightEffects>().effectType = G1LightEffects.EffectType.Pulse;
 
-        // Add Level Complete Trigger Zone
+        // Level exit trigger — requireUnlock = true; door must be opened via terminal
         var triggerObj = new GameObject("LevelExitTrigger");
-        triggerObj.transform.position = new Vector3(12f, 0.5f, 77.5f);
+        triggerObj.transform.position = new Vector3(12f, 0.5f, 81f);
         var triggerCol = triggerObj.AddComponent<BoxCollider>();
         triggerCol.isTrigger = true;
-        triggerCol.size = new Vector3(2.5f, 2.0f, 2.5f);
-        triggerObj.AddComponent<G1LevelExitTrigger>().nextScene = "Level2";
+        triggerCol.size = new Vector3(3f, 2f, 3f);
+        var exitTrigger = triggerObj.AddComponent<G1LevelExitTrigger>();
+        exitTrigger.nextScene = "Level2";
+        exitTrigger.requireUnlock = true;
+        // Reset static flag so each play session starts locked
+        G1LevelExitTrigger.ElevatorUnlocked = false;
     }
 
     /// Seeded point in the arena, kept clear of the player spawn and doorway.
@@ -978,8 +1113,10 @@ public static class G1SceneBuilder
             zAgent.stoppingDistance = 1.3f;   // just inside 1.8 attack range
         }
 
-        // Spawn Alien AI (cloned template, tinted neon purple)
-        var alien = SpawnCharacter($"{Models}/Villain.fbx", new Vector3(12f, 0f, 64f), villainCtrl);
+        // Alien AI template — spawned OFF-MAP (y = -50) so it never appears
+        // live in the scene. It exists solely to be saved as a prefab and
+        // referenced by ThreatDirector.mobPrefabs and G1WaveSpawner.
+        var alien = SpawnCharacter($"{Models}/Villain.fbx", new Vector3(-999f, -50f, 0f), villainCtrl);
         alien.name = "Alien";
         SetLayerRecursive(alien, enemyLayer);
 
@@ -1090,10 +1227,10 @@ public static class G1SceneBuilder
             flankR.name = "HECU_FlankRight";
             flankR.AddComponent<AgentNavMeshWarp>();
             
-            // Last Stand HECU in Alien Breach Zone
-            var lastStand = (GameObject)Object.Instantiate(soldierPrefab, new Vector3(10f, 0f, 65f), Quaternion.Euler(0f, 90f, 0f));
-            lastStand.name = "HECU_LastStand";
-            lastStand.AddComponent<AgentNavMeshWarp>();
+            // Note: HECU_LastStand removed from breach zone.
+            // The zone is now controlled by G1WaveSpawner (alien waves only).
+            // The Industrial Hall ambush (Suppress + FlankLeft + FlankRight) is
+            // the HECU climax — they should not bleed into the alien zone.
         }
 
         // Set up ThreatDirector
@@ -1105,15 +1242,16 @@ public static class G1SceneBuilder
         director.relaxDuration = cfg.RelaxDuration;
         director.intensityDecayRate = 0.08f;
 
-        // Spawn nodes scattered inside Industrial Hall and Alien Breach Zone
+        // Spawn nodes: Industrial Hall only.
+        // The Alien Breach Zone is now controlled exclusively by G1WaveSpawner —
+        // ThreatDirector spawn nodes there were causing unscripted reinforcements
+        // that turned the zone into an unreadable chaos spike.
         var nodesParent = new GameObject("SpawnNodes").transform;
         Vector3[] nodePositions = {
-            new Vector3(4f, 0.5f, 32f),      // Industrial Hall SW
-            new Vector3(20f, 0.5f, 32f),     // Industrial Hall SE
-            new Vector3(4f, 0.5f, 52f),      // Industrial Hall NW
-            new Vector3(20f, 0.5f, 52f),     // Industrial Hall NE
-            new Vector3(12f, 0.5f, 60f),     // Breach Zone South
-            new Vector3(12f, 0.5f, 68f)      // Breach Zone North
+            new Vector3(4f,  0.5f, 32f),   // Industrial Hall SW
+            new Vector3(20f, 0.5f, 32f),   // Industrial Hall SE
+            new Vector3(4f,  0.5f, 52f),   // Industrial Hall NW
+            new Vector3(20f, 0.5f, 52f),   // Industrial Hall NE
         };
         var spawnNodes = new Transform[nodePositions.Length];
         for (int i = 0; i < nodePositions.Length; i++)
@@ -1126,10 +1264,23 @@ public static class G1SceneBuilder
         }
         director.spawnNodes = spawnNodes;
 
+        // Wire G1WaveSpawner prefab reference — find the WaveTrigger in the scene
+        // (built by BuildArena above) and give it the alien prefab
+        var waveSpawnerComp = Object.FindObjectOfType<G1WaveSpawner>();
+        if (waveSpawnerComp != null)
+        {
+            waveSpawnerComp.alienPrefab = alienPrefab;
+            // Elite uses the same base prefab; G1EliteAlien component boosts stats at runtime
+            waveSpawnerComp.eliteAlienPrefab = alienPrefab;
+        }
+
         // ---- parameterized population from the preset (seeded) ----
         PopulateCount(soldier, cfg.Soldiers, rng);
-        PopulateCount(zombie, cfg.Zombies, rng);
-        PopulateCount(alien, cfg.Aliens, rng);
+        PopulateCount(zombie,  cfg.Zombies,  rng);
+        // Alien template is kept as prefab only — NOT populated live;
+        // it is used exclusively by G1WaveSpawner in the Breach Zone.
+        // Destroy the off-map template instance after saving.
+        Object.DestroyImmediate(alien);
     }
 
     /// Clone the fully configured template until `count` instances exist
