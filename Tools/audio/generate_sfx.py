@@ -184,6 +184,26 @@ def ambient(name, layers):
     write_wav(name, out)
 
 
+# HECU radio barks: squelch (noise burst) + a short two-tone warble that
+# reads as a garbled radio callout. Two variants for variety.
+def radio_bark(name, tone_a, tone_b):
+    pre = [s * e for s, e in zip(lowpass(noise(int(SR * 0.05)), 0.7),
+                                 env_exp(int(SR * 0.05), 60))]
+    n = int(SR * 0.35)
+    body = []
+    for i in range(n):
+        f = tone_a if (i // int(SR * 0.05)) % 2 == 0 else tone_b
+        body.append(math.sin(2 * math.pi * f * i / SR))
+    body = [b * (0.5 + 0.5 * (i % 400 < 200)) for i, b in enumerate(body)]  # chop
+    env = env_exp(n, 5)
+    tail = [s * e for s, e in zip(lowpass(noise(int(SR * 0.04)), 0.7),
+                                  env_exp(int(SR * 0.04), 70))]
+    write_wav(name, pre + [body[i] * 0.5 * env[i] for i in range(n)] + tail)
+
+
+radio_bark("radio_bark_a", 620, 480)
+radio_bark("radio_bark_b", 540, 700)
+
 ambient("ambient_hum", [(60, 0.7, 0.25, 0.15), (120, 0.15, 0.125, 0.3)])
 ambient("ambient_lab", [(60, 0.6, 0.25, 0.1), (120, 0.2, 0.5, 0.4),
                         (240, 0.06, 0.125, 0.5)])

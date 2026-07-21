@@ -29,13 +29,24 @@ public class G1Pistol : WeaponBase
     public override int Reserve => reserve;
     public override bool IsReloading => reloading;
 
+    [Header("Secondary (3-round burst)")]
+    public float burstInterval = 0.06f;
+    public float burstCooldown = 0.45f;
+    bool bursting;
+
     protected override void HandleInput()
     {
-        if (reloading)
+        if (reloading || bursting)
             return;
         if (Input.GetKeyDown(KeyCode.R) && clip < clipSize && reserve > 0)
         {
             StartCoroutine(Reload());
+            return;
+        }
+        // RMB: rapid 3-round burst
+        if (Input.GetButtonDown("Fire2") && Time.time >= nextFire && clip > 0)
+        {
+            StartCoroutine(Burst());
             return;
         }
         if (Input.GetButtonDown("Fire1") && Time.time >= nextFire)
@@ -48,6 +59,18 @@ public class G1Pistol : WeaponBase
             }
             Fire();
         }
+    }
+
+    IEnumerator Burst()
+    {
+        bursting = true;
+        for (int i = 0; i < 3 && clip > 0; i++)
+        {
+            Fire();
+            yield return new WaitForSeconds(burstInterval);
+        }
+        nextFire = Time.time + burstCooldown;
+        bursting = false;
     }
 
     float nextFire;

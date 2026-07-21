@@ -20,7 +20,10 @@ a crowbar, and a man in a suit who is always watching.
 - **Half-Life 1 movement physics** — real GoldSrc constants converted to meters:
   Quake-lineage acceleration, friction, the authentic 30-ups air cap (strafe steering + bhop speed gain), hold-to-bunnyhop, coyote time, crouch.
 - **Weapons & Equipment** — crowbar → pistol → shotgun → SMG → .357 magnum → cookable grenades. Found as spinning pickups. Every model is scripted in Blender with animated slides/bolts/cylinders; per-shell shotgun reload, revolver cylinder FSM with emergency chamber. Includes a toggleable **Flashlight** (`F`).
-- **Pickups & Progression** — Health packs, ammo boxes, story lore cards, and checkpoint save points for seamless respawning upon death.
+- **Secondary fire (RMB)** — pistol 3-round burst, shotgun double-barrel, SMG 40mm grenade launcher (draws from grenade reserve), crowbar charged heavy swing (2.5× + knockback). Grenades bounce with a full explosion (light flash, shockwave ring, debris) and cooking feedback.
+- **HEV armor** — HL-style armor pool absorbs 80% of incoming damage; AP meter on the HUD; battery pickups and wall chargers (`E`) across the campaign.
+- **Pickups & Progression** — Health/armor/ammo packs, story lore cards, checkpoints, and a cross-session **save/Continue** (JSON in persistentDataPath).
+- **Bosses** — Level 2 HECU gunship: strafing machine-gun runs, 3-rocket salvos, destructible rotor health.
 - **Enemies & AI** — zombies and aliens with separation steering, HECU soldiers running a GOAP-lite planner (cover claims, squad roles, flanks, opportunist alpha strikes), all paced by an L4D2-style ThreatDirector with horde events. Features interactive CCTV monitoring screens and narrative G-Man cameos.
 - **Procedural Audio & Music** — Synthesized retro SFX generated from pure math (guns, impacts, doors, pickups, footsteps, horde roars), dynamic background ambience, and tension music tracks without external audio files.
 - **Combat core** — `IDamageable` / `HealthSystem` events, breakables, damage vignette + hit markers, world-space debug health bars, death → fade → checkpoint respawn.
@@ -60,6 +63,7 @@ a crowbar, and a man in a suit who is always watching.
 | Space (hold) | Jump / auto-bunnyhop |
 | Ctrl or C | Crouch |
 | Left mouse | Attack (swing / fire / cook grenade) |
+| Right mouse | Secondary fire (burst / double-barrel / launcher / heavy swing) |
 | R | Reload |
 | 1–6 / scroll | Switch weapon (unlocked slots only; 6 = Grenade) |
 | F | Toggle Flashlight |

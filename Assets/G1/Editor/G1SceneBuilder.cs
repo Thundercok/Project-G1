@@ -421,7 +421,11 @@ public static class G1SceneBuilder
         Slab("LockerRoomWallE", new Vector3(6f, 1.5f, -8f), new Vector3(0.5f, 3, 10), concrete);
         Slab("LockerRoomWallNW", new Vector3(-4.5f, 1.5f, -3f), new Vector3(3, 3, 0.5f), concrete);
         Slab("LockerRoomWallNE", new Vector3(4.5f, 1.5f, -3f), new Vector3(3, 3, 0.5f), concrete);
-        
+
+        // HEV station: a wall charger + a battery cell at the start
+        G1WallCharger.Create(new Vector3(-5.4f, 1.1f, -10f));
+        G1ArmorPack.Create(new Vector3(-4f, 0.5f, -10f));
+
         // Doorframe 1 (Locker Room to Corridor)
         Slab("LockerRoomFrameL", new Vector3(-1.6f, 1.25f, -3f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
         Slab("LockerRoomFrameR", new Vector3(1.6f, 1.25f, -3f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
@@ -594,6 +598,7 @@ public static class G1SceneBuilder
         // Resupply just before the finale so the player enters stocked
         G1HealthPack.Create(new Vector3(13.5f, 0.5f, 59f));
         G1AmmoPack.Create(new Vector3(14.5f, 0.5f, 60f));
+        G1ArmorPack.Create(new Vector3(12.5f, 0.5f, 59f), 50f);
 
         // Doorframe 4 (Breach Zone to Elevator)
         Slab("BreachExitFrameL", new Vector3(9.8f, 1.25f, 72f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
@@ -719,6 +724,7 @@ public static class G1SceneBuilder
         player.AddComponent<G1PlayerDeath>();
         player.AddComponent<G1PlayerRegen>();
         player.AddComponent<G1CheckpointRestorer>();
+        player.AddComponent<G1SaveApplier>();   // menu "Continue" restore
         var card = player.AddComponent<G1StoryCard>();
         card.title = "CHAPTER ONE";
         card.subtitle = "COLD START — Corvus Deep Research Annex, Sub-Level C";
@@ -1059,6 +1065,7 @@ public static class G1SceneBuilder
 
         var soldierAI = soldier.AddComponent<G1SoldierAI>();
         soldierAI.waypoints = sWaypoints;
+        soldier.AddComponent<G1SoldierBarks>();   // radio chatter on tactics/death
         soldier.AddComponent<AIDebugGizmos>();   // before prefab save: spawned
                                                  // reinforcements get gizmos too
         soldier.AddComponent<AgentNavMeshWarp>();

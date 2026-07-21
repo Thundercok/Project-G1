@@ -7,10 +7,10 @@ public sealed class G1MainMenu : MonoBehaviour
 {
     public Light flickerLight;
 
-    static readonly string[] Items = { "[ PLAY ]", "[ SETTINGS ]", "[ QUIT ]" };
     static readonly Color Teal = new Color(0.16f, 0.75f, 0.75f);
     static readonly Color Dim = new Color(0.29f, 0.29f, 0.29f);
 
+    string[] items;          // built at Start (Continue appears only with a save)
     int selected;
     float startTime;
     Font font;
@@ -20,6 +20,9 @@ public sealed class G1MainMenu : MonoBehaviour
     void Start()
     {
         startTime = Time.time;
+        items = G1SaveSystem.HasSave
+            ? new[] { "[ CONTINUE ]", "[ NEW GAME ]", "[ SETTINGS ]", "[ QUIT ]" }
+            : new[] { "[ NEW GAME ]", "[ SETTINGS ]", "[ QUIT ]" };
         font = Resources.Load<Font>("Fonts/ShareTechMono-Regular");
         settings = GetComponent<G1SettingsPanel>();
         Cursor.lockState = CursorLockMode.None;
@@ -43,20 +46,21 @@ public sealed class G1MainMenu : MonoBehaviour
         if (settings != null && settings.visible)
             return;
         if (Input.GetKeyDown(KeyCode.DownArrow))
-            selected = (selected + 1) % Items.Length;
+            selected = (selected + 1) % items.Length;
         if (Input.GetKeyDown(KeyCode.UpArrow))
-            selected = (selected + Items.Length - 1) % Items.Length;
+            selected = (selected + items.Length - 1) % items.Length;
         if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
-            Activate(selected);
+            Activate(items[selected]);
     }
 
-    void Activate(int i)
+    void Activate(string item)
     {
-        switch (i)
+        switch (item)
         {
-            case 0: SceneManager.LoadScene("TestScene"); break;
-            case 1: if (settings) settings.visible = true; break;
-            case 2: Application.Quit(); break;
+            case "[ CONTINUE ]": G1SaveSystem.Continue(); break;
+            case "[ NEW GAME ]": SceneManager.LoadScene("TestScene"); break;
+            case "[ SETTINGS ]": if (settings) settings.visible = true; break;
+            case "[ QUIT ]": Application.Quit(); break;
         }
     }
 
@@ -84,16 +88,16 @@ public sealed class G1MainMenu : MonoBehaviour
                   full.Substring(0, chars), title);
 
         var item = new GUIStyle(title) { fontSize = 26 };
-        for (int i = 0; i < Items.Length; i++)
+        for (int i = 0; i < items.Length; i++)
         {
             item.normal.textColor = i == selected ? Teal : Dim;
             var r = new Rect(cx - 200, Screen.height * 0.45f + i * 52, 400, 44);
-            GUI.Label(r, Items[i], item);
+            GUI.Label(r, items[i], item);
             if (r.Contains(Event.current.mousePosition))
             {
                 selected = i;
                 if (Event.current.type == EventType.MouseDown)
-                    Activate(i);
+                    Activate(items[i]);
             }
         }
     }

@@ -77,6 +77,8 @@ public sealed class G1Checkpoint : MonoBehaviour
         }
         PlayerPrefs.SetString(Key, JsonUtility.ToJson(d));
         PlayerPrefs.Save();
+        // also write the cross-session save that the menu's Continue reads
+        G1SaveSystem.SaveFromPlayer(player);
         Debug.Log("Checkpoint saved");
     }
 

@@ -149,6 +149,16 @@ public class PlayerHUD : MonoBehaviour
         style.normal.textColor = hpColor;
         GUI.Label(new Rect(40, Screen.height - 80, 250, 60), hpText, style);
 
+        // Draw HEV armor (AP) meter to the right of health
+        int ap = Mathf.CeilToInt(playerHealth.Armor);
+        string apText = $"[|]  {ap}";
+        var apStyle = new GUIStyle(style) { alignment = TextAnchor.LowerLeft };
+        apStyle.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
+        GUI.Label(new Rect(342, Screen.height - 78, 250, 60), apText, apStyle);
+        apStyle.normal.textColor = ap > 0
+            ? new Color(0.3f, 0.7f, 1f, 0.9f) : new Color(0.4f, 0.5f, 0.6f, 0.5f);
+        GUI.Label(new Rect(340, Screen.height - 80, 250, 60), apText, apStyle);
+
         // Draw Flashlight indicator if available
         if (flashlight != null)
         {

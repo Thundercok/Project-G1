@@ -8,11 +8,18 @@ public class HealthSystem : MonoBehaviour, IDamageable
     public float maxHealth = 100f;
     public bool godMode = false;
 
+    [Header("HEV Armor (player)")]
+    public float maxArmor = 100f;
+    [Range(0f, 1f)] public float armorAbsorb = 0.8f;   // fraction armor soaks
+
     public float CurrentHealth { get; private set; }
+    public float Armor { get; private set; }
     public bool IsDead { get; private set; }
 
     /// (currentHealth, maxHealth)
     public event Action<float, float> OnHealthChanged;
+    /// (currentArmor, maxArmor)
+    public event Action<float, float> OnArmorChanged;
     /// (hitPoint, hitNormal) of the killing blow
     public event Action<Vector3, Vector3> OnDeath;
 
@@ -21,12 +28,44 @@ public class HealthSystem : MonoBehaviour, IDamageable
         CurrentHealth = maxHealth;
     }
 
+    /// HEV charge — armor batteries and wall chargers.
+    public void AddArmor(float amount)
+    {
+        Armor = Mathf.Clamp(Armor + amount, 0f, maxArmor);
+        OnArmorChanged?.Invoke(Armor, maxArmor);
+    }
+
+    /// Restore (save/load): set both pools without clamping surprises.
+    public void SetState(float health, float armor)
+    {
+        CurrentHealth = Mathf.Clamp(health, 1f, maxHealth);
+        Armor = Mathf.Clamp(armor, 0f, maxArmor);
+        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        OnArmorChanged?.Invoke(Armor, maxArmor);
+    }
+
     public void TakeDamage(float damage, Vector3 hitPoint, Vector3 hitNormal)
     {
         if (IsDead || (CompareTag("Player") && godMode))
             return;
         if (CompareTag("Player"))
             damage *= G1Difficulty.IncomingDamageMult;
+
+        // HEV armor soaks armorAbsorb of the hit; overflow bleeds to health.
+        if (Armor > 0f)
+        {
+            float absorbed = damage * armorAbsorb;
+            float toHealth = damage * (1f - armorAbsorb);
+            if (absorbed > Armor)
+            {
+                toHealth += absorbed - Armor;
+                absorbed = Armor;
+            }
+            Armor -= absorbed;
+            damage = toHealth;
+            OnArmorChanged?.Invoke(Armor, maxArmor);
+        }
+
         CurrentHealth = Mathf.Max(CurrentHealth - damage, 0f);
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         var camFx = GetComponentInChildren<CameraEffects>();
