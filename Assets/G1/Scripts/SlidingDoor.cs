@@ -25,6 +25,17 @@ public class SlidingDoor : MonoBehaviour, IUsable
         }
     }
 
+    /// Open-only (idempotent) — used by proximity auto-open so the door never
+    /// toggles shut on the player mid-fight.
+    public void Open()
+    {
+        if (!moving && !open)
+        {
+            G1Audio.Play("door_servo", transform.position, 0.7f);
+            StartCoroutine(Slide(true));
+        }
+    }
+
     IEnumerator Slide(bool opening)
     {
         moving = true;

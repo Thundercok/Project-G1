@@ -15,9 +15,11 @@ public class G1WeaponFX : MonoBehaviour
     public int maxDecals = 30;
 
     GameObject muzzleFlashInstance;
+    Light muzzleLight;
     List<GameObject> decalPool = new List<GameObject>();
     int nextDecalIndex = 0;
     float flashTimer;
+    float lightTimer;
 
     void Awake()
     {
@@ -36,6 +38,13 @@ public class G1WeaponFX : MonoBehaviour
                 muzzleFlashInstance.transform.SetParent(null, false);
             }
         }
+        if (lightTimer > 0f && muzzleLight != null)
+        {
+            lightTimer -= Time.deltaTime;
+            muzzleLight.intensity = Mathf.Max(0f, muzzleLight.intensity - Time.deltaTime * 250f);
+            if (lightTimer <= 0f)
+                muzzleLight.enabled = false;
+        }
     }
 
     void InitializeMuzzleFlash()
@@ -49,6 +58,15 @@ public class G1WeaponFX : MonoBehaviour
         var mat = new Material(Shader.Find("Unlit/Color"));
         mat.color = new Color(1f, 0.85f, 0.1f);
         renderer.sharedMaterial = mat;
+
+        // momentary point light that flashes with the muzzle
+        var lightGo = new GameObject("MuzzleLight");
+        lightGo.transform.SetParent(muzzleFlashInstance.transform, false);
+        muzzleLight = lightGo.AddComponent<Light>();
+        muzzleLight.type = LightType.Point;
+        muzzleLight.color = new Color(1f, 0.63f, 0.31f);
+        muzzleLight.range = 6f;
+        muzzleLight.enabled = false;
 
         muzzleFlashInstance.SetActive(false);
     }
@@ -83,7 +101,36 @@ public class G1WeaponFX : MonoBehaviour
         muzzleFlashInstance.transform.localRotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
         muzzleFlashInstance.SetActive(true);
 
+        if (muzzleLight != null)
+        {
+            muzzleLight.enabled = true;
+            muzzleLight.intensity = 8f;
+            lightTimer = 0.04f;
+        }
+
         flashTimer = flashDuration;
+    }
+
+    /// Spark/debris burst flying outward from a bullet impact point.
+    public void PlayImpactFX(Vector3 point, Vector3 normal)
+    {
+        int n = Random.Range(4, 7);
+        for (int i = 0; i < n; i++)
+        {
+            var spark = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            Destroy(spark.GetComponent<Collider>());
+            spark.transform.position = point + normal * 0.02f;
+            spark.transform.localScale = new Vector3(0.015f, 0.015f, Random.Range(0.04f, 0.1f));
+            var mat = new Material(Shader.Find("Unlit/Color"));
+            mat.color = new Color(1f, 0.8f, 0.35f);
+            spark.GetComponent<Renderer>().sharedMaterial = mat;
+            Vector3 dir = (normal + Random.insideUnitSphere * 0.7f).normalized;
+            spark.transform.rotation = Quaternion.LookRotation(dir);
+            var rb = spark.AddComponent<Rigidbody>();
+            rb.mass = 0.02f;
+            rb.velocity = dir * Random.Range(3f, 6f);
+            Destroy(spark, Random.Range(0.3f, 0.6f));
+        }
     }
 
     public void SpawnBulletDecal(RaycastHit hit)
@@ -98,8 +145,11 @@ public class G1WeaponFX : MonoBehaviour
         decal.transform.position = hit.point + hit.normal * 0.001f;
         // Align local Z with the normal
         decal.transform.rotation = Quaternion.LookRotation(hit.normal);
-        
+
         decal.SetActive(true);
+
+        // spark burst rides along with every decal spawn
+        PlayImpactFX(hit.point, hit.normal);
     }
 
     // Programmatic double-sided cross star mesh

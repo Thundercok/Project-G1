@@ -577,21 +577,23 @@ public static class G1SceneBuilder
         Slab("BreachWallN_L", new Vector3(9f, 1.5f, 72f), new Vector3(2, 3, 0.5f), concrete);
         Slab("BreachWallN_R", new Vector3(15f, 1.5f, 72f), new Vector3(2, 3, 0.5f), concrete);
 
-        // Toxic radiation puddle
+        // Toxic radiation puddle — hugs the WEST wall so a clear dry path runs
+        // up the east side. Reduced DPS; it's a hazard to skirt, not a gauntlet
+        // you must wade through.
         Material toxicMat = MakeMat("ToxicWaste", new Color(0.12f, 0.85f, 0.16f), 0.1f);
         toxicMat.EnableKeyword("_EMISSION");
         toxicMat.SetColor("_EmissionColor", new Color(0.04f, 0.45f, 0.04f));
-        var toxicWaste = Slab("ToxicWastePuddle", new Vector3(12f, -0.15f, 64f), new Vector3(6f, 0.4f, 4f), toxicMat);
-        toxicWaste.AddComponent<G1HazardZone>();
+        var toxicWaste = Slab("ToxicWastePuddle", new Vector3(9.4f, -0.15f, 64f), new Vector3(2.4f, 0.4f, 5f), toxicMat);
+        toxicWaste.AddComponent<G1HazardZone>().damagePerSecond = 7f;
         toxicWaste.GetComponent<Collider>().isTrigger = true;
 
-        // Xen Jump Pad
-        Material jumpPadMat = MakeMat("XenJumpPad", new Color(0f, 0.95f, 0.85f), 0.2f);
-        jumpPadMat.EnableKeyword("_EMISSION");
-        jumpPadMat.SetColor("_EmissionColor", new Color(0f, 0.65f, 0.55f));
-        var jumpPad = Slab("XenJumpPadPlatform", new Vector3(12f, -0.15f, 58.5f), new Vector3(2f, 0.3f, 2f), jumpPadMat);
-        jumpPad.AddComponent<G1JumpPad>().launchForce = 13.5f;
-        jumpPad.GetComponent<Collider>().isTrigger = true;
+        // Cover in the breach zone so it isn't a flat kill-box
+        Slab("BreachCover1", new Vector3(14.2f, 0.5f, 62f), new Vector3(1.4f, 1f, 0.4f), concrete);
+        Slab("BreachCover2", new Vector3(10.5f, 0.5f, 67f), new Vector3(0.4f, 1f, 1.4f), concrete);
+
+        // Resupply just before the finale so the player enters stocked
+        G1HealthPack.Create(new Vector3(13.5f, 0.5f, 59f));
+        G1AmmoPack.Create(new Vector3(14.5f, 0.5f, 60f));
 
         // Doorframe 4 (Breach Zone to Elevator)
         Slab("BreachExitFrameL", new Vector3(9.8f, 1.25f, 72f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
@@ -599,7 +601,14 @@ public static class G1SceneBuilder
         Slab("BreachExitLintel", new Vector3(12f, 2.6f, 72f), new Vector3(4.8f, 0.3f, 0.4f), concrete);
         var door4 = SpawnModular("door_sliding_auto", new Vector3(12f, 1.1f, 72f), Quaternion.identity, new Vector3(1.6f, 2.2f, 0.18f), doorMat);
         door4.name = "SlidingDoor_4";
-        door4.AddComponent<SlidingDoor>();
+        var door4Slide = door4.AddComponent<SlidingDoor>();
+        // Exit door auto-opens on approach — no stopping to press E while swarmed
+        var door4Trigger = new GameObject("SlidingDoor_4_AutoOpen");
+        door4Trigger.transform.position = new Vector3(12f, 1.1f, 69.5f);
+        var door4Col = door4Trigger.AddComponent<BoxCollider>();
+        door4Col.isTrigger = true;
+        door4Col.size = new Vector3(4f, 3f, 4f);
+        door4Trigger.AddComponent<G1ProximityDoorOpener>().door = door4Slide;
 
         // Decorative Rubble
         var rub1 = Slab("Rubble1", new Vector3(10f, 0.2f, 60f), new Vector3(1.5f, 0.3f, 2.0f), concrete);
@@ -642,9 +651,9 @@ public static class G1SceneBuilder
         hordeColl.size = new Vector3(8f, 3f, 4f);
 
         var hordeComp = hordeTrigger.AddComponent<G1HordeTrigger>();
-        hordeComp.spawnCount = 5;
-        hordeComp.spawnCenter = new Vector3(12f, 0f, 68f);
-        hordeComp.spawnRadius = 4f;
+        hordeComp.spawnCount = 3;                              // was 5
+        hordeComp.spawnCenter = new Vector3(11f, 0f, 70f);    // off the exit line
+        hordeComp.spawnRadius = 3f;
 
         // Spawn Portal Light (neon teal, pulsing effect)
         var l10 = SpawnLight("Breach_PortalLight", new Vector3(12f, 2.5f, 64f), new Color(0f, 1f, 0.8f), 15f, 2.5f);
@@ -1090,8 +1099,9 @@ public static class G1SceneBuilder
             flankR.name = "HECU_FlankRight";
             flankR.AddComponent<AgentNavMeshWarp>();
             
-            // Last Stand HECU in Alien Breach Zone
-            var lastStand = (GameObject)Object.Instantiate(soldierPrefab, new Vector3(10f, 0f, 65f), Quaternion.Euler(0f, 90f, 0f));
+            // Last Stand HECU — a single final guard by the exit, not stacked
+            // into the toxic crossing where the horde also spawns.
+            var lastStand = (GameObject)Object.Instantiate(soldierPrefab, new Vector3(14f, 0f, 70f), Quaternion.Euler(0f, 180f, 0f));
             lastStand.name = "HECU_LastStand";
             lastStand.AddComponent<AgentNavMeshWarp>();
         }
@@ -1105,15 +1115,15 @@ public static class G1SceneBuilder
         director.relaxDuration = cfg.RelaxDuration;
         director.intensityDecayRate = 0.08f;
 
-        // Spawn nodes scattered inside Industrial Hall and Alien Breach Zone
+        // Spawn nodes confined to the Industrial Hall. The two former Breach
+        // Zone nodes were removed so the director never piles reinforcements
+        // into the narrow finale corridor.
         var nodesParent = new GameObject("SpawnNodes").transform;
         Vector3[] nodePositions = {
             new Vector3(4f, 0.5f, 32f),      // Industrial Hall SW
             new Vector3(20f, 0.5f, 32f),     // Industrial Hall SE
             new Vector3(4f, 0.5f, 52f),      // Industrial Hall NW
             new Vector3(20f, 0.5f, 52f),     // Industrial Hall NE
-            new Vector3(12f, 0.5f, 60f),     // Breach Zone South
-            new Vector3(12f, 0.5f, 68f)      // Breach Zone North
         };
         var spawnNodes = new Transform[nodePositions.Length];
         for (int i = 0; i < nodePositions.Length; i++)
