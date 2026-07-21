@@ -28,6 +28,7 @@ a crowbar, and a man in a suit who is always watching.
 - **Procedural Audio & Music** — Synthesized retro SFX generated from pure math (guns, impacts, doors, pickups, footsteps, horde roars), dynamic background ambience, and tension music tracks without external audio files.
 - **Combat core** — `IDamageable` / `HealthSystem` events, breakables, damage vignette + hit markers, world-space debug health bars, death → fade → checkpoint respawn.
 - **Retro HUD** — GoldSrc-amber health/ammo in Share Tech Mono, low-health pulse, weapon pickup flash, story cards, green crosshair.
+- **Sandbox & Testing Range** — Complete testing sandbox with auto-infinite ammo locking (`G1InfiniteAmmoSandbox`), God Mode invincibility (`G`), 3D Fly/Noclip Mode (`V`), and an interactive **Mob Spawner Toolbox** (`TAB`) for dynamically spawning Zombies, HECU Soldiers, Aliens, Hordes, Squads, and Bosses with a "Kill All" cleanup utility.
 - **Observability tooling** — F3 telemetry HUD, soldier AI state gizmos, seeded arena presets for reproducible AI testing.
 - **Everything is procedural** — scenes, models, animations, audio, navmesh: all generated from code in the repo, nothing hand-placed.
 
@@ -52,6 +53,7 @@ a crowbar, and a man in a suit who is always watching.
    - **G1 → Build Test Scene** (Level 1)
    - **G1 → Build Level 2 (Quarantine)**
    - **G1 → Build Level 3 (Threshold)**
+   - **G1 → Build Weapon Testing Range** (Sandbox range with mob spawner & infinite ammo)
    - **G1 → Rebuild Arena / [Preset]** (AI testing sandboxes)
 
 ### Controls
@@ -60,14 +62,18 @@ a crowbar, and a man in a suit who is always watching.
 |---|---|
 | WASD | Move (HL1 acceleration model) |
 | Mouse | Look |
-| Space (hold) | Jump / auto-bunnyhop |
-| Ctrl or C | Crouch |
+| Space (hold) | Jump / auto-bunnyhop (Up in Fly mode) |
+| Ctrl or C | Crouch (Down in Fly mode) |
+| Shift (hold) | Sprint / Speed boost (Fast fly mode) |
 | Left mouse | Attack (swing / fire / cook grenade) |
 | Right mouse | Secondary fire (burst / double-barrel / launcher / heavy swing) |
 | R | Reload |
 | 1–6 / scroll | Switch weapon (unlocked slots only; 6 = Grenade) |
 | F | Toggle Flashlight |
 | E | Use (doors, terminals) |
+| G | Toggle God Mode (Invincibility) |
+| V | Toggle 3D Fly Mode (Flight / Noclip) |
+| TAB | Toggle Mob Spawner Toolbox |
 | F3 | Toggle AI telemetry overlay |
 | Esc | Release mouse cursor / Open pause settings menu |
 

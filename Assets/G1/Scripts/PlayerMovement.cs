@@ -34,14 +34,21 @@ public class PlayerMovement : MonoBehaviour
     public float crouchSpeedMult = 0.5f;
     public float crouchCameraY = 0.85f;
 
+    [Header("God Mode / Fly")]
+    public bool isFlying = false;
+    public float flySpeedMult = 1.6f;
+    public float flySprintMult = 2.0f;
+
     private float defaultHeight = 1.8f;
     private Vector3 defaultCameraLocalPos = new Vector3(0f, 1.62f, 0f);
     private bool isCrouching = false;
     private Transform cameraTransform;
+    private HealthSystem health;
 
     public Vector3 Velocity => velocity;
     public bool Grounded => wasGrounded;
     public bool IsCrouching => isCrouching;
+    public bool IsFlying => isFlying;
 
     void Awake()
     {
@@ -50,6 +57,7 @@ public class PlayerMovement : MonoBehaviour
 
     void Start()
     {
+        health = GetComponent<HealthSystem>();
         cameraTransform = GetComponentInChildren<Camera>()?.transform;
         defaultHeight = cc.height;
         if (cameraTransform != null)
@@ -61,6 +69,47 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         float dt = Time.deltaTime;
+
+        // Fly mode toggle (V key)
+        if (Input.GetKeyDown(KeyCode.V))
+        {
+            if (health != null && !health.godMode)
+            {
+                health.godMode = true;
+            }
+            isFlying = !isFlying;
+            G1Audio.Play2D("pickup", 0.8f, isFlying ? 1.8f : 0.8f);
+            Debug.Log($"[FLY MODE] {(isFlying ? "ENABLED" : "DISABLED")}");
+        }
+
+        // Reset fly if godMode turned off
+        if (health != null && !health.godMode && isFlying)
+        {
+            isFlying = false;
+        }
+
+        // Handle active flight
+        if (isFlying)
+        {
+            Vector3 camFwd = cameraTransform ? cameraTransform.forward : transform.forward;
+            Vector3 camRight = cameraTransform ? cameraTransform.right : transform.right;
+
+            Vector3 flyDir = camRight * Input.GetAxisRaw("Horizontal")
+                           + camFwd * Input.GetAxisRaw("Vertical");
+
+            if (Input.GetKey(KeyCode.Space))
+                flyDir += Vector3.up;
+            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.C))
+                flyDir += Vector3.down;
+
+            float speed = maxSpeed * flySpeedMult;
+            if (Input.GetKey(KeyCode.LeftShift))
+                speed *= flySprintMult;
+
+            velocity = flyDir * speed;
+            cc.Move(velocity * dt);
+            return;
+        }
 
         // Crouch input and ceiling check
         bool wishCrouch = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.C);

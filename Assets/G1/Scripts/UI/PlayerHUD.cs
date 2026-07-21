@@ -15,6 +15,7 @@ public class PlayerHUD : MonoBehaviour
     public float crosshairThickness = 2f;
 
     HealthSystem playerHealth;
+    PlayerMovement playerMovement;
     WeaponSwitcher switcher;
     CameraEffects camFX;
     Texture2D vignetteTex;
@@ -35,6 +36,7 @@ public class PlayerHUD : MonoBehaviour
     void Start()
     {
         playerHealth = GetComponent<HealthSystem>();
+        playerMovement = GetComponent<PlayerMovement>();
         switcher = GetComponentInChildren<WeaponSwitcher>();
         camFX = GetComponentInChildren<CameraEffects>();
         vignetteTex = MakeVignette();
@@ -110,7 +112,9 @@ public class PlayerHUD : MonoBehaviour
         if (playerHealth == null) return;
         int hp = Mathf.CeilToInt(playerHealth.CurrentHealth);
         if (hp < 0) hp = 0;
-        string hpText = playerHealth.godMode ? "+  GOD" : $"+  {hp}";
+        string hpText = playerHealth.godMode 
+            ? (playerMovement != null && playerMovement.IsFlying ? "+  GOD (FLY)" : "+  GOD") 
+            : $"+  {hp}";
 
         // Pulse red when low HP
         Color hpColor = hp < 25
