@@ -17,7 +17,8 @@ public abstract class WeaponBase : MonoBehaviour
     protected Vector3 restPos;
     float bobT;
 
-    protected bool InputLocked => Cursor.lockState != CursorLockMode.Locked;
+    protected bool InputLocked => Cursor.lockState != CursorLockMode.Locked
+                                || G1MobSpawnerToolbox.IsOpen;
 
     // HUD interfaces
     public virtual bool HasAmmo => false;

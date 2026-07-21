@@ -231,6 +231,9 @@ public static class G1WeaponTestBuilder
         // Never run dry while testing
         player.AddComponent<G1InfiniteAmmoSandbox>();
 
+        // Mob spawner toolbox (Tab key)
+        player.AddComponent<G1MobSpawnerToolbox>();
+
         // --- 9b. Target Reset Terminal at the Supply Depot (press E)
         var terminal = Slab("TargetResetTerminal", new Vector3(7.5f, 0.9f, -7f),
                             new Vector3(0.7f, 1.4f, 0.7f), Mat(new Color(0.1f, 0.7f, 0.7f), 0.6f));

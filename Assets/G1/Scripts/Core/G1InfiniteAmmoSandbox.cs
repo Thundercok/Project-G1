@@ -15,22 +15,33 @@ public sealed class G1InfiniteAmmoSandbox : MonoBehaviour
     G1Shotgun shotgun;
     G1Magnum magnum;
     G1Grenade grenade;
+    HealthSystem health;
 
     void Start()
     {
-        pistol = GetComponentInChildren<G1Pistol>(true);
-        smg = GetComponentInChildren<G1Smg>(true);
-        shotgun = GetComponentInChildren<G1Shotgun>(true);
-        magnum = GetComponentInChildren<G1Magnum>(true);
-        grenade = GetComponentInChildren<G1Grenade>(true);
+        pistol   = GetComponentInChildren<G1Pistol>(true);
+        smg      = GetComponentInChildren<G1Smg>(true);
+        shotgun  = GetComponentInChildren<G1Shotgun>(true);
+        magnum   = GetComponentInChildren<G1Magnum>(true);
+        grenade  = GetComponentInChildren<G1Grenade>(true);
+        health   = GetComponent<HealthSystem>();
+
+        // Make the player unkillable in the test range
+        if (health != null)
+        {
+            health.godMode = true;
+            health.Heal(health.maxHealth);
+            Debug.Log("[SANDBOX] God Mode ON — player cannot die in Weapon Testing Range.");
+        }
     }
 
     void Update()
     {
-        if (pistol && pistol.reserve < pistolReserve) pistol.reserve = pistolReserve;
-        if (smg && smg.reserve < smgReserve) smg.reserve = smgReserve;
-        if (shotgun && shotgun.reserve < shotgunReserve) shotgun.reserve = shotgunReserve;
-        if (magnum && magnum.reserve < magnumReserve) magnum.reserve = magnumReserve;
-        if (grenade && grenade.count < grenadeCount) grenade.count = grenadeCount;
+        // Lock clip to full so weapons never trigger a reload mid-fire
+        if (pistol)  { pistol.clip  = pistol.clipSize;   pistol.reserve  = pistolReserve; }
+        if (smg)     { smg.clip     = smg.clipSize;       smg.reserve     = smgReserve; }
+        if (shotgun) { shotgun.clip = shotgun.clipSize;   shotgun.reserve = shotgunReserve; }
+        if (magnum)  { magnum.clip  = magnum.clipSize;    magnum.reserve  = magnumReserve; }
+        if (grenade) { grenade.count = grenadeCount; }
     }
 }
