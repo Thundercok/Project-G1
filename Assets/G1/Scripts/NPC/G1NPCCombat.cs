@@ -123,22 +123,29 @@ public class G1NPCCombat : MonoBehaviour
     {
         nextFire = Time.time + fireInterval;
 
-        // Play visual red tracer flash at hand
         PlayMuzzleFlash();
 
-        // Check damage hit
-        Vector3 eyePos = transform.position + Vector3.up * 1.62f + transform.forward * 0.45f;
-        Vector3 targetPos = player.transform.position + Vector3.up * 1.62f;
-        Vector3 dir = targetPos - eyePos;
+        Vector3 eyePos = transform.position + Vector3.up * 1.5f + transform.forward * 0.45f;
+        Vector3 targetPos = player.transform.position + Vector3.up * 1.3f;
+        Vector3 dir = (targetPos - eyePos).normalized;
 
-        if (Physics.Raycast(eyePos, dir.normalized, out RaycastHit hit, detectionRange * 1.5f, obstacleMask))
-        {
-            var hp = hit.collider.GetComponentInParent<HealthSystem>();
-            if (hp != null && hit.collider.gameObject == player)
-            {
-                hp.TakeDamage(damage, hit.point, hit.normal);
-            }
-        }
+        // NO HITSCAN: Launch visible 3D tracer projectile (24 m/s)
+        var projGo = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        Destroy(projGo.GetComponent<Collider>());
+        projGo.transform.position = eyePos;
+        projGo.transform.localScale = Vector3.one * 0.14f;
+
+        var proj = projGo.AddComponent<G1VisibleProjectile>();
+        proj.Launch(dir, 5f, 24f, new Color(1f, 0.8f, 0.2f), true);
+
+        // Telegraphed laser sight beam
+        var laser = new GameObject("TelegraphLaser").AddComponent<LineRenderer>();
+        laser.startWidth = 0.04f;
+        laser.endWidth = 0.01f;
+        laser.material = new Material(Shader.Find("Unlit/Color")) { color = new Color(1f, 0.2f, 0.1f, 0.8f) };
+        laser.SetPosition(0, eyePos);
+        laser.SetPosition(1, eyePos + dir * 12f);
+        Destroy(laser.gameObject, 0.12f);
     }
 
     void PlayMuzzleFlash()

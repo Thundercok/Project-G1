@@ -571,26 +571,32 @@ public class G1SoldierAI : MonoBehaviour
         PlayMuzzleFlash();
 
         Vector3 eyePos = transform.position + Vector3.up * 1.5f + transform.forward * 0.45f;
-        Vector3 targetPos = player.transform.position + Vector3.up * 1.5f;
+        Vector3 targetPos = player.transform.position + Vector3.up * 1.3f;
         Vector3 dir = (targetPos - eyePos).normalized;
 
         dir = Quaternion.Euler(
-            Random.Range(-2.5f, 2.5f),
-            Random.Range(-2.5f, 2.5f),
+            Random.Range(-1.5f, 1.5f),
+            Random.Range(-1.5f, 1.5f),
             0f
         ) * dir;
 
-        if (Physics.Raycast(eyePos, dir, out RaycastHit hit, detectRadius * 1.5f, obstacleMask))
-        {
-            if (hit.collider.gameObject == player)
-            {
-                playerHealth.TakeDamage(damage, hit.point, hit.normal);
-                if (ThreatDirector.Instance != null)
-                {
-                    ThreatDirector.Instance.ReportPlayerHit();
-                }
-            }
-        }
+        // NO HITSCAN: Launch visible 3D tracer projectile (26 m/s) with travel time
+        var projGo = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        Destroy(projGo.GetComponent<Collider>());
+        projGo.transform.position = eyePos;
+        projGo.transform.localScale = Vector3.one * 0.14f;
+
+        var proj = projGo.AddComponent<G1VisibleProjectile>();
+        proj.Launch(dir, 6f, 26f, new Color(1f, 0.75f, 0.1f), true);
+
+        // Telegraphed red laser sight line before shot
+        var laser = new GameObject("TelegraphLaser").AddComponent<LineRenderer>();
+        laser.startWidth = 0.05f;
+        laser.endWidth = 0.01f;
+        laser.material = new Material(Shader.Find("Unlit/Color")) { color = new Color(1f, 0.1f, 0.1f, 0.8f) };
+        laser.SetPosition(0, eyePos);
+        laser.SetPosition(1, eyePos + dir * 15f);
+        Destroy(laser.gameObject, 0.15f);
     }
 
     void PlayMuzzleFlash()

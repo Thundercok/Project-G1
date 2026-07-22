@@ -124,11 +124,42 @@ public class G1AlienAI : MonoBehaviour
 
     void PerformClawAttack()
     {
-        nextAttack = Time.time + attackInterval;
+        nextAttack = Time.time + attackInterval + 0.6f;
+        StartCoroutine(TelegraphedAttackSequence());
+    }
+
+    IEnumerator TelegraphedAttackSequence()
+    {
+        // 1. Telegraph Wind-Up Phase (0.6s) with bright red glowing aura
+        var aura = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        Destroy(aura.GetComponent<Collider>());
+        aura.transform.position = transform.position + Vector3.up * 1.6f + transform.forward * 0.4f;
+        aura.transform.localScale = Vector3.one * 0.4f;
+
+        var mat = new Material(Shader.Find("Unlit/Color"));
+        mat.color = new Color(1f, 0.15f, 0.1f, 0.9f);
+        aura.GetComponent<Renderer>().sharedMaterial = mat;
+
+        float windUpElapsed = 0f;
+        while (windUpElapsed < 0.6f)
+        {
+            windUpElapsed += Time.deltaTime;
+            float scale = 0.4f + Mathf.Sin((windUpElapsed / 0.6f) * Mathf.PI) * 0.3f;
+            if (aura != null) aura.transform.localScale = Vector3.one * scale;
+
+            // Arms raised high during wind-up
+            if (leftArm) leftArm.localRotation = Quaternion.Euler(-120f, 0f, 40f);
+            if (rightArm) rightArm.localRotation = Quaternion.Euler(-120f, 0f, -40f);
+            yield return null;
+        }
+
+        if (aura != null) Destroy(aura);
+
+        // 2. Perform Attack & Damage (Casual friendly damage = 7 HP)
         StartCoroutine(AttackVisualSwipe());
 
         float dist = Vector3.Distance(transform.position, player.transform.position);
-        if (dist <= attackRange + 0.5f)
+        if (dist <= attackRange + 0.8f && playerHealth != null)
         {
             Vector3 eyePos = transform.position + Vector3.up * 1.5f;
             Vector3 targetPos = player.transform.position + Vector3.up * 1.5f;
@@ -136,7 +167,7 @@ public class G1AlienAI : MonoBehaviour
             bool hitWall = Physics.Raycast(eyePos, dir.normalized, out RaycastHit hit, dir.magnitude, 1 << 0);
             if (!hitWall)
             {
-                playerHealth.TakeDamage(damage, player.transform.position + Vector3.up * 1f, -transform.forward);
+                playerHealth.TakeDamage(7f, player.transform.position + Vector3.up * 1f, -transform.forward);
             }
         }
     }

@@ -173,6 +173,9 @@ PrefabInstance:
       addedObject: {fileID: 3218111818289698149}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 98cf5eaead588406c9942c778c3acaa6, type: 3}
       insertIndex: -1
+      addedObject: {fileID: 8662648162677252712}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 98cf5eaead588406c9942c778c3acaa6, type: 3}
+      insertIndex: -1
       addedObject: {fileID: 5374482448693187200}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 98cf5eaead588406c9942c778c3acaa6, type: 3}
       insertIndex: -1
@@ -271,6 +274,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 100
   godMode: 0
+  maxArmor: 100
+  armorAbsorb: 0.8
 --- !u!114 &7274459672762766116
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -352,6 +357,18 @@ MonoBehaviour:
   opportunistTimeout: 6
   executeHpThreshold: 0.5
   dropChance: 0.72
+--- !u!114 &8662648162677252712
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2308550944242959133}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec79f26622261428ba25913ab3e0a378, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &5374482448693187200
 MonoBehaviour:
   m_ObjectHideFlags: 0
