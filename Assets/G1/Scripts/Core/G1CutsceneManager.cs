@@ -26,11 +26,15 @@ public class G1CutsceneManager : MonoBehaviour
     private string titleChapter = "";
     private string titleSub = "";
     private string titleSubject = "";
+    private string titleStatus = "";
+    private string titleDirective = "";
     private float titleAlpha = 0f;
 
     private GUIStyle titleChapterStyle;
     private GUIStyle titleSubStyle;
     private GUIStyle titleSubjectStyle;
+    private GUIStyle titleStatusStyle;
+    private GUIStyle titleDirectiveStyle;
     private GUIStyle subtitleStyle;
 
     private void Awake()
@@ -63,15 +67,15 @@ public class G1CutsceneManager : MonoBehaviour
         }
     }
 
-    public void PlayIntroCutscene(string chapter, string subLocation, string subjectName, Vector3 camStartPos, Quaternion camStartRot, float duration = 5f)
+    public void PlayIntroCutscene(string chapter, string subLocation, string subjectName, string status, string directive, Vector3 camStartPos, Quaternion camStartRot, float duration = 6f)
     {
-        StartCoroutine(RoutineIntroCutscene(chapter, subLocation, subjectName, camStartPos, camStartRot, duration));
+        StartCoroutine(RoutineIntroCutscene(chapter, subLocation, subjectName, status, directive, camStartPos, camStartRot, duration));
     }
 
-    private IEnumerator RoutineIntroCutscene(string chapter, string subLocation, string subjectName, Vector3 camStartPos, Quaternion camStartRot, float duration)
+    private IEnumerator RoutineIntroCutscene(string chapter, string subLocation, string subjectName, string status, string directive, Vector3 camStartPos, Quaternion camStartRot, float duration)
     {
         isCutsceneActive = true;
-        targetLetterboxHeight = Screen.height * 0.12f;
+        targetLetterboxHeight = Screen.height * 0.14f;
 
         mainCam = Camera.main;
         if (mainCam != null)
@@ -87,6 +91,8 @@ public class G1CutsceneManager : MonoBehaviour
         titleChapter = chapter;
         titleSub = subLocation;
         titleSubject = $"SUBJECT: {subjectName.ToUpper()}";
+        titleStatus = status;
+        titleDirective = directive;
 
         Vector3 originalPos = mainCam != null ? mainCam.transform.position : Vector3.zero;
         Quaternion originalRot = mainCam != null ? mainCam.transform.rotation : Quaternion.identity;
@@ -104,8 +110,8 @@ public class G1CutsceneManager : MonoBehaviour
             float t = elapsed / duration;
 
             // Fade title card in then out
-            if (t < 0.2f) titleAlpha = t / 0.2f;
-            else if (t > 0.8f) titleAlpha = (1f - t) / 0.2f;
+            if (t < 0.15f) titleAlpha = t / 0.15f;
+            else if (t > 0.85f) titleAlpha = (1f - t) / 0.15f;
             else titleAlpha = 1f;
 
             // Smoothly lerp camera back toward player head
@@ -156,14 +162,20 @@ public class G1CutsceneManager : MonoBehaviour
             Color oldCol = GUI.color;
             GUI.color = new Color(1f, 0.75f, 0.1f, titleAlpha);
 
-            float startY = Screen.height * 0.35f;
-            GUI.Label(new Rect(0, startY, Screen.width, 50), titleChapter, titleChapterStyle);
+            float startY = Screen.height * 0.28f;
+            GUI.Label(new Rect(0, startY, Screen.width, 45), titleChapter, titleChapterStyle);
 
             GUI.color = new Color(0.9f, 0.9f, 0.9f, titleAlpha);
-            GUI.Label(new Rect(0, startY + 55, Screen.width, 40), titleSub, titleSubStyle);
+            GUI.Label(new Rect(0, startY + 48, Screen.width, 35), titleSub, titleSubStyle);
 
             GUI.color = new Color(0.2f, 0.9f, 0.4f, titleAlpha);
-            GUI.Label(new Rect(0, startY + 95, Screen.width, 40), titleSubject, titleSubjectStyle);
+            GUI.Label(new Rect(0, startY + 83, Screen.width, 35), titleSubject, titleSubjectStyle);
+
+            GUI.color = new Color(1f, 0.25f, 0.2f, titleAlpha);
+            GUI.Label(new Rect(0, startY + 118, Screen.width, 35), titleStatus, titleStatusStyle);
+
+            GUI.color = new Color(1f, 0.9f, 0.1f, titleAlpha);
+            GUI.Label(new Rect(0, startY + 153, Screen.width, 35), titleDirective, titleDirectiveStyle);
 
             GUI.color = oldCol;
         }
@@ -176,8 +188,8 @@ public class G1CutsceneManager : MonoBehaviour
             float subY = Screen.height - letterboxHeight - 45f;
             if (letterboxHeight < 10f) subY = Screen.height - 80f;
 
-            GUI.Box(new Rect(Screen.width * 0.15f, subY, Screen.width * 0.7f, 36f), "", GUI.skin.box);
-            GUI.Label(new Rect(Screen.width * 0.15f, subY + 5f, Screen.width * 0.7f, 30f), currentSubtitle, subtitleStyle);
+            GUI.Box(new Rect(Screen.width * 0.1f, subY, Screen.width * 0.8f, 38f), "", GUI.skin.box);
+            GUI.Label(new Rect(Screen.width * 0.1f, subY + 6f, Screen.width * 0.8f, 30f), currentSubtitle, subtitleStyle);
             GUI.color = oldCol;
         }
     }
@@ -198,7 +210,7 @@ public class G1CutsceneManager : MonoBehaviour
             titleSubStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 18,
+                fontSize = 17,
                 fontStyle = FontStyle.Italic
             };
         }
@@ -208,6 +220,24 @@ public class G1CutsceneManager : MonoBehaviour
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 16,
+                fontStyle = FontStyle.Bold
+            };
+        }
+        if (titleStatusStyle == null)
+        {
+            titleStatusStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 16,
+                fontStyle = FontStyle.Bold
+            };
+        }
+        if (titleDirectiveStyle == null)
+        {
+            titleDirectiveStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 17,
                 fontStyle = FontStyle.Bold
             };
         }

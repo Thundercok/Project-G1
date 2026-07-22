@@ -8,6 +8,7 @@ public class G1EndingCutscene : MonoBehaviour
 {
     private bool hasTriggered = false;
     private GUIStyle titleStyle;
+    private GUIStyle alertStyle;
     private GUIStyle bodyStyle;
     private float cardAlpha = 0f;
     private Texture2D blackTex;
@@ -38,14 +39,14 @@ public class G1EndingCutscene : MonoBehaviour
 
         if (G1CutsceneManager.Instance != null)
         {
-            G1CutsceneManager.Instance.ShowSubtitle("[THE AUDITOR]: \"Subject Chad Thundercock... your performance in Sector C has been... extraordinary.\"", 6.0f);
+            G1CutsceneManager.Instance.ShowSubtitle("[THE AUDITOR]: \"Experiment failed... yet you survived the alien horde and government hit squads, Chad Thundercock.\"", 6.0f);
         }
 
         yield return new WaitForSeconds(6.5f);
 
         if (G1CutsceneManager.Instance != null)
         {
-            G1CutsceneManager.Instance.ShowSubtitle("[THE AUDITOR]: \"My employers have authorized your retention. Step through the portal, Mr. Thundercock.\"", 6.0f);
+            G1CutsceneManager.Instance.ShowSubtitle("[THE AUDITOR]: \"Step through the portal ring. You are now... uncontained.\"", 6.0f);
         }
 
         yield return new WaitForSeconds(6.5f);
@@ -60,7 +61,7 @@ public class G1EndingCutscene : MonoBehaviour
         }
         cardAlpha = 1f;
 
-        yield return new WaitForSeconds(7.0f);
+        yield return new WaitForSeconds(8.0f);
 
         // Load Menu Scene
         SceneManager.LoadScene("MenuScene");
@@ -76,12 +77,19 @@ public class G1EndingCutscene : MonoBehaviour
         if (cardAlpha >= 0.99f)
         {
             InitStyles();
-            GUI.color = new Color(0.2f, 0.9f, 0.4f, 1f);
 
-            float y = Screen.height * 0.35f;
-            GUI.Label(new Rect(0, y, Screen.width, 50), "SUBJECT: CHAD THUNDERCOCK", titleStyle);
-            GUI.Label(new Rect(0, y + 60, Screen.width, 40), "STATUS: EVALUATION COMPLETE", bodyStyle);
-            GUI.Label(new Rect(0, y + 100, Screen.width, 40), "DISPOSITION: RETAINED FOR SPECIAL OPERATIONS", bodyStyle);
+            float y = Screen.height * 0.28f;
+
+            GUI.color = new Color(1f, 0.25f, 0.2f, 1f);
+            GUI.Label(new Rect(0, y, Screen.width, 45), "STATUS: EXPERIMENT FAILED — FACILITY OVERRIDDEN", alertStyle);
+
+            GUI.color = new Color(1f, 0.85f, 0.1f, 1f);
+            GUI.Label(new Rect(0, y + 48, Screen.width, 35), "GOVERNMENT ORDER: TERMINATE ALL WITNESSES", alertStyle);
+
+            GUI.color = new Color(0.2f, 0.9f, 0.4f, 1f);
+            GUI.Label(new Rect(0, y + 95, Screen.width, 45), "SUBJECT: CHAD THUNDERCOCK", titleStyle);
+            GUI.Label(new Rect(0, y + 145, Screen.width, 35), "EVALUATION: SURVIVED ALIEN & MILITARY PURGE", bodyStyle);
+            GUI.Label(new Rect(0, y + 180, Screen.width, 35), "DISPOSITION: ESCAPED — STATUS: UNCONTAINED", bodyStyle);
         }
     }
 
@@ -92,7 +100,16 @@ public class G1EndingCutscene : MonoBehaviour
             titleStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 30,
+                fontSize = 28,
+                fontStyle = FontStyle.Bold
+            };
+        }
+        if (alertStyle == null)
+        {
+            alertStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 20,
                 fontStyle = FontStyle.Bold
             };
         }
@@ -101,7 +118,7 @@ public class G1EndingCutscene : MonoBehaviour
             bodyStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 20,
+                fontSize = 18,
                 fontStyle = FontStyle.Italic
             };
         }
