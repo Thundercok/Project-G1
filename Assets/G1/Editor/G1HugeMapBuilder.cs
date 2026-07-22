@@ -91,6 +91,14 @@ public static class G1HugeMapBuilder
             mc.sharedMesh = mf.sharedMesh;
         }
 
+        // GUARANTEED floor: a flat box collider spanning the whole 600m map at
+        // ground level, so the player always has something to stand on even if
+        // the FBX ground mesh ever imports at an unexpected scale.
+        var floor = new GameObject("GroundCollider");
+        floor.transform.position = new Vector3(0f, -0.25f, 0f);
+        var floorCol = floor.AddComponent<BoxCollider>();
+        floorCol.size = new Vector3(620f, 0.5f, 620f);   // top surface at y=0
+
         // --- player (spawns at the south gate, facing the sprawl)
         var player = G1SceneBuilder.BuildStandardPlayer();
         var cc = player.GetComponent<CharacterController>();

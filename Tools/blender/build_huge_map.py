@@ -52,10 +52,12 @@ def mat(key):
 
 
 def box(name, loc, dims, key, rot=(0, 0, 0)):
+    # size=1 cube is 1 unit across, so scale by dims to get the true size in
+    # metres (an earlier /2 here silently halved the whole map).
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc, rotation=rot)
     ob = bpy.context.active_object
     ob.name = name
-    ob.scale = Vector((dims[0] / 2, dims[1] / 2, dims[2] / 2))
+    ob.scale = Vector((dims[0], dims[1], dims[2]))
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bpy.ops.object.shade_flat()
     objs.append((ob, key))
