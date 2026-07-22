@@ -213,6 +213,27 @@ public class G1MobSpawnerToolbox : MonoBehaviour
             {
                 if (go.GetComponent<G1SoldierAI>() == null)
                     go.AddComponent<G1SoldierAI>();
+
+                // Metallic Sweeper Robot Droid Chassis (Eliminate Pink Missing Texture)
+                int rIdx = 0;
+                foreach (var r in go.GetComponentsInChildren<Renderer>())
+                {
+                    var m = new Material(Shader.Find("Standard"));
+                    m.SetFloat("_Metallic", 0.85f);
+                    m.SetFloat("_Smoothness", 0.45f);
+                    if (rIdx == 0)
+                    {
+                        m.color = new Color(0.35f, 0.40f, 0.48f); // Titanium steel chassis
+                        m.EnableKeyword("_EMISSION");
+                        m.SetColor("_EmissionColor", new Color(1f, 0.1f, 0.1f) * 2.5f); // Red Robot Visor Eye
+                    }
+                    else
+                    {
+                        m.color = new Color(0.14f, 0.15f, 0.18f); // Dark carbon joints
+                    }
+                    r.sharedMaterial = m;
+                    rIdx++;
+                }
             }
             else if (kind == "Alien")
             {

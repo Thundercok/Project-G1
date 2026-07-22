@@ -1204,13 +1204,23 @@ public static class G1SceneBuilder
         soldier.name = "HECUSoldier";
         SetLayerRecursive(soldier, enemyLayer);
 
-        // HECU blue-grey and dark vest tinting
+        // HECU Sweeper Robot Droid metallic chassis and glowing optical visor
         int renderIdx = 0;
         foreach (var r in soldier.GetComponentsInChildren<Renderer>())
         {
-            var m = new Material(r.sharedMaterial);
-            if (renderIdx == 0) m.color = new Color(0.2f, 0.25f, 0.3f); // blue-grey camo
-            else m.color = new Color(0.12f, 0.12f, 0.15f); // dark vest/boots
+            var m = new Material(Shader.Find("Standard"));
+            m.SetFloat("_Metallic", 0.85f);
+            m.SetFloat("_Smoothness", 0.45f);
+            if (renderIdx == 0)
+            {
+                m.color = new Color(0.35f, 0.40f, 0.48f); // Titanium steel chassis
+                m.EnableKeyword("_EMISSION");
+                m.SetColor("_EmissionColor", new Color(1f, 0.1f, 0.1f) * 2.5f); // Red Robot Visor Eye
+            }
+            else
+            {
+                m.color = new Color(0.14f, 0.15f, 0.18f); // Dark carbon joints
+            }
             r.sharedMaterial = m;
             renderIdx++;
         }
