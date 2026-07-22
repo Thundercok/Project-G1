@@ -16,8 +16,12 @@ public sealed class G1IntroStory : MonoBehaviour
     public static bool RequestedOrPlayed { get; private set; }
     public static bool IsActive { get; private set; }
 
+    /// True while the black-screen narrative is on-screen, so the HUD/weapon can
+    /// stay hidden ("just some words on the screen").
+    public static bool IsPlaying { get; private set; }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() { RequestedOrPlayed = false; IsActive = false; }
+    static void ResetStatics() { RequestedOrPlayed = false; IsActive = false; IsPlaying = false; }
 
     // One beat of the cold open: a large headline (typed out) + a small subline.
     struct Beat
@@ -92,6 +96,7 @@ public sealed class G1IntroStory : MonoBehaviour
 
         active = true;
         IsActive = true;
+        IsPlaying = true;
         bgAlpha = 1f;
         StartCoroutine(RoutinePlay());
     }
@@ -166,6 +171,7 @@ public sealed class G1IntroStory : MonoBehaviour
 
         active = false;
         IsActive = false;
+        IsPlaying = false;
         Destroy(this);
     }
 

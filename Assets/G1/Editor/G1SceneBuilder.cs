@@ -29,23 +29,26 @@ public static class G1SceneBuilder
         public int CoverBlocks = 8;
         public int MaxActiveSoldiers = 4;
         public float RelaxDuration = 8f;
+        /// Campaign Level 1 gets the big explorable Atrium Hub up front; the AI
+        /// test arenas (below) stay compact so testing spawns near the action.
+        public bool CampaignHub = true;
 
         public static ArenaConfig Standard() => new ArenaConfig();
         public static ArenaConfig SoloHecu() => new ArenaConfig
         {
             Seed = 101, Soldiers = 1, Zombies = 0, Aliens = 0,
-            MaxActiveSoldiers = 1,
+            MaxActiveSoldiers = 1, CampaignHub = false,
         };
         public static ArenaConfig Horde() => new ArenaConfig
         {
             Seed = 666, Soldiers = 2, Zombies = 3, Aliens = 3,
             Crates = 4, CoverBlocks = 10, MaxActiveSoldiers = 8,
-            RelaxDuration = 3f,
+            RelaxDuration = 3f, CampaignHub = false,
         };
         public static ArenaConfig LowCover() => new ArenaConfig
         {
             Seed = 42, Soldiers = 2, Zombies = 1, Aliens = 1,
-            Crates = 2, CoverBlocks = 2,
+            Crates = 2, CoverBlocks = 2, CampaignHub = false,
         };
     }
 
@@ -119,6 +122,16 @@ public static class G1SceneBuilder
         BuildLighting();
         BuildArena(cfg, rng);
         GameObject player = BuildPlayer(pistolCtrl, smgCtrl, shotgunCtrl, magnumCtrl);
+
+        // Spawn at the south end of the open Atrium Hub, facing north (+z) so the
+        // player walks the full explorable story-space before the descent begins.
+        if (cfg.CampaignHub)
+        {
+            var pcc = player.GetComponent<CharacterController>();
+            pcc.enabled = false;
+            player.transform.position = new Vector3(0f, 0.05f, -46f);
+            pcc.enabled = true;
+        }
 
         // Story Cutscene Manager & Chapter 1 Intro Trigger
         var cutsceneGo = new GameObject("CutsceneManager");
@@ -430,9 +443,125 @@ public static class G1SceneBuilder
         Material metalMat = MakeMat("PropMetal", new Color(0.8f, 0.85f, 0.88f), 0.3f, "tex_steel_panel", 2f, 2f);
         Material greenMat = MakeMat("IndustrialGreen", new Color(0.5f, 0.7f, 0.5f), 0.2f, "tex_steel_panel", 2f, 2f);
 
-        // 1. LOCKER ROOM (START)
+        // =====================================================================
+        // 0. ATRIUM HUB — large open explorable story-space (the "beginning").
+        //    One big floor (no gaps to fall through), a full ceiling, and a
+        //    perimeter wall. Zones are read by props/short dividers, not sealed
+        //    rooms, so the player roams freely and pieces together the loop
+        //    story from terminals, graffiti, lore cards, CCTV and a dead
+        //    previous-iteration engineer. No enemies here — Level 1 opens calm.
+        //    Hub occupies x[-24,24], z[-54,-13]; it opens north into the Locker
+        //    Room (x[-6,6] at z=-13) which continues to the descent.
+        // =====================================================================
+        if (cfg.CampaignHub)
+        {
+        // Local dressing helpers (capture the materials above).
+        void HubTerminal(Vector3 p, float yaw, string msg)
+        {
+            var t = SpawnModular("prop_computer_terminal", p, Quaternion.Euler(0f, yaw, 0f), Vector3.one * 0.9f, floorMat);
+            t.AddComponent<G1Terminal>().logMessage = msg;
+        }
+        void HubGraffiti(Vector3 p, float yaw, int tier, string text)
+        {
+            var go = new GameObject("HubGraffiti");
+            go.transform.position = p;
+            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            var g = go.AddComponent<G1Graffiti>();
+            g.tier = tier;
+            g.text = text;
+        }
+        void HubCard(Vector3 p, Vector3 size, string title, string sub)
+        {
+            var go = new GameObject("HubLoreCard");
+            go.transform.position = p;
+            var col = go.AddComponent<BoxCollider>();
+            col.isTrigger = true;
+            col.size = size;
+            var c = go.AddComponent<G1StoryCard>();
+            c.showOnStart = false;
+            c.title = title;
+            c.subtitle = sub;
+        }
+
+        // --- Shell: floor, ceiling, perimeter ---
+        Slab("HubFloor",   new Vector3(0f, -0.25f, -33.5f), new Vector3(48f, 0.5f, 41f), floorMat);
+        Slab("HubCeiling", new Vector3(0f,  4.25f, -33.5f), new Vector3(48f, 0.5f, 41f), concrete);
+        Slab("HubWallS",   new Vector3(0f,   2.25f, -54f),  new Vector3(48f, 4.5f, 0.5f), concrete);
+        Slab("HubWallW",   new Vector3(-24f, 2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
+        Slab("HubWallE",   new Vector3(24f,  2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
+        // North wall, split to leave the x[-6,6] opening into the Locker Room.
+        Slab("HubWallN_W", new Vector3(-15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
+        Slab("HubWallN_E", new Vector3( 15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
+
+        // --- Short landmark dividers (open, not sealing) that hint the wings ---
+        Slab("RecordsDivider",  new Vector3(-12f, 1.1f, -46f), new Vector3(0.4f, 2.2f, 12f), metalMat);
+        Slab("SecurityDivider", new Vector3( 12f, 1.1f, -46f), new Vector3(0.4f, 2.2f, 12f), metalMat);
+
+        // --- Atrium lighting ---
+        SpawnLight("Hub_Light_Center", new Vector3(0f,   3.8f, -33f), new Color(0.85f, 0.9f, 1f), 20f, 1.5f);
+        SpawnLight("Hub_Light_West",   new Vector3(-16f, 3.8f, -44f), new Color(0.8f, 0.85f, 1f), 16f, 1.3f);
+        SpawnLight("Hub_Light_East",   new Vector3(16f,  3.8f, -44f), new Color(0.8f, 0.85f, 1f), 16f, 1.3f);
+        SpawnLight("Hub_Light_South",  new Vector3(0f,   3.8f, -50f), new Color(0.85f, 0.9f, 1f), 16f, 1.3f);
+
+        // --- Central kiosk: the "what is happening" briefing + arrival card ---
+        HubTerminal(new Vector3(0f, 1.0f, -30f), 180f,
+            "CORVUS DEEP RESEARCH ANNEX — SUB-LEVEL C ATRIUM. PROJECT G1 STATUS: WIDENING TEST SCHEDULED 0600. If you are reading this after the alarm, the Threshold has already failed. It always fails. Proceed to the emergency elevator — north.");
+        HubCard(new Vector3(0f, 1.5f, -44f), new Vector3(10f, 3f, 4f),
+            "CHAPTER ONE", "COLD START — find the way up, and what keeps happening down here");
+
+        // --- WEST: Records wing (personnel + maintenance truth) ---
+        for (int i = 0; i < 5; i++)
+            SpawnModular("prop_filing_cabinet", new Vector3(-21f, 0.9f, -52f + i * 1.4f), Quaternion.Euler(0f, 90f, 0f), new Vector3(0.6f, 1.8f, 0.6f), metalMat);
+        HubTerminal(new Vector3(-20f, 1.0f, -40f), 90f, "PERSONNEL FILE — C. THUNDERCOCK: " + G1LoreText.LoreCards[0].body);
+        HubTerminal(new Vector3(-20f, 1.0f, -36f), 90f, "MAINTENANCE LOG — SUB-LEVEL C: " + G1LoreText.LoreCards[1].body);
+        HubGraffiti(new Vector3(-23.6f, 2.4f, -46f), 90f, 1, "IT FAILS AT 0600");
+        HubGraffiti(new Vector3(-23.6f, 2.4f, -38f), 90f, 1, "WE'VE BEEN HERE");
+        HubCard(new Vector3(-18f, 1.5f, -48f), new Vector3(6f, 3f, 6f),
+            "RECORDS", "your file was reassigned to this test by no one");
+        // A previous iteration of you, slumped at the console you were meant to use.
+        var deadChad = SpawnModular("prop_body_soldier", new Vector3(-18f, 0f, -50f),
+            Quaternion.Euler(0f, 25f, 0f), new Vector3(0.85f, 0.85f, 0.85f), hazard);
+        deadChad.name = "DeadEngineer_PastLoop";
+
+        // --- EAST: Security wing (CCTV + the Auditor's audit) ---
+        SpawnModular("prop_monitor_stack", new Vector3(20f, 0.9f, -38f), Quaternion.Euler(0f, -90f, 0f), Vector3.one, metalMat);
+        var hubCctv = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        hubCctv.name = "Hub_CCTV_Screen";
+        hubCctv.transform.position = new Vector3(19.4f, 1.5f, -38f);
+        hubCctv.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+        hubCctv.transform.localScale = new Vector3(1.4f, 1.0f, 1f);
+        Object.DestroyImmediate(hubCctv.GetComponent<Collider>());
+        hubCctv.AddComponent<G1CCTVScreen>();
+        HubTerminal(new Vector3(20f, 1.0f, -44f), -90f, "RECOVERED AUDIO — THE AUDITOR: " + G1LoreText.LoreCards[2].body);
+        HubTerminal(new Vector3(20f, 1.0f, -48f), -90f, "CONCORDANCE MEMO — AUDIT STANDING: " + G1LoreText.LoreCards[3].body);
+        HubGraffiti(new Vector3(23.6f, 2.4f, -42f), -90f, 2, "HE COUNTS US");
+        HubGraffiti(new Vector3(23.6f, 2.4f, -46f), -90f, 2, "THE DOOR GOES BACKWARDS");
+        HubCard(new Vector3(18f, 1.5f, -40f), new Vector3(6f, 3f, 6f),
+            "SECURITY", "someone has been watching every run from in here");
+        // The Auditor, watching from the far corner; gone if you approach.
+        var hubAuditorFbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/G1/Models/Villain.fbx");
+        if (hubAuditorFbx != null)
+        {
+            var hubAuditor = (GameObject)Object.Instantiate(hubAuditorFbx, new Vector3(21f, 0f, -51f), Quaternion.Euler(0f, -125f, 0f));
+            hubAuditor.name = "TheAuditor_Hub";
+            hubAuditor.AddComponent<G1GManCameo>().vanishDistance = 7f;
+        }
+
+        // --- SOUTH commons: rest stop, resources, one last note before the climb ---
+        SpawnModular("prop_lab_table", new Vector3(-4f, 0.45f, -50f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
+        SpawnModular("prop_lab_table", new Vector3(4f, 0.45f, -50f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
+        G1HealthPack.Create(new Vector3(-2f, 0.5f, -50f));
+        G1AmmoPack.Create(new Vector3(2f, 0.5f, -50f));
+        G1ArmorPack.Create(new Vector3(0f, 0.5f, -49f), 50f);
+        G1WallCharger.Create(new Vector3(0f, 1.1f, -53.6f));
+        HubGraffiti(new Vector3(0f, 2.4f, -53.6f), 0f, 1, "COUNT THE DOORS");
+        } // end CampaignHub
+
+        // 1. LOCKER ROOM (START) — with the hub, the south wall becomes the hub
+        // opening; without it (AI test arenas), keep the room sealed.
         Slab("LockerRoomFloor", new Vector3(0, -0.25f, -8f), new Vector3(12, 0.5f, 10), floorMat);
-        Slab("LockerRoomWallS", new Vector3(0, 1.5f, -13f), new Vector3(12, 3, 0.5f), concrete);
+        if (!cfg.CampaignHub)
+            Slab("LockerRoomWallS", new Vector3(0, 1.5f, -13f), new Vector3(12, 3, 0.5f), concrete);
         Slab("LockerRoomWallW", new Vector3(-6f, 1.5f, -8f), new Vector3(0.5f, 3, 10), concrete);
         Slab("LockerRoomWallE", new Vector3(6f, 1.5f, -8f), new Vector3(0.5f, 3, 10), concrete);
         Slab("LockerRoomWallNW", new Vector3(-4.5f, 1.5f, -3f), new Vector3(3, 3, 0.5f), concrete);

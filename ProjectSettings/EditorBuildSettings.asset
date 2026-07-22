@@ -20,5 +20,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/WeaponTestScene.unity
     guid: fb74b78aa1da86645bd2f3edb90bb61a
+  - enabled: 1
+    path: Assets/Scenes/HugeMap.unity
+    guid: 5ddd524b499bd437087a77c20bfd7e2d
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

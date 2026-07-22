@@ -58,6 +58,7 @@ public sealed class G1MainMenu : MonoBehaviour
             }
             currentMenuItems.Add("[ NEW GAME ]");
             currentMenuItems.Add("[ LEVEL SELECT ]");
+            currentMenuItems.Add("[ BATTLEFIELD ]");
             currentMenuItems.Add("[ SETTINGS ]");
             currentMenuItems.Add("[ QUIT ]");
         }
@@ -111,6 +112,10 @@ public sealed class G1MainMenu : MonoBehaviour
         {
             G1SaveSystem.ClearSave();
             SceneManager.LoadScene("TestScene");
+        }
+        else if (chosen.Contains("BATTLEFIELD"))
+        {
+            SceneManager.LoadScene("HugeMap");
         }
         else if (chosen.Contains("LEVEL SELECT"))
         {

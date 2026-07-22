@@ -132,7 +132,8 @@ public class PlayerHUD : MonoBehaviour
 
     void OnGUI()
     {
-        // Suppress all HUD elements during cutscenes so typewriter & subtitle text are clear and unobscured
+        // Suppress all HUD elements during cutscenes so typewriter & subtitle
+        // text are clear (covers intro story, wake-up, and ending cutscenes).
         if (IsCutsceneActive())
             return;
 
