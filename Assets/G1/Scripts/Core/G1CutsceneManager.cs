@@ -2,7 +2,7 @@ using System.Collections;
 using UnityEngine;
 
 /// Cinematic in-engine cutscene and narrative camera manager.
-/// Features sequential typewriter status text, eyelid wake-up camera animation, and character thoughts.
+/// Features sequential typewriter status text, realistic floor wake-up camera motion, and character thoughts.
 public class G1CutsceneManager : MonoBehaviour
 {
     public static G1CutsceneManager Instance { get; private set; }
@@ -130,42 +130,58 @@ public class G1CutsceneManager : MonoBehaviour
         textAlpha = 0f;
         visibleLineCount = 0;
 
-        // PHASE 2: Eyelid Wake-Up Sequence (Camera lying on floor looking up)
-        Vector3 floorCamPos = playerCamTransform != null ? playerCamTransform.position - Vector3.up * 1.2f : Vector3.zero;
-        Quaternion floorCamRot = Quaternion.Euler(65f, 0f, 15f);
+        // PHASE 2: Realistic Floor Wake-Up Sequence
+        // Starting Pose: Lying sideways flat on the floor (Y = 0.25m, Roll = 45deg, Pitch = 75deg looking down)
+        Vector3 standingPos = playerCamTransform != null ? playerCamTransform.position : new Vector3(0f, 1.6f, -14f);
+        Quaternion standingRot = playerCamTransform != null ? playerCamTransform.rotation : Quaternion.identity;
 
-        Vector3 eyeLevelPos = playerCamTransform != null ? playerCamTransform.position : Vector3.zero;
-        Quaternion eyeLevelRot = playerCamTransform != null ? playerCamTransform.rotation : Quaternion.identity;
+        Vector3 floorPos = standingPos - new Vector3(0f, 1.35f, 0f); // Ground level
+        Quaternion floorRot = Quaternion.Euler(75f, standingRot.eulerAngles.y - 30f, 45f); // Sideways floor posture
 
         if (mainCam != null)
         {
-            mainCam.transform.position = floorCamPos;
-            mainCam.transform.rotation = floorCamRot;
+            mainCam.transform.position = floorPos;
+            mainCam.transform.rotation = floorRot;
         }
 
-        // First Eyelid Blink (eyes open slightly then close)
+        // First Eyelid Blink (slight open then close)
         float elapsed = 0f;
-        while (elapsed < 1.2f)
+        while (elapsed < 1.4f)
         {
             elapsed += Time.deltaTime;
-            eyelidAlpha = 1.0f - Mathf.Sin((elapsed / 1.2f) * Mathf.PI) * 0.6f;
+            eyelidAlpha = 1.0f - Mathf.Sin((elapsed / 1.4f) * Mathf.PI) * 0.5f;
             yield return null;
         }
 
-        // Second Eyelid Blink & Stand Up Motion (2.8 seconds)
-        ShowSubtitle("[CHAD'S THOUGHTS]: \"Ugh... my head. The experiment failed... Aliens everywhere, and government hit squads are killing all witnesses. I need to get up and ESCAPE NOW!\"", 6.0f);
+        ShowSubtitle("[CHAD'S THOUGHTS]: \"*gasp*... *cough*... My head... The experiment failed. Aliens everywhere, and government hit squads are executing all witnesses. I need to get up and ESCAPE NOW!\"", 6.5f);
 
+        // Slow Push-Up & Stand-Up Motion off Floor (4.5 seconds with heavy breathing head wobble)
         elapsed = 0f;
-        while (elapsed < 2.8f)
+        float duration = 4.5f;
+
+        while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            float t = elapsed / 2.8f;
-            eyelidAlpha = Mathf.Lerp(1.0f, 0.0f, t);
+            float t = elapsed / duration;
+
+            // Eyelid opens completely
+            eyelidAlpha = Mathf.Lerp(1.0f, 0.0f, t * 1.5f);
 
             if (mainCam != null)
             {
-                mainCam.transform.position = Vector3.Lerp(floorCamPos, eyeLevelPos, t);
-                mainCam.transform.rotation = Quaternion.Slerp(floorCamRot, eyeLevelRot, t);
+                // Smooth position lift from floor to standing
+                Vector3 currentPos = Vector3.Lerp(floorPos, standingPos, Mathf.SmoothStep(0f, 1f, t));
+
+                // Add subtle heavy breathing head shake / wobble while pushing off floor
+                float wobbleX = Mathf.Sin(t * Mathf.PI * 6f) * 0.03f * (1f - t);
+                float wobbleY = Mathf.Cos(t * Mathf.PI * 4f) * 0.02f * (1f - t);
+                currentPos += new Vector3(wobbleX, wobbleY, 0f);
+
+                // Smooth rotation un-roll from sideways to upright eye-level
+                Quaternion currentRot = Quaternion.Slerp(floorRot, standingRot, Mathf.SmoothStep(0f, 1f, t));
+
+                mainCam.transform.position = currentPos;
+                mainCam.transform.rotation = currentRot;
             }
             yield return null;
         }
@@ -176,8 +192,8 @@ public class G1CutsceneManager : MonoBehaviour
 
         if (mainCam != null)
         {
-            mainCam.transform.position = eyeLevelPos;
-            mainCam.transform.rotation = eyeLevelRot;
+            mainCam.transform.position = standingPos;
+            mainCam.transform.rotation = standingRot;
         }
 
         if (mouseLook != null) mouseLook.enabled = true;
