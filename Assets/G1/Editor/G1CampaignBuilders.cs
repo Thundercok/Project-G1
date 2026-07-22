@@ -280,10 +280,29 @@ public static class G1CampaignBuilders
         Checkpoint("Checkpoint_Yard", new Vector3(0f, 0f, 0f));
         Cameo(new Vector3(24f, 4.2f, 16f), 210f);   // on the perimeter wall
 
-        // maintenance shaft down (east corner) → Level 3
+        // maintenance shaft down (east corner) → Level 3, gated by a story question
         Slab("ShaftHousing", new Vector3(26f, 1.2f, -16f), new Vector3(4, 2.4f, 4), concrete);
-        Exit("ExitToUndercroft", new Vector3(26f, 1f, -16f),
+        var l2Exit = Exit("ExitToUndercroft", new Vector3(26f, 1f, -16f),
              new Vector3(2.5f, 2f, 2.5f), "Level3");
+        var l2Et = l2Exit.GetComponent<G1LevelExitTrigger>();
+        if (l2Et != null) l2Et.requireUnlock = true;
+        objMgr.AddObjective("solve_shaft", "Answer the shaft access console to descend", mandatory: true);
+
+        var shaftConsole = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        shaftConsole.name = "ShaftQuestionConsole";
+        shaftConsole.transform.position = new Vector3(23f, 1f, -15f);
+        shaftConsole.transform.localScale = new Vector3(1.1f, 1.5f, 0.4f);
+        shaftConsole.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.85f, 0.15f, 0.15f), 1.4f);
+        var q2 = shaftConsole.AddComponent<G1QuestionTerminal>();
+        q2.question = "Who really 'audits' this facility — and what do they want?";
+        q2.options = new[]
+        {
+            "The government, cleaning up witnesses",
+            "The Concordance — they profit from the loop NEVER ending",
+            "No one; the disaster is random",
+        };
+        q2.correctIndex = 1;
+        q2.objectiveId = "solve_shaft";
 
         Player(new Vector3(-26f, 0.05f, 8f), "CHAPTER TWO",
                "QUARANTINE — Surface Motor Pool, dawn", "ambient_industrial");
@@ -432,6 +451,38 @@ public static class G1CampaignBuilders
         endCol.isTrigger = true;
         endCol.size = new Vector3(8f, 4f, 4f);
         endCutsceneTrigger.AddComponent<G1EndingCutscene>();
+
+        // FINAL BOSS: the Auditor's Proxy. It CANNOT attack — it only flees and
+        // jukes, so the player has to chase it down and out-shoot it. Reuses the
+        // Alien prefab's NavMeshAgent/HealthSystem rig with the evasive AI swapped
+        // in. Killing it triggers the collapse ending (kill the boss = win).
+        var boss = SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab", new Vector3(0f, 0f, 24f), 180f);
+        if (boss != null)
+        {
+            boss.name = "AuditorProxy_Boss";
+            var oldAi = boss.GetComponent<G1AlienAI>(); if (oldAi) Object.DestroyImmediate(oldAi);
+            var elite = boss.GetComponent<G1EliteAlien>(); if (elite) Object.DestroyImmediate(elite);
+            boss.transform.localScale = Vector3.one * 1.9f;
+            var bh = boss.GetComponent<HealthSystem>(); if (bh) bh.maxHealth = 600f;
+            var bar = boss.GetComponent<WorldSpaceHealthBar>() ?? boss.AddComponent<WorldSpaceHealthBar>();
+            bar.heightOffset = 3.2f;
+            foreach (var r in boss.GetComponentsInChildren<Renderer>())
+            {
+                // Prefab renderers can reload with a null material (their runtime
+                // tint wasn't a saved asset) — fall back to a fresh Standard mat.
+                var m = r.sharedMaterial != null
+                    ? new Material(r.sharedMaterial)
+                    : new Material(Shader.Find("Standard"));
+                m.color = new Color(0.08f, 0.08f, 0.1f);
+                if (m.HasProperty("_EmissionColor"))
+                {
+                    m.SetColor("_EmissionColor", new Color(0.28f, 0.05f, 0.32f));
+                    m.EnableKeyword("_EMISSION");
+                }
+                r.sharedMaterial = m;
+            }
+            boss.AddComponent<G1EvasiveBoss>();
+        }
 
         Player(new Vector3(0f, 0.05f, 0f), "CHAPTER THREE",
                "THRESHOLD — The Undercroft", "ambient_alien");
