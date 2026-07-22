@@ -11,7 +11,7 @@ using UnityEngine.SceneManagement;
 public static class G1CampaignBuilders
 {
     // ---------------------------------------------------------- shared bits
-    static Material Mat(Color c, float emission = 0f)
+    static Material Mat(Color c, float emission = 0f, string texName = null, float tileX = 1f, float tileY = 1f)
     {
         var m = new Material(Shader.Find("Standard"));
         m.color = c;
@@ -19,6 +19,15 @@ public static class G1CampaignBuilders
         {
             m.EnableKeyword("_EMISSION");
             m.SetColor("_EmissionColor", c * emission);
+        }
+        if (!string.IsNullOrEmpty(texName))
+        {
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/G1/Textures/{texName}.png");
+            if (tex != null)
+            {
+                m.mainTexture = tex;
+                m.mainTextureScale = new Vector2(tileX, tileY);
+            }
         }
         return m;
     }
@@ -145,10 +154,10 @@ public static class G1CampaignBuilders
         RenderSettings.fogEndDistance = 90f;
         RenderSettings.fogColor = new Color(0.45f, 0.50f, 0.56f);
 
-        var concrete = Mat(new Color(0.54f, 0.57f, 0.60f));
-        var asphalt = Mat(new Color(0.24f, 0.25f, 0.27f));
-        var green = Mat(new Color(0.29f, 0.37f, 0.29f));
-        var wood = Mat(new Color(0.38f, 0.25f, 0.12f));
+        var concrete = Mat(new Color(0.85f, 0.88f, 0.90f), 0f, "tex_concrete_wall", 8f, 2f);
+        var asphalt = Mat(new Color(0.75f, 0.77f, 0.80f), 0f, "tex_floor_metal_grid", 10f, 10f);
+        var green = Mat(new Color(0.6f, 0.7f, 0.6f), 0f, "tex_steel_panel", 2f, 2f);
+        var wood = Mat(new Color(0.6f, 0.5f, 0.3f), 0f, "tex_steel_panel", 1f, 1f);
 
         Slab("Yard", new Vector3(0, -0.25f, 0), new Vector3(60, 0.5f, 40), asphalt);
         Slab("WallN", new Vector3(0, 2f, 20), new Vector3(60.5f, 4, 0.6f), concrete);
@@ -276,7 +285,7 @@ public static class G1CampaignBuilders
         RenderSettings.fogEndDistance = 45f;
         RenderSettings.fogColor = new Color(0.02f, 0.07f, 0.08f);
 
-        var rock = Mat(new Color(0.11f, 0.12f, 0.13f));
+        var rock = Mat(new Color(0.6f, 0.65f, 0.7f), 0f, "tex_concrete_wall", 6f, 6f);
         var teal = new Color(0.16f, 0.75f, 0.75f);
 
         Slab("Floor", new Vector3(0, -0.25f, 20), new Vector3(30, 0.5f, 56), rock);
@@ -286,7 +295,7 @@ public static class G1CampaignBuilders
         Slab("WallN", new Vector3(0, 4f, 48), new Vector3(30.5f, 8, 0.6f), rock);
 
         // alien pods and spore lights along the hall
-        var podMat = Mat(teal, 0.8f);
+        var podMat = Mat(Color.white, 0.8f, "tex_alien_bio", 2f, 2f);
         for (int i = 0; i < 6; i++)
         {
             float x = (i % 2 == 0) ? -11f : 11f;

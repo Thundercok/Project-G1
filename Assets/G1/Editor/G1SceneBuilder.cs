@@ -244,7 +244,7 @@ public static class G1SceneBuilder
         return ctrl;
     }
 
-    static Material MakeMat(string name, Color color, float smooth = 0.15f)
+    static Material MakeMat(string name, Color color, float smooth = 0.15f, string texName = null, float tileX = 1f, float tileY = 1f)
     {
         string path = $"{MatDir}/{name}.mat";
         var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -255,6 +255,17 @@ public static class G1SceneBuilder
         }
         mat.color = color;
         mat.SetFloat("_Glossiness", smooth);
+
+        if (!string.IsNullOrEmpty(texName))
+        {
+            string texPath = $"Assets/G1/Textures/{texName}.png";
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+            if (tex != null)
+            {
+                mat.mainTexture = tex;
+                mat.mainTextureScale = new Vector2(tileX, tileY);
+            }
+        }
         return mat;
     }
 
@@ -406,13 +417,13 @@ public static class G1SceneBuilder
 
     static void BuildArena(ArenaConfig cfg, System.Random rng)
     {
-        Material concrete = MakeMat("Concrete", new Color(0.33f, 0.34f, 0.32f));
-        Material floorMat = MakeMat("Floor", new Color(0.26f, 0.27f, 0.26f));
-        Material hazard = MakeMat("HazardOrange", new Color(0.72f, 0.29f, 0.05f));
-        Material wood = MakeMat("CrateWood", new Color(0.38f, 0.25f, 0.12f));
-        Material doorMat = MakeMat("DoorSteel", new Color(0.45f, 0.36f, 0.16f), 0.4f);
-        Material metalMat = MakeMat("PropMetal", new Color(0.4f, 0.42f, 0.45f));
-        Material greenMat = MakeMat("IndustrialGreen", new Color(0.29f, 0.37f, 0.29f));
+        Material concrete = MakeMat("Concrete", new Color(0.85f, 0.87f, 0.90f), 0.2f, "tex_concrete_wall", 4f, 2f);
+        Material floorMat = MakeMat("Floor", new Color(0.75f, 0.77f, 0.80f), 0.35f, "tex_floor_metal_grid", 6f, 6f);
+        Material hazard = MakeMat("HazardOrange", new Color(1f, 1f, 1f), 0.2f, "tex_hazard_stripe", 2f, 2f);
+        Material wood = MakeMat("CrateWood", new Color(0.55f, 0.42f, 0.25f), 0.15f, "tex_steel_panel", 1f, 1f);
+        Material doorMat = MakeMat("DoorSteel", new Color(0.85f, 0.88f, 0.92f), 0.4f, "tex_steel_panel", 2f, 2f);
+        Material metalMat = MakeMat("PropMetal", new Color(0.8f, 0.85f, 0.88f), 0.3f, "tex_steel_panel", 2f, 2f);
+        Material greenMat = MakeMat("IndustrialGreen", new Color(0.5f, 0.7f, 0.5f), 0.2f, "tex_steel_panel", 2f, 2f);
 
         // 1. LOCKER ROOM (START)
         Slab("LockerRoomFloor", new Vector3(0, -0.25f, -8f), new Vector3(12, 0.5f, 10), floorMat);
@@ -604,9 +615,9 @@ public static class G1SceneBuilder
         rub3.transform.rotation = Quaternion.Euler(5f, 15f, -6f);
 
         // Alien pod glow objects — Beat 1 atmosphere, tell player what is in this zone
-        Material podMat = MakeMat("AlienPod", new Color(0f, 0.7f, 0.65f), 0.1f);
+        Material podMat = MakeMat("AlienPod", new Color(1f, 1f, 1f), 0.1f, "tex_alien_bio", 2f, 2f);
         podMat.EnableKeyword("_EMISSION");
-        podMat.SetColor("_EmissionColor", new Color(0f, 0.35f, 0.32f));
+        podMat.SetColor("_EmissionColor", new Color(0f, 0.45f, 0.42f));
         for (int i = 0; i < 3; i++)
         {
             float px = (i == 0 ? 7.5f : (i == 1 ? 16.5f : 12f));
@@ -620,7 +631,7 @@ public static class G1SceneBuilder
 
         // Warning zone — NO damage, only triggers geiger counter click + HUD rad icon.
         // Teaches the "toxic floor" mechanic safely before the real puddle.
-        Material warnMat = MakeMat("HazardWarnStripe", new Color(0.72f, 0.55f, 0.05f), 0.05f);
+        Material warnMat = MakeMat("HazardWarnStripe", new Color(1f, 1f, 1f), 0.05f, "tex_hazard_stripe", 6f, 1f);
         warnMat.EnableKeyword("_EMISSION");
         warnMat.SetColor("_EmissionColor", new Color(0.25f, 0.18f, 0f));
         var warnZone = Slab("HazardWarningFloor", new Vector3(12f, -0.19f, 62.5f), new Vector3(12f, 0.3f, 2f), warnMat);
@@ -631,9 +642,9 @@ public static class G1SceneBuilder
 
         // Actual toxic puddle — tight against EAST wall, only 1.8 m wide.
         // Player can always walk along the west half of the 12 m corridor safely.
-        Material toxicMat = MakeMat("ToxicWaste", new Color(0.12f, 0.85f, 0.16f), 0.1f);
+        Material toxicMat = MakeMat("ToxicWaste", new Color(0.2f, 1f, 0.3f), 0.1f, "tex_alien_bio", 3f, 3f);
         toxicMat.EnableKeyword("_EMISSION");
-        toxicMat.SetColor("_EmissionColor", new Color(0.04f, 0.45f, 0.04f));
+        toxicMat.SetColor("_EmissionColor", new Color(0.04f, 0.55f, 0.04f));
         var toxicWaste = Slab("ToxicWastePuddle", new Vector3(17f, -0.15f, 67f), new Vector3(1.8f, 0.4f, 4f), toxicMat);
         var toxicHazard = toxicWaste.AddComponent<G1HazardZone>();
         toxicHazard.damagePerSecond = 7f;   // real damage — but it is avoidable
