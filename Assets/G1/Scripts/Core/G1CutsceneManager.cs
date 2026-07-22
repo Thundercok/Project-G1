@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// Cinematic in-engine cutscene and narrative camera manager.
-/// Handles letterbox bars, typewriter title cards, camera lerps, and subtitles.
+/// Features opening typewriter intro text, eyelid wake-up camera animation, and character thoughts.
 public class G1CutsceneManager : MonoBehaviour
 {
     public static G1CutsceneManager Instance { get; private set; }
@@ -23,12 +23,16 @@ public class G1CutsceneManager : MonoBehaviour
     private string currentSubtitle = "";
     private float subtitleTimer = 0f;
 
+    // Typewriter status text
     private string titleChapter = "";
     private string titleSub = "";
     private string titleSubject = "";
     private string titleStatus = "";
     private string titleDirective = "";
     private float titleAlpha = 0f;
+
+    // Eyelid blink overlay alpha (1.0 = eyes closed, 0.0 = fully awake)
+    private float eyelidAlpha = 0f;
 
     private GUIStyle titleChapterStyle;
     private GUIStyle titleSubStyle;
@@ -67,15 +71,16 @@ public class G1CutsceneManager : MonoBehaviour
         }
     }
 
-    public void PlayIntroCutscene(string chapter, string subLocation, string subjectName, string status, string directive, Vector3 camStartPos, Quaternion camStartRot, float duration = 6f)
+    public void PlayWakeUpIntroCutscene(string chapter, string subLocation, string subjectName, string status, string directive)
     {
-        StartCoroutine(RoutineIntroCutscene(chapter, subLocation, subjectName, status, directive, camStartPos, camStartRot, duration));
+        StartCoroutine(RoutineWakeUpCutscene(chapter, subLocation, subjectName, status, directive));
     }
 
-    private IEnumerator RoutineIntroCutscene(string chapter, string subLocation, string subjectName, string status, string directive, Vector3 camStartPos, Quaternion camStartRot, float duration)
+    private IEnumerator RoutineWakeUpCutscene(string chapter, string subLocation, string subjectName, string status, string directive)
     {
         isCutsceneActive = true;
         targetLetterboxHeight = Screen.height * 0.14f;
+        eyelidAlpha = 1.0f;
 
         mainCam = Camera.main;
         if (mainCam != null)
@@ -94,48 +99,72 @@ public class G1CutsceneManager : MonoBehaviour
         titleStatus = status;
         titleDirective = directive;
 
-        Vector3 originalPos = mainCam != null ? mainCam.transform.position : Vector3.zero;
-        Quaternion originalRot = mainCam != null ? mainCam.transform.rotation : Quaternion.identity;
+        // PHASE 1: Full Black Screen with Typewriter Status Text (4.5 seconds)
+        float elapsed = 0f;
+        while (elapsed < 4.5f)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / 4.5f;
+            if (t < 0.2f) titleAlpha = t / 0.2f;
+            else if (t > 0.8f) titleAlpha = (1.0f - t) / 0.2f;
+            else titleAlpha = 1.0f;
+            yield return null;
+        }
+        titleAlpha = 0f;
+
+        // PHASE 2: Eyelid Wake-Up Sequence (Camera lying on floor looking up)
+        Vector3 floorCamPos = playerCamTransform != null ? playerCamTransform.position - Vector3.up * 1.2f : Vector3.zero;
+        Quaternion floorCamRot = Quaternion.Euler(65f, 0f, 15f);
+
+        Vector3 eyeLevelPos = playerCamTransform != null ? playerCamTransform.position : Vector3.zero;
+        Quaternion eyeLevelRot = playerCamTransform != null ? playerCamTransform.rotation : Quaternion.identity;
 
         if (mainCam != null)
         {
-            mainCam.transform.position = camStartPos;
-            mainCam.transform.rotation = camStartRot;
+            mainCam.transform.position = floorCamPos;
+            mainCam.transform.rotation = floorCamRot;
         }
 
-        float elapsed = 0f;
-        while (elapsed < duration)
+        // First Eyelid Blink (eyes open slightly then close)
+        elapsed = 0f;
+        while (elapsed < 1.2f)
         {
             elapsed += Time.deltaTime;
-            float t = elapsed / duration;
-
-            // Fade title card in then out
-            if (t < 0.15f) titleAlpha = t / 0.15f;
-            else if (t > 0.85f) titleAlpha = (1f - t) / 0.15f;
-            else titleAlpha = 1f;
-
-            // Smoothly lerp camera back toward player head
-            if (mainCam != null && playerCamTransform != null)
-            {
-                mainCam.transform.position = Vector3.Lerp(camStartPos, originalPos, t);
-                mainCam.transform.rotation = Quaternion.Slerp(camStartRot, originalRot, t);
-            }
-
+            eyelidAlpha = 1.0f - Mathf.Sin((elapsed / 1.2f) * Mathf.PI) * 0.6f;
             yield return null;
         }
 
-        // Restore player control
+        // Second Eyelid Blink & Stand Up Motion (2.8 seconds)
+        elapsed = 0f;
+        ShowSubtitle("[CHAD'S THOUGHTS]: \"Ugh... my head. The experiment failed... Aliens everywhere, and government hit squads are killing all witnesses. I need to get up and ESCAPE NOW!\"", 6.0f);
+
+        while (elapsed < 2.8f)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / 2.8f;
+            eyelidAlpha = Mathf.Lerp(1.0f, 0.0f, t);
+
+            if (mainCam != null)
+            {
+                mainCam.transform.position = Vector3.Lerp(floorCamPos, eyeLevelPos, t);
+                mainCam.transform.rotation = Quaternion.Slerp(floorCamRot, eyeLevelRot, t);
+            }
+            yield return null;
+        }
+
+        // PHASE 3: Complete Wake-Up & Restore Player Control
+        eyelidAlpha = 0f;
+        targetLetterboxHeight = 0f;
+
         if (mainCam != null)
         {
-            mainCam.transform.position = originalPos;
-            mainCam.transform.rotation = originalRot;
+            mainCam.transform.position = eyeLevelPos;
+            mainCam.transform.rotation = eyeLevelRot;
         }
 
         if (mouseLook != null) mouseLook.enabled = true;
         if (playerMove != null) playerMove.enabled = true;
 
-        targetLetterboxHeight = 0f;
-        titleAlpha = 0f;
         isCutsceneActive = false;
     }
 
@@ -149,14 +178,23 @@ public class G1CutsceneManager : MonoBehaviour
     {
         InitStyles();
 
+        // Draw Eyelid / Full Black overlay during wake-up
+        if (eyelidAlpha > 0.01f)
+        {
+            Color oldCol = GUI.color;
+            GUI.color = new Color(0, 0, 0, eyelidAlpha);
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), blackTex);
+            GUI.color = oldCol;
+        }
+
         // Draw top & bottom letterbox bars
-        if (letterboxHeight > 1f)
+        if (letterboxHeight > 1f && eyelidAlpha < 0.99f)
         {
             GUI.DrawTexture(new Rect(0, 0, Screen.width, letterboxHeight), blackTex);
             GUI.DrawTexture(new Rect(0, Screen.height - letterboxHeight, Screen.width, letterboxHeight), blackTex);
         }
 
-        // Draw Title Card
+        // Draw Typewriter Status Title Card during Phase 1
         if (titleAlpha > 0.01f && !string.IsNullOrEmpty(titleChapter))
         {
             Color oldCol = GUI.color;
@@ -188,8 +226,8 @@ public class G1CutsceneManager : MonoBehaviour
             float subY = Screen.height - letterboxHeight - 45f;
             if (letterboxHeight < 10f) subY = Screen.height - 80f;
 
-            GUI.Box(new Rect(Screen.width * 0.1f, subY, Screen.width * 0.8f, 38f), "", GUI.skin.box);
-            GUI.Label(new Rect(Screen.width * 0.1f, subY + 6f, Screen.width * 0.8f, 30f), currentSubtitle, subtitleStyle);
+            GUI.Box(new Rect(Screen.width * 0.08f, subY, Screen.width * 0.84f, 38f), "", GUI.skin.box);
+            GUI.Label(new Rect(Screen.width * 0.08f, subY + 6f, Screen.width * 0.84f, 30f), currentSubtitle, subtitleStyle);
             GUI.color = oldCol;
         }
     }
