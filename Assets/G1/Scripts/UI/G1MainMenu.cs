@@ -52,7 +52,7 @@ public sealed class G1MainMenu : MonoBehaviour
         }
         else
         {
-            if (G1SaveSystem.HasSaveData())
+            if (G1SaveSystem.HasSave)
             {
                 currentMenuItems.Add("[ CONTINUE CAMPAIGN ]");
             }
@@ -84,27 +84,28 @@ public sealed class G1MainMenu : MonoBehaviour
             Activate(selected);
     }
 
-    void Activate(int i)
+    void Activate(int index)
     {
+        if (index < 0 || index >= currentMenuItems.Count) return;
+        string chosen = currentMenuItems[index];
+
         if (inLevelSelect)
         {
-            if (i == currentMenuItems.Count - 1) // BACK
+            if (chosen.Contains("BACK"))
             {
                 inLevelSelect = false;
                 RefreshMenu();
                 return;
             }
-            if (i == 0) SceneManager.LoadScene("TestScene");
-            else if (i == 1) SceneManager.LoadScene("Level2");
-            else if (i == 2) SceneManager.LoadScene("Level3");
+            if (chosen.Contains("LEVEL 1")) SceneManager.LoadScene("TestScene");
+            else if (chosen.Contains("LEVEL 2")) SceneManager.LoadScene("Level2");
+            else if (chosen.Contains("LEVEL 3")) SceneManager.LoadScene("Level3");
             return;
         }
 
-        string chosen = currentMenuItems[i];
         if (chosen.Contains("CONTINUE"))
         {
-            var data = G1SaveSystem.Load();
-            SceneManager.LoadScene(string.IsNullOrEmpty(data.currentScene) ? "TestScene" : data.currentScene);
+            G1SaveSystem.Continue();
         }
         else if (chosen.Contains("NEW GAME"))
         {

@@ -50,6 +50,12 @@ public class G1Shotgun : WeaponBase
             return;
         }
 
+        // RMB: double-barrel — both shells at once, double pellets and recoil
+        if (Input.GetButtonDown("Fire2") && Time.time >= nextFire && clip >= 2)
+        {
+            FireDoubleBarrel();
+            return;
+        }
         if (Input.GetButtonDown("Fire1") && Time.time >= nextFire)
         {
             if (clip <= 0)
@@ -60,6 +66,36 @@ public class G1Shotgun : WeaponBase
             }
             Fire();
         }
+    }
+
+    void FireDoubleBarrel()
+    {
+        nextFire = Time.time + fireInterval * 1.6f;   // longer recovery
+        clip -= 2;
+
+        if (modelAnimator)
+            modelAnimator.CrossFade("Fire", 0.02f, 0, 0f);
+        if (weaponFX && muzzlePoint)
+            weaponFX.PlayMuzzleFlash(muzzlePoint);
+        if (camFX)
+        {
+            camFX.Punch(7f);        // ~2x
+            camFX.Shake(0.32f);
+        }
+        G1Audio.Play2D("fire_shotgun", 1f, 0.85f);
+
+        bool hitAnyEnemy = false;
+        for (int i = 0; i < pellets * 2; i++)
+        {
+            if (RayHitSpread(range, spreadAngle * 1.3f, out RaycastHit hit))
+            {
+                if (ApplyHit(hit, damage, hitForce)) hitAnyEnemy = true;
+                if (weaponFX)
+                    weaponFX.SpawnBulletDecal(hit);
+            }
+        }
+        if (hitAnyEnemy && camFX)
+            camFX.ShowHitMarker();
     }
 
     void Fire()

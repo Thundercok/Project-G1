@@ -30,10 +30,29 @@ public class G1Smg : WeaponBase
     public override int Reserve => reserve;
     public override bool IsReloading => reloading;
 
+    [Header("Secondary (40mm launcher)")]
+    public float launcherInterval = 0.9f;
+    public float launcherSpeed = 22f;
+    float nextLaunch;
+
     protected override void HandleInput()
     {
         if (reloading)
             return;
+        // RMB: 40mm explosive grenade, drawn from the grenade reserve
+        if (Input.GetButtonDown("Fire2") && Time.time >= nextLaunch)
+        {
+            var g = Grenades;
+            if (g != null && g.count > 0)
+            {
+                g.count--;
+                nextLaunch = Time.time + launcherInterval;
+                LaunchGrenade(launcherSpeed, 1.4f);
+                G1Audio.Play2D("fire_shotgun", 0.7f, 0.8f);
+                if (camFX) { camFX.Punch(2.2f); camFX.Shake(0.1f); }
+            }
+            return;
+        }
         if (Input.GetKeyDown(KeyCode.R) && clip < clipSize && reserve > 0)
         {
             StartCoroutine(Reload());

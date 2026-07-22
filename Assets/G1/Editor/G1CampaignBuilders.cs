@@ -170,6 +170,34 @@ public static class G1CampaignBuilders
         rotor.transform.localScale = new Vector3(4.4f, 0.03f, 4.4f);
         rotor.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.12f, 0.12f, 0.14f));
 
+        // === HECU GUNSHIP BOSS — airborne over the yard ===
+        var boss = new GameObject("HelicopterBoss");
+        boss.transform.position = new Vector3(6f, 12f, 0f);
+        var bossBody = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        bossBody.name = "GunshipBody";
+        bossBody.transform.SetParent(boss.transform, false);
+        bossBody.transform.localScale = new Vector3(2f, 1.4f, 4.4f);
+        bossBody.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.18f, 0.22f, 0.18f));
+        var bossTail = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        bossTail.name = "GunshipTail";
+        bossTail.transform.SetParent(boss.transform, false);
+        bossTail.transform.localPosition = new Vector3(0f, 0.2f, 3.4f);
+        bossTail.transform.localScale = new Vector3(0.4f, 0.5f, 3f);
+        bossTail.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.18f, 0.22f, 0.18f));
+        var bossRotor = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        bossRotor.name = "GunshipRotor";
+        Object.DestroyImmediate(bossRotor.GetComponent<Collider>());
+        bossRotor.transform.SetParent(boss.transform, false);
+        bossRotor.transform.localPosition = new Vector3(0f, 1f, 0f);
+        bossRotor.transform.localScale = new Vector3(5f, 0.04f, 5f);
+        bossRotor.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.1f, 0.1f, 0.12f));
+        bossRotor.AddComponent<G1WeaponSpinner>();   // spins for the rotor look
+        var bossHealth = boss.AddComponent<HealthSystem>();
+        bossHealth.maxHealth = 400f;
+        boss.AddComponent<G1HelicopterBoss>();
+        var bossBar = boss.AddComponent<WorldSpaceHealthBar>();
+        bossBar.heightOffset = 2.4f;
+
         // scattered cover: crates + barrels
         var cratePos = new[]
         {
@@ -208,6 +236,8 @@ public static class G1CampaignBuilders
         G1HealthPack.Create(new Vector3(-20f, 0.5f, -8f));
         G1AmmoPack.Create(new Vector3(-14f, 0.5f, 10f));
         G1AmmoPack.Create(new Vector3(18f, 0.5f, 12f));
+        G1ArmorPack.Create(new Vector3(-24f, 0.5f, 10f), 50f);
+        G1WallCharger.Create(new Vector3(-26.6f, 1.1f, 12f));
 
         Checkpoint("Checkpoint_Yard", new Vector3(0f, 0f, 0f));
         Cameo(new Vector3(24f, 4.2f, 16f), 210f);   // on the perimeter wall

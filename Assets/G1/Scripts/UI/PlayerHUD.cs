@@ -15,6 +15,7 @@ public class PlayerHUD : MonoBehaviour
     public float crosshairThickness = 2f;
 
     HealthSystem playerHealth;
+    PlayerMovement playerMovement;
     WeaponSwitcher switcher;
     CameraEffects camFX;
     Texture2D vignetteTex;
@@ -37,6 +38,7 @@ public class PlayerHUD : MonoBehaviour
     void Start()
     {
         playerHealth = GetComponent<HealthSystem>();
+        playerMovement = GetComponent<PlayerMovement>();
         switcher = GetComponentInChildren<WeaponSwitcher>();
         camFX = GetComponentInChildren<CameraEffects>();
         vignetteTex = MakeVignette();
@@ -171,7 +173,9 @@ public class PlayerHUD : MonoBehaviour
         if (playerHealth == null) return;
         int hp = Mathf.CeilToInt(playerHealth.CurrentHealth);
         if (hp < 0) hp = 0;
-        string hpText = playerHealth.godMode ? "+  GOD" : $"+  {hp}";
+        string hpText = playerHealth.godMode 
+            ? (playerMovement != null && playerMovement.IsFlying ? "+  GOD (FLY)" : "+  GOD") 
+            : $"+  {hp}";
 
         // Pulse red when low HP
         Color hpColor = hp < 25
@@ -209,6 +213,16 @@ public class PlayerHUD : MonoBehaviour
         GUI.Label(new Rect(42, Screen.height - 78, 250, 60), hpText, style);
         style.normal.textColor = hpColor;
         GUI.Label(new Rect(40, Screen.height - 80, 250, 60), hpText, style);
+
+        // Draw HEV armor (AP) meter to the right of health
+        int ap = Mathf.CeilToInt(playerHealth.Armor);
+        string apText = $"[|]  {ap}";
+        var apStyle = new GUIStyle(style) { alignment = TextAnchor.LowerLeft };
+        apStyle.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
+        GUI.Label(new Rect(342, Screen.height - 78, 250, 60), apText, apStyle);
+        apStyle.normal.textColor = ap > 0
+            ? new Color(0.3f, 0.7f, 1f, 0.9f) : new Color(0.4f, 0.5f, 0.6f, 0.5f);
+        GUI.Label(new Rect(340, Screen.height - 80, 250, 60), apText, apStyle);
 
         // Draw Flashlight indicator if available
         if (flashlight != null)

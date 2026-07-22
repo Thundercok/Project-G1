@@ -421,7 +421,11 @@ public static class G1SceneBuilder
         Slab("LockerRoomWallE", new Vector3(6f, 1.5f, -8f), new Vector3(0.5f, 3, 10), concrete);
         Slab("LockerRoomWallNW", new Vector3(-4.5f, 1.5f, -3f), new Vector3(3, 3, 0.5f), concrete);
         Slab("LockerRoomWallNE", new Vector3(4.5f, 1.5f, -3f), new Vector3(3, 3, 0.5f), concrete);
-        
+
+        // HEV station: a wall charger + a battery cell at the start
+        G1WallCharger.Create(new Vector3(-5.4f, 1.1f, -10f));
+        G1ArmorPack.Create(new Vector3(-4f, 0.5f, -10f));
+
         // Doorframe 1 (Locker Room to Corridor)
         Slab("LockerRoomFrameL", new Vector3(-1.6f, 1.25f, -3f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
         Slab("LockerRoomFrameR", new Vector3(1.6f, 1.25f, -3f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
@@ -632,7 +636,7 @@ public static class G1SceneBuilder
         toxicMat.SetColor("_EmissionColor", new Color(0.04f, 0.45f, 0.04f));
         var toxicWaste = Slab("ToxicWastePuddle", new Vector3(17f, -0.15f, 67f), new Vector3(1.8f, 0.4f, 4f), toxicMat);
         var toxicHazard = toxicWaste.AddComponent<G1HazardZone>();
-        toxicHazard.damagePerSecond = 12f;   // real damage — but it is avoidable
+        toxicHazard.damagePerSecond = 7f;   // real damage — but it is avoidable
         toxicWaste.GetComponent<Collider>().isTrigger = true;
         // Orange glow border so puddle edge is always readable
         SpawnLight("ToxicPuddleLight", new Vector3(17f, 0.8f, 67f),
@@ -656,6 +660,7 @@ public static class G1SceneBuilder
             .AddComponent<G1HealthPack>();
         SpawnModular("prop_ammo_box",    new Vector3(10f, 0.3f, 63f), Quaternion.identity, Vector3.one * 0.6f, metalMat)
             .AddComponent<G1AmmoPack>();
+        G1ArmorPack.Create(new Vector3(13.5f, 0.5f, 63f), 50f);
 
         // Shotgun pickup for players who missed it in the corridor (second chance)
         // Only if player hasn't grabbed it — placed in a corner, not on the main path
@@ -857,6 +862,7 @@ public static class G1SceneBuilder
         player.AddComponent<G1PlayerDeath>();
         player.AddComponent<G1PlayerRegen>();
         player.AddComponent<G1CheckpointRestorer>();
+        player.AddComponent<G1SaveApplier>();   // menu "Continue" restore
         var card = player.AddComponent<G1StoryCard>();
         card.title = "CHAPTER ONE";
         card.subtitle = "COLD START — Corvus Deep Research Annex, Sub-Level C";
@@ -1011,7 +1017,7 @@ public static class G1SceneBuilder
             MakeMat("GrenadeOlive", new Color(0.5f, 0.5f, 0f));
 
         switcher.weapons = new[] { crowbarHolder, pistolHolder, smgHolder, shotgunHolder, magnumHolder, grenadeHolder };
-        switcher.unlocked = new bool[] { true, false, false, false, false };
+        switcher.unlocked = new bool[] { true, false, false, false, false, false };
 
         pistolHolder.SetActive(false);
         smgHolder.SetActive(false);
@@ -1199,6 +1205,7 @@ public static class G1SceneBuilder
 
         var soldierAI = soldier.AddComponent<G1SoldierAI>();
         soldierAI.waypoints = sWaypoints;
+        soldier.AddComponent<G1SoldierBarks>();   // radio chatter on tactics/death
         soldier.AddComponent<AIDebugGizmos>();   // before prefab save: spawned
                                                  // reinforcements get gizmos too
         soldier.AddComponent<AgentNavMeshWarp>();
@@ -1255,9 +1262,6 @@ public static class G1SceneBuilder
         director.intensityDecayRate = 0.08f;
 
         // Spawn nodes: Industrial Hall only.
-        // The Alien Breach Zone is now controlled exclusively by G1WaveSpawner —
-        // ThreatDirector spawn nodes there were causing unscripted reinforcements
-        // that turned the zone into an unreadable chaos spike.
         var nodesParent = new GameObject("SpawnNodes").transform;
         Vector3[] nodePositions = {
             new Vector3(4f,  0.5f, 32f),   // Industrial Hall SW

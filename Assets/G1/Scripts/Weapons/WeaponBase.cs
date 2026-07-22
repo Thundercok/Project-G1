@@ -17,7 +17,8 @@ public abstract class WeaponBase : MonoBehaviour
     protected Vector3 restPos;
     float bobT;
 
-    protected bool InputLocked => Cursor.lockState != CursorLockMode.Locked;
+    protected bool InputLocked => Cursor.lockState != CursorLockMode.Locked
+                                || G1MobSpawnerToolbox.IsOpen;
 
     // HUD interfaces
     public virtual bool HasAmmo => false;
@@ -91,5 +92,37 @@ public abstract class WeaponBase : MonoBehaviour
             hit.rigidbody.AddForceAtPosition(
                 viewCamera.transform.forward * force, hit.point, ForceMode.Impulse);
         return target != null;
+    }
+
+    G1Grenade cachedGrenade;
+
+    /// The player's grenade weapon (sibling holder under the camera), for
+    /// weapons whose secondary fire consumes grenades (e.g. the SMG launcher).
+    protected G1Grenade Grenades
+    {
+        get
+        {
+            if (cachedGrenade == null && transform.parent != null)
+                cachedGrenade = transform.parent.GetComponentInChildren<G1Grenade>(true);
+            return cachedGrenade;
+        }
+    }
+
+    /// Launch a live frag along the aim ray (used by the SMG 40mm launcher).
+    protected void LaunchGrenade(float speed, float fuse)
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        go.name = "LaunchedGrenade";
+        go.transform.position = (muzzlePoint ? muzzlePoint.position
+            : viewCamera.transform.position) + viewCamera.transform.forward * 0.4f;
+        go.transform.localScale = Vector3.one * 0.16f;
+        var mat = new Material(Shader.Find("Standard"));
+        mat.color = new Color(0.5f, 0.5f, 0f);
+        go.GetComponent<Renderer>().sharedMaterial = mat;
+        var rb = go.AddComponent<Rigidbody>();
+        rb.mass = 0.4f;
+        rb.velocity = viewCamera.transform.forward * speed + Vector3.up * 1.2f;
+        rb.angularVelocity = Random.insideUnitSphere * 10f;
+        go.AddComponent<G1GrenadeProjectile>().fuse = fuse;
     }
 }
