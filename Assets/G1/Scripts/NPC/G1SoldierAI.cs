@@ -38,6 +38,7 @@ public class G1SoldierAI : MonoBehaviour
     private GameObject player;
     private HealthSystem playerHealth;
     private UnityEngine.AI.NavMeshAgent agent;
+    private G1SoldierBarks barks;
 
     private int waypointIdx;
     private float nextBurstTime;
@@ -73,7 +74,7 @@ public class G1SoldierAI : MonoBehaviour
         myHealth = GetComponent<HealthSystem>();
         myHealth.OnDeath += HandleDeath;
         anim = GetComponent<Animator>();
-
+        GetComponent<G1SoldierBarks>();
         agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
         agent.updateRotation = false; // Rotate manually for smooth control
 
@@ -187,9 +188,9 @@ public class G1SoldierAI : MonoBehaviour
             nextBurstTime = Time.time + delay;
 
             // HECU Radio Bark Callout
-            if (G1SoldierBarks.Instance != null)
+            if (barks != null)
             {
-                G1SoldierBarks.Instance.PlayBark("CONTACT!", true);
+                barks.PlayContactBark();
             }
             else
             {

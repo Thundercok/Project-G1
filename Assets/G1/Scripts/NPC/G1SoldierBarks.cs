@@ -38,8 +38,12 @@ public sealed class G1SoldierBarks : MonoBehaviour
                 a == G1SoldierAI.CombatAction.Suppress ||
                 a == G1SoldierAI.CombatAction.Opportunist)
                 Bark("radio_bark_a", 1f, true);       // "flanking / suppressing"
-            lastAction = a;
+            lastAction = a;     
         }
+    }
+    public void PlayContactBark()
+    {
+        Bark("radio_bark_a", 1f, true);
     }
 
     void Bark(string clip, float pitch, bool withText = false)
