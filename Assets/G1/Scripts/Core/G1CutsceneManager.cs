@@ -1,9 +1,8 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
 
 /// Cinematic in-engine cutscene and narrative camera manager.
-/// Features opening typewriter intro text, eyelid wake-up camera animation, and character thoughts.
+/// Features sequential typewriter status text, eyelid wake-up camera animation, and character thoughts.
 public class G1CutsceneManager : MonoBehaviour
 {
     public static G1CutsceneManager Instance { get; private set; }
@@ -23,13 +22,14 @@ public class G1CutsceneManager : MonoBehaviour
     private string currentSubtitle = "";
     private float subtitleTimer = 0f;
 
-    // Typewriter status text
+    // Sequential Typewriter status lines
+    private int visibleLineCount = 0;
     private string titleChapter = "";
     private string titleSub = "";
     private string titleSubject = "";
     private string titleStatus = "";
     private string titleDirective = "";
-    private float titleAlpha = 0f;
+    private float textAlpha = 0f;
 
     // Eyelid blink overlay alpha (1.0 = eyes closed, 0.0 = fully awake)
     private float eyelidAlpha = 0f;
@@ -81,6 +81,7 @@ public class G1CutsceneManager : MonoBehaviour
         isCutsceneActive = true;
         targetLetterboxHeight = Screen.height * 0.14f;
         eyelidAlpha = 1.0f;
+        textAlpha = 1.0f;
 
         mainCam = Camera.main;
         if (mainCam != null)
@@ -99,18 +100,35 @@ public class G1CutsceneManager : MonoBehaviour
         titleStatus = status;
         titleDirective = directive;
 
-        // PHASE 1: Full Black Screen with Typewriter Status Text (4.5 seconds)
-        float elapsed = 0f;
-        while (elapsed < 4.5f)
+        // PHASE 1: Sequential Line-by-Line Typewriter Reveal (Clean & easy to read)
+        visibleLineCount = 0;
+        yield return new WaitForSeconds(0.5f);
+
+        visibleLineCount = 1; // Show Chapter
+        yield return new WaitForSeconds(1.1f);
+
+        visibleLineCount = 2; // Show Sub-location
+        yield return new WaitForSeconds(1.1f);
+
+        visibleLineCount = 3; // Show Subject
+        yield return new WaitForSeconds(1.1f);
+
+        visibleLineCount = 4; // Show Status
+        yield return new WaitForSeconds(1.2f);
+
+        visibleLineCount = 5; // Show Directive
+        yield return new WaitForSeconds(2.0f); // Hold full text so it's very clear to read
+
+        // Smoothly fade out text lines before eyes open
+        float fadeElapsed = 0f;
+        while (fadeElapsed < 0.8f)
         {
-            elapsed += Time.deltaTime;
-            float t = elapsed / 4.5f;
-            if (t < 0.2f) titleAlpha = t / 0.2f;
-            else if (t > 0.8f) titleAlpha = (1.0f - t) / 0.2f;
-            else titleAlpha = 1.0f;
+            fadeElapsed += Time.deltaTime;
+            textAlpha = 1.0f - (fadeElapsed / 0.8f);
             yield return null;
         }
-        titleAlpha = 0f;
+        textAlpha = 0f;
+        visibleLineCount = 0;
 
         // PHASE 2: Eyelid Wake-Up Sequence (Camera lying on floor looking up)
         Vector3 floorCamPos = playerCamTransform != null ? playerCamTransform.position - Vector3.up * 1.2f : Vector3.zero;
@@ -126,7 +144,7 @@ public class G1CutsceneManager : MonoBehaviour
         }
 
         // First Eyelid Blink (eyes open slightly then close)
-        elapsed = 0f;
+        float elapsed = 0f;
         while (elapsed < 1.2f)
         {
             elapsed += Time.deltaTime;
@@ -135,9 +153,9 @@ public class G1CutsceneManager : MonoBehaviour
         }
 
         // Second Eyelid Blink & Stand Up Motion (2.8 seconds)
-        elapsed = 0f;
         ShowSubtitle("[CHAD'S THOUGHTS]: \"Ugh... my head. The experiment failed... Aliens everywhere, and government hit squads are killing all witnesses. I need to get up and ESCAPE NOW!\"", 6.0f);
 
+        elapsed = 0f;
         while (elapsed < 2.8f)
         {
             elapsed += Time.deltaTime;
@@ -194,26 +212,46 @@ public class G1CutsceneManager : MonoBehaviour
             GUI.DrawTexture(new Rect(0, Screen.height - letterboxHeight, Screen.width, letterboxHeight), blackTex);
         }
 
-        // Draw Typewriter Status Title Card during Phase 1
-        if (titleAlpha > 0.01f && !string.IsNullOrEmpty(titleChapter))
+        // Draw Sequential Typewriter Status Title Card during Phase 1
+        if (textAlpha > 0.01f && visibleLineCount > 0)
         {
             Color oldCol = GUI.color;
-            GUI.color = new Color(1f, 0.75f, 0.1f, titleAlpha);
-
             float startY = Screen.height * 0.28f;
-            GUI.Label(new Rect(0, startY, Screen.width, 45), titleChapter, titleChapterStyle);
 
-            GUI.color = new Color(0.9f, 0.9f, 0.9f, titleAlpha);
-            GUI.Label(new Rect(0, startY + 48, Screen.width, 35), titleSub, titleSubStyle);
+            // Line 1: Chapter Title
+            if (visibleLineCount >= 1 && !string.IsNullOrEmpty(titleChapter))
+            {
+                GUI.color = new Color(1f, 0.75f, 0.1f, textAlpha);
+                GUI.Label(new Rect(0, startY, Screen.width, 45), titleChapter, titleChapterStyle);
+            }
 
-            GUI.color = new Color(0.2f, 0.9f, 0.4f, titleAlpha);
-            GUI.Label(new Rect(0, startY + 83, Screen.width, 35), titleSubject, titleSubjectStyle);
+            // Line 2: Sub-Location
+            if (visibleLineCount >= 2 && !string.IsNullOrEmpty(titleSub))
+            {
+                GUI.color = new Color(0.9f, 0.9f, 0.9f, textAlpha);
+                GUI.Label(new Rect(0, startY + 48, Screen.width, 35), titleSub, titleSubStyle);
+            }
 
-            GUI.color = new Color(1f, 0.25f, 0.2f, titleAlpha);
-            GUI.Label(new Rect(0, startY + 118, Screen.width, 35), titleStatus, titleStatusStyle);
+            // Line 3: Subject Name
+            if (visibleLineCount >= 3 && !string.IsNullOrEmpty(titleSubject))
+            {
+                GUI.color = new Color(0.2f, 0.9f, 0.4f, textAlpha);
+                GUI.Label(new Rect(0, startY + 83, Screen.width, 35), titleSubject, titleSubjectStyle);
+            }
 
-            GUI.color = new Color(1f, 0.9f, 0.1f, titleAlpha);
-            GUI.Label(new Rect(0, startY + 153, Screen.width, 35), titleDirective, titleDirectiveStyle);
+            // Line 4: Status Warning
+            if (visibleLineCount >= 4 && !string.IsNullOrEmpty(titleStatus))
+            {
+                GUI.color = new Color(1f, 0.25f, 0.2f, textAlpha);
+                GUI.Label(new Rect(0, startY + 118, Screen.width, 35), titleStatus, titleStatusStyle);
+            }
+
+            // Line 5: Government Directive
+            if (visibleLineCount >= 5 && !string.IsNullOrEmpty(titleDirective))
+            {
+                GUI.color = new Color(1f, 0.9f, 0.1f, textAlpha);
+                GUI.Label(new Rect(0, startY + 153, Screen.width, 35), titleDirective, titleDirectiveStyle);
+            }
 
             GUI.color = oldCol;
         }
