@@ -119,6 +119,11 @@ public static class G1SceneBuilder
         BuildLighting();
         BuildArena(cfg, rng);
         GameObject player = BuildPlayer(pistolCtrl, smgCtrl, shotgunCtrl, magnumCtrl);
+
+        // Story Cutscene Manager & Chapter 1 Intro Trigger
+        var cutsceneGo = new GameObject("CutsceneManager");
+        cutsceneGo.AddComponent<G1CutsceneManager>();
+
         BuildNpcs(protagonistCtrl, villainCtrl, player.transform.position, cfg, rng);
 
         // Modern bake (com.unity.ai.navigation): a NavMeshSurface over the
@@ -524,6 +529,18 @@ public static class G1SceneBuilder
 
         // Spawn Control Room Lights (cool blue terminal glow)
         SpawnLight("ControlRoom_Light", new Vector3(8f, 2.3f, 22f), new Color(0.35f, 0.75f, 1f), 12f, 1.6f);
+
+        // Auditor (G-Man) Cameo behind Control Room window observation deck
+        var auditorPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/G1/Models/Villain.fbx");
+        if (auditorPrefab != null)
+        {
+            var auditor = (GameObject)Object.Instantiate(auditorPrefab, new Vector3(14f, 1.0f, 25f), Quaternion.Euler(0f, -120f, 0f));
+            auditor.name = "TheAuditor_ControlRoom";
+            var actor = auditor.AddComponent<G1AuditorCutsceneActor>();
+            actor.dialogLine = "Subject Chad Thundercock... anomalous potential detected in Sector C.";
+            actor.triggerRadius = 10f;
+            actor.vanishRadius = 4.5f;
+        }
 
         // 4. INDUSTRIAL HALL (Ambush Faction Arena)
         Slab("IndustrialFloor", new Vector3(12f, -0.25f, 42f), new Vector3(32, 0.5f, 28), floorMat);
@@ -1034,6 +1051,11 @@ public static class G1SceneBuilder
         smgHolder.SetActive(false);
         shotgunHolder.SetActive(false);
         magnumHolder.SetActive(false);
+
+        var introTrigger = player.AddComponent<G1IntroCutsceneTrigger>();
+        introTrigger.chapterTitle = "CHAPTER ONE: COLD START";
+        introTrigger.locationSubtitle = "Corvus Deep Research Annex — Sub-Level C";
+        introTrigger.subjectName = "Chad Thundercock";
 
         SetLayerRecursive(player, playerLayer);
         return player;

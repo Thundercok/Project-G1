@@ -61,7 +61,7 @@ public static class G1CampaignBuilders
         SpawnPrefabAndReturn(path, pos, yaw);
     }
 
-    static void Cameo(Vector3 pos, float yaw)
+    static void Cameo(Vector3 pos, float yaw, string dialog = "Subject Chad Thundercock... anomalous potential detected.")
     {
         var fbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/G1/Models/Villain.fbx");
         var ctrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
@@ -77,7 +77,10 @@ public static class G1CampaignBuilders
             anim = go.AddComponent<Animator>();
         if (ctrl)
             anim.runtimeAnimatorController = ctrl;
-        go.AddComponent<G1GManCameo>();
+        var actor = go.AddComponent<G1AuditorCutsceneActor>();
+        actor.dialogLine = dialog;
+        actor.triggerRadius = 12f;
+        actor.vanishRadius = 4f;
     }
 
     static GameObject Exit(string name, Vector3 pos, Vector3 size, string next, string wpLabel = "EVAC EXIT")
@@ -123,9 +126,22 @@ public static class G1CampaignBuilders
         cc.enabled = false;
         player.transform.position = pos;
         cc.enabled = true;
+
+        var cutsceneGo = new GameObject("CutsceneManager");
+        cutsceneGo.AddComponent<G1CutsceneManager>();
+
+        var introTrigger = player.AddComponent<G1IntroCutsceneTrigger>();
+        introTrigger.chapterTitle = chapter;
+        introTrigger.locationSubtitle = subtitle;
+        introTrigger.subjectName = "Chad Thundercock";
+
         var card = player.GetComponent<G1StoryCard>();
-        card.title = chapter;
-        card.subtitle = subtitle;
+        if (card != null)
+        {
+            card.title = chapter;
+            card.subtitle = subtitle;
+        }
+
         player.GetComponent<G1Ambience>().zones = new[]
         {
             new G1Ambience.Zone { clip = ambienceClip, zMax = 9999f },
@@ -371,21 +387,15 @@ public static class G1CampaignBuilders
         pl.range = 14f;
         pl.intensity = 2.5f;
 
-        Cameo(new Vector3(3.5f, 0f, 43f), 250f);   // beside the ring, pleased
+        Cameo(new Vector3(3.5f, 0f, 43f), 250f, "Step into the aperture, Chad Thundercock. My employers are expecting you.");
 
-        // ending beat card just before the ring, then the ring itself exits
-        var endCard = new GameObject("EndingCard");
-        endCard.transform.position = new Vector3(0f, 1.5f, 38f);
-        var endCol = endCard.AddComponent<BoxCollider>();
+        // ending disposition cutscene trigger at the Xen Threshold Portal
+        var endCutsceneTrigger = new GameObject("EndingCutsceneTrigger");
+        endCutsceneTrigger.transform.position = new Vector3(0f, 1.5f, 42f);
+        var endCol = endCutsceneTrigger.AddComponent<BoxCollider>();
         endCol.isTrigger = true;
-        endCol.size = new Vector3(12f, 3f, 2f);
-        var ec = endCard.AddComponent<G1StoryCard>();
-        ec.showOnStart = false;
-        ec.title = "ASSESSMENT COMPLETE";
-        ec.subtitle = "SUBJECT: DANG — DISPOSITION: RETAINED";
-
-        Exit("ThresholdExit", new Vector3(0f, 2f, 44f),
-             new Vector3(4f, 4f, 1.5f), "MenuScene");
+        endCol.size = new Vector3(8f, 4f, 4f);
+        endCutsceneTrigger.AddComponent<G1EndingCutscene>();
 
         Player(new Vector3(0f, 0.05f, 0f), "CHAPTER THREE",
                "THRESHOLD — The Undercroft", "ambient_alien");
