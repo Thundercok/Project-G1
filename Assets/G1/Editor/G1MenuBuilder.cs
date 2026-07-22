@@ -10,6 +10,57 @@ public static class G1MenuBuilder
 {
     public const string MenuScenePath = "Assets/Scenes/MenuScene.unity";
 
+    [MenuItem("G1/★ BUILD ALL CAMPAIGN (NEW PLAYER EXPERIENCE) ★", false, -100)]
+    public static void BuildAllCampaignNewPlayer()
+    {
+        if (EditorApplication.isPlaying)
+        {
+            Debug.LogWarning("G1: Exit Play Mode before building scenes.");
+            return;
+        }
+
+        // 1. Clear save data for a completely fresh New Player Experience
+        string savePath = Application.persistentDataPath + "/savegame.json";
+        if (System.IO.File.Exists(savePath))
+        {
+            try { System.IO.File.Delete(savePath); } catch {}
+        }
+        PlayerPrefs.DeleteAll();
+        PlayerPrefs.Save();
+        Debug.Log("G1: Save data cleared! Ready for Fresh New Player Experience.");
+
+        // 2. Build Main Menu Scene
+        BuildMenu();
+
+        // 3. Build Level 1 (TestScene)
+        G1SceneBuilder.BuildScene();
+
+        // 4. Build Level 2 (Quarantine)
+        G1CampaignBuilders.BuildLevel2();
+
+        // 5. Build Level 3 (Threshold)
+        G1CampaignBuilders.BuildLevel3();
+
+        // 6. Build Weapon Testing Range (Sandbox)
+        G1WeaponTestBuilder.BuildTestRange();
+
+        // 7. Register all scenes in EditorBuildSettings
+        RegisterScenes();
+
+        // 8. Open Main Menu scene ready for Play
+        EditorSceneManager.OpenScene(MenuScenePath, OpenSceneMode.Single);
+
+        EditorUtility.DisplayDialog(
+            "G1 Campaign Build Complete",
+            "★ ALL CAMPAIGN LEVELS & MAIN MENU BUILT SUCCESSFULLY! ★\n\n" +
+            "✓ Save file reset (Fresh New Player Experience)\n" +
+            "✓ Main Menu, Level 1, Level 2, Level 3 & Sandbox Range built\n" +
+            "✓ Scene build index configured in Build Settings\n\n" +
+            "Press PLAY in Unity to start as a New Player!",
+            "LET'S PLAY!"
+        );
+    }
+
     [MenuItem("G1/Build Main Menu")]
     public static void BuildMenu()
     {
