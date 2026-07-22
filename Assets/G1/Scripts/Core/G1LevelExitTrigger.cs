@@ -13,6 +13,14 @@ public class G1LevelExitTrigger : MonoBehaviour
 
     bool fired;
 
+    private void Awake()
+    {
+        // A gated exit starts locked every time its level loads, so a solve from
+        // a previous level never carries the unlock forward.
+        if (requireUnlock)
+            ElevatorUnlocked = false;
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         if (fired || !other.CompareTag("Player"))

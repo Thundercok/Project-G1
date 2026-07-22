@@ -119,6 +119,12 @@ public class PlayerHUD : MonoBehaviour
 
     void OnGUI()
     {
+        // During the opening story and the wake-up cutscene the screen is just
+        // black with words — no health, no ammo, no crosshair, no gun.
+        if (G1IntroStory.IsPlaying ||
+            (G1CutsceneManager.Instance != null && G1CutsceneManager.Instance.isCutsceneActive))
+            return;
+
         // 1. Draw Crosshair in center
         if (drawCrosshair && Cursor.lockState == CursorLockMode.Locked)
         {
