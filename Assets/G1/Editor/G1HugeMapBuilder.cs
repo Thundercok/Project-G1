@@ -68,8 +68,8 @@ public static class G1HugeMapBuilder
         RenderSettings.ambientLight = new Color(0.34f, 0.36f, 0.4f);
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 60f;
-        RenderSettings.fogEndDistance = 240f;
+        RenderSettings.fogStartDistance = 120f;
+        RenderSettings.fogEndDistance = 520f;
         RenderSettings.fogColor = new Color(0.4f, 0.43f, 0.48f);
 
         int enemyLayer = EnsureLayer("Enemy");
@@ -95,7 +95,7 @@ public static class G1HugeMapBuilder
         var player = G1SceneBuilder.BuildStandardPlayer();
         var cc = player.GetComponent<CharacterController>();
         if (cc) cc.enabled = false;
-        player.transform.position = new Vector3(0f, 0.2f, -96f);
+        player.transform.position = new Vector3(0f, 0.3f, -278f);
         player.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
         if (cc) cc.enabled = true;
         var card = player.GetComponent<G1StoryCard>();
@@ -103,61 +103,72 @@ public static class G1HugeMapBuilder
         var switcher = player.GetComponentInChildren<WeaponSwitcher>(true);
         if (switcher != null) switcher.unlocked = new[] { true, true, true, true, true, true };
 
-        // ---------------- ALLIES (good side) ----------------
-        // Security (blue) — hold the allied base and advance toward center.
-        Vector3[] security = {
-            new(-70, 0, -6), new(-70, 0, 6), new(-58, 0, -10), new(-58, 0, 10),
-            new(-46, 0, 0), new(-40, 0, -14), new(-40, 0, 14), new(-30, 0, 0),
-        };
-        foreach (var p in security)
+        // ---------------- ALLIES (good side) — many, spread across the west ----
+        // Security (blue): a 14-strong line advancing from the Allied Base
+        // (west, x≈-160) toward the central plaza.
+        for (int i = 0; i < 14; i++)
+        {
+            float x = -170f + (i % 7) * 20f;       // two ranks pushing east
+            float z = (i < 7 ? -1 : 1) * 18f + (i % 7 - 3) * 8f;
+            SpawnAlly(new Vector3(x, 0, z), true, new Color(0.22f, 0.4f, 0.7f), "Security");
+        }
+        // A forward squad holding the plaza approaches.
+        foreach (var p in new Vector3[] { new(-60, 0, 0), new(-48, 0, 16),
+            new(-48, 0, -16), new(-30, 0, 0) })
             SpawnAlly(p, true, new Color(0.22f, 0.4f, 0.7f), "Security");
 
-        // Scientists (orange) — non-combatants around the lab/command.
+        // Scientists (orange, non-combat): clustered at the labs (north) and
+        // the living quarters (NW).
         Vector3[] sci = {
-            new(-8, 0, 60), new(8, 0, 60), new(0, 0, 52), new(-14, 0, 66),
-            new(14, 0, 66), new(-6, 0, 20), new(6, 0, 20), new(0, 0, 30),
+            new(-26, 0, 150), new(26, 0, 150), new(0, 0, 140), new(-40, 0, 160),
+            new(40, 0, 160), new(0, 0, 185),
+            new(-150, 0, 140), new(-128, 0, 150), new(-150, 0, 170), new(-128, 0, 128),
         };
         foreach (var p in sci)
             SpawnAlly(p, false, new Color(0.85f, 0.42f, 0.06f), "Scientist");
 
-        // ---------------- ENEMIES (bad side) ----------------
-        // HECU platoon — hangar / east, pushing toward center.
-        Vector3[] hecu = {
-            new(72, 0, 8), new(72, 0, -8), new(64, 0, 0), new(58, 0, 12),
-            new(58, 0, -12), new(46, 0, 0), new(40, 0, 10), new(40, 0, -10),
-            new(30, 0, 6), new(30, 0, -6),
-        };
-        foreach (var p in hecu)
-            SpawnEnemy("Assets/G1/Prefabs/HECUSoldier.prefab", p, enemyLayer, 250f);
-
-        // Zombies (the Taken) — pouring from the southern ruins.
-        for (int i = 0; i < 10; i++)
+        // ---------------- ENEMIES (bad side) — many, spread across the east/south ----
+        // HECU platoon (16): the Hangar/Motor Pool (east, x≈165) pushing west,
+        // plus a flanking squad from the Warehouse (NE).
+        for (int i = 0; i < 12; i++)
         {
-            float a = i / 10f * Mathf.PI * 2f;
+            float x = 175f - (i % 6) * 22f;
+            float z = (i < 6 ? -1 : 1) * 18f + (i % 6 - 3) * 8f;
+            SpawnEnemy("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(x, 0, z), enemyLayer, 250f);
+        }
+        foreach (var p in new Vector3[] { new(150, 0, 150), new(130, 0, 140),
+            new(160, 0, 128), new(120, 0, 160) })
+            SpawnEnemy("Assets/G1/Prefabs/HECUSoldier.prefab", p, enemyLayer, 210f);
+
+        // Zombies (the Taken, 16): pouring out of the southern breach ruins.
+        for (int i = 0; i < 16; i++)
+        {
+            float a = i / 16f * Mathf.PI * 2f;
+            float r = 20f + (i % 3) * 14f;
             SpawnEnemy("Assets/G1/Prefabs/Zombie.prefab",
-                new Vector3(Mathf.Cos(a) * 18f, 0f, -70f + Mathf.Sin(a) * 12f), enemyLayer);
+                new Vector3(Mathf.Cos(a) * r, 0f, -165f + Mathf.Sin(a) * r * 0.7f), enemyLayer);
         }
 
-        // Aliens (Strays) — the breach; a few elites, bigger and tougher.
-        for (int i = 0; i < 8; i++)
+        // Aliens (Strays, 12): the breach; every third is a bigger, tougher elite.
+        for (int i = 0; i < 12; i++)
         {
-            float a = i / 8f * Mathf.PI * 2f;
+            float a = i / 12f * Mathf.PI * 2f;
             var al = SpawnEnemy("Assets/G1/Prefabs/Alien.prefab",
-                new Vector3(Mathf.Cos(a) * 10f, 0f, -70f + Mathf.Sin(a) * 8f), enemyLayer);
-            if (al != null && i % 3 == 0)   // every third is an elite
+                new Vector3(Mathf.Cos(a) * 14f, 0f, -165f + Mathf.Sin(a) * 10f), enemyLayer);
+            if (al != null && i % 3 == 0)
             {
                 al.name = "EliteAlien";
-                al.transform.localScale = Vector3.one * 1.6f;
+                al.transform.localScale = Vector3.one * 1.7f;
                 var hp = al.GetComponent<HealthSystem>();
-                if (hp) hp.maxHealth = 220f;
+                if (hp) hp.maxHealth = 240f;
             }
         }
 
-        // Gunship boss — patrols the airspace over the plaza.
-        BuildGunship(new Vector3(0f, 16f, 0f), enemyLayer);
+        // Gunship boss — patrols the airspace over the central plaza.
+        BuildGunship(new Vector3(0f, 22f, 0f), enemyLayer);
 
         // The Auditor — atop the command tower, watching, unreachable.
-        Cameo(new Vector3(0f, 18.5f, 0f), 180f);
+        Cameo(new Vector3(0f, 38f, 0f), 180f);
 
         // --- navmesh over the map geometry only (Default layer)
         var navGo = new GameObject("NavMesh");
@@ -245,7 +256,7 @@ public static class G1HugeMapBuilder
         hp.maxHealth = 500f;
         var b = boss.AddComponent<G1HelicopterBoss>();
         b.arenaCenter = new Vector3(0f, 0f, 0f);
-        b.altitude = 16f; b.strafeWidth = 34f;
+        b.altitude = 22f; b.strafeWidth = 60f;
         var bar = boss.AddComponent<WorldSpaceHealthBar>();
         bar.heightOffset = 2.6f;
     }
