@@ -223,8 +223,16 @@ public static class G1HugeMapBuilder
         var hp = go.AddComponent<HealthSystem>();
         hp.maxHealth = combat ? 120f : 70f;
         go.AddComponent<G1DeathPhysics>();
-        var ally = go.AddComponent<G1Ally>();
-        ally.combat = combat;
+        if (combat)
+        {
+            var f = go.AddComponent<G1FactionFighter>();
+            f.faction = G1FactionFighter.Faction.Allied;
+            f.kind = G1FactionFighter.Kind.Ranged;
+        }
+        else
+        {
+            go.AddComponent<G1Ally>().combat = false;   // scientists just flee
+        }
         go.AddComponent<AgentNavMeshWarp>();
         return go;
     }
@@ -242,6 +250,20 @@ public static class G1HugeMapBuilder
         SetLayerRecursive(go, enemyLayer);
         if (go.GetComponent<AgentNavMeshWarp>() == null)
             go.AddComponent<AgentNavMeshWarp>();
+
+        // Convert campaign enemy into a battlefield faction fighter: disable the
+        // player-chasing campaign AI (keep components for RequireComponent) and
+        // add a Hostile fighter — HECU shoot, zombies/aliens melee.
+        if (go.TryGetComponent(out G1SoldierAI sai)) sai.enabled = false;
+        if (go.TryGetComponent(out G1SoldierBarks sbk)) sbk.enabled = false;
+        if (go.TryGetComponent(out G1ZombieAI zai)) zai.enabled = false;
+        if (go.TryGetComponent(out G1AlienAI aai)) aai.enabled = false;
+        if (go.TryGetComponent(out NPCController npc)) npc.enabled = false;
+        var f = go.AddComponent<G1FactionFighter>();
+        f.faction = G1FactionFighter.Faction.Hostile;
+        bool ranged = prefab.name.Contains("HECU") || prefab.name.Contains("Soldier");
+        f.kind = ranged ? G1FactionFighter.Kind.Ranged : G1FactionFighter.Kind.Melee;
+        if (!ranged) { f.damage = 14f; f.fireInterval = 1.1f; }   // melee cadence
         return go;
     }
 
