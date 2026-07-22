@@ -46,13 +46,14 @@ public sealed class G1SettingsPanel : MonoBehaviour
         vol = GUI.HorizontalSlider(new Rect(cx + 60, y + 96, 160, 20),
                                    vol, 0f, 1f);
 
-        bool easy = PlayerPrefs.GetInt("G1_Difficulty", 0) == 0;
+        int curDiff = PlayerPrefs.GetInt("G1_Difficulty", 0);
         var diffRect = new Rect(cx - 220, y + 132, 440, 28);
-        GUI.Label(diffRect, $"DIFFICULTY   < {(easy ? "EASY" : "NORMAL")} >", label);
+        GUI.Label(diffRect, $"DIFFICULTY   < {G1Difficulty.Name} >", label);
         if (diffRect.Contains(Event.current.mousePosition)
             && Event.current.type == EventType.MouseDown)
         {
-            PlayerPrefs.SetInt("G1_Difficulty", easy ? 1 : 0);
+            int nextDiff = (curDiff + 1) % 3;
+            PlayerPrefs.SetInt("G1_Difficulty", nextDiff);
             G1Audio.Play2D("pickup", 0.6f);
         }
 
