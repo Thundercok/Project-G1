@@ -90,6 +90,28 @@ public class PlayerHUD : MonoBehaviour
         _terminalLogDisplayUntil = Time.time + 6f;
     }
 
+    private string _critText = "";
+    private float _critDisplayUntil;
+    private Color _critColor = Color.yellow;
+
+    public void ShowCritFeedback(bool isHeadshot, bool isCrit, float damage)
+    {
+        if (isHeadshot)
+        {
+            _critText = $"💥 CRITICAL HEADSHOT! ({Mathf.CeilToInt(damage)})";
+            _critColor = new Color(1f, 0.25f, 0.1f, 0.95f);
+            _critDisplayUntil = Time.time + 1.2f;
+            G1Audio.Play2D("pickup", 1.0f, 1.8f);
+        }
+        else if (isCrit)
+        {
+            _critText = $"⚡ CRITICAL HIT! ({Mathf.CeilToInt(damage)})";
+            _critColor = new Color(1f, 0.85f, 0.1f, 0.95f);
+            _critDisplayUntil = Time.time + 1.0f;
+            G1Audio.Play2D("pickup", 0.8f, 1.5f);
+        }
+    }
+
     public void ShowRadWarning()
     {
         _radFlashTime = Time.time + 0.6f;
@@ -110,6 +132,7 @@ public class PlayerHUD : MonoBehaviour
         DrawAmmoHUD();
         DrawWeaponPickup();
         DrawTerminalLog();
+        DrawCritFeedback();
 
         // Hit marker
         if (camFX && camFX.HitMarkerActive)
@@ -463,5 +486,31 @@ public class PlayerHUD : MonoBehaviour
         // Marker color (glowing amber/gold)
         style.normal.textColor = new Color(1f, 0.75f, 0.2f, 0.95f);
         GUI.Label(new Rect(guiX - 150, guiY - 15, 300, 30), text, style);
+    }
+
+    void DrawCritFeedback()
+    {
+        if (string.IsNullOrEmpty(_critText)) return;
+        float remaining = _critDisplayUntil - Time.time;
+        if (remaining <= 0f) { _critText = null; return; }
+
+        float alpha = Mathf.Clamp01(remaining * 2f);
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 22,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter,
+            font = _hudFont
+        };
+
+        // Shadow
+        style.normal.textColor = new Color(0f, 0f, 0f, 0.7f * alpha);
+        GUI.Label(new Rect(Screen.width / 2f - 249, Screen.height / 2f - 79, 500, 40), _critText, style);
+
+        // Main colored text
+        Color col = _critColor;
+        col.a *= alpha;
+        style.normal.textColor = col;
+        GUI.Label(new Rect(Screen.width / 2f - 250, Screen.height / 2f - 80, 500, 40), _critText, style);
     }
 }

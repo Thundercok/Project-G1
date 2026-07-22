@@ -81,17 +81,56 @@ public abstract class WeaponBase : MonoBehaviour
         return false;
     }
 
-    /// Damage + physics kick shared by all hitscan weapons.
+    /// Damage + physics kick shared by all weapons with Headshot & Crit Multipliers.
     /// Returns true if an IDamageable was hit (for hit marker feedback).
     protected bool ApplyHit(RaycastHit hit, float damage, float force)
     {
         damage *= G1Difficulty.OutgoingDamageMult;
         var target = hit.collider.GetComponentInParent<IDamageable>();
-        target?.TakeDamage(damage, hit.point, hit.normal);
-        if (hit.rigidbody)
-            hit.rigidbody.AddForceAtPosition(
-                viewCamera.transform.forward * force, hit.point, ForceMode.Impulse);
-        return target != null;
+        if (target != null)
+        {
+            bool isHeadshot = false;
+            bool isCrit = false;
+            float multiplier = 1.0f;
+
+            // Detect Headshot (collider name or hit height relative to enemy root)
+            Transform enemyTransform = hit.collider.transform;
+            while (enemyTransform.parent != null && enemyTransform.GetComponent<IDamageable>() == null)
+            {
+                enemyTransform = enemyTransform.parent;
+            }
+
+            string colName = hit.collider.name.ToLower();
+            float relativeHeight = hit.point.y - enemyTransform.position.y;
+
+            if (colName.Contains("head") || colName.Contains("skull") || relativeHeight >= 1.35f)
+            {
+                isHeadshot = true;
+                multiplier = 2.5f; // 2.5x Headshot multiplier
+            }
+            else if (Random.value <= 0.15f) // 15% Random Crit chance
+            {
+                isCrit = true;
+                multiplier = 1.75f; // 1.75x Critical multiplier
+            }
+
+            float finalDamage = damage * multiplier;
+            target.TakeDamage(finalDamage, hit.point, hit.normal);
+
+            // Display HUD Headshot/Crit popup banner & play audio hit ping
+            var hud = FindFirstObjectByType<PlayerHUD>();
+            if (hud != null && (isHeadshot || isCrit))
+            {
+                hud.ShowCritFeedback(isHeadshot, isCrit, finalDamage);
+            }
+
+            if (hit.rigidbody)
+                hit.rigidbody.AddForceAtPosition(
+                    viewCamera.transform.forward * force * multiplier, hit.point, ForceMode.Impulse);
+
+            return true;
+        }
+        return false;
     }
 
     G1Grenade cachedGrenade;
