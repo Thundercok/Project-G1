@@ -7,6 +7,8 @@ public class SlidingDoor : MonoBehaviour, IUsable
     public float travel = 2.1f;
     public float moveTime = 1.1f;
 
+    public static float GlobalDoorOpeningGraceTime { get; private set; }
+
     Vector3 closedPos;
     bool open;
     bool moving;
@@ -20,6 +22,7 @@ public class SlidingDoor : MonoBehaviour, IUsable
     {
         if (!moving)
         {
+            GlobalDoorOpeningGraceTime = Time.time + 0.65f;
             G1Audio.Play("door_servo", transform.position, 0.7f);
             StartCoroutine(Slide(!open));
         }
@@ -31,6 +34,7 @@ public class SlidingDoor : MonoBehaviour, IUsable
     {
         if (!moving && !open)
         {
+            GlobalDoorOpeningGraceTime = Time.time + 0.65f;
             G1Audio.Play("door_servo", transform.position, 0.7f);
             StartCoroutine(Slide(true));
         }

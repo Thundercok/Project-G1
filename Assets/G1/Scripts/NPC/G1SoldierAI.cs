@@ -182,6 +182,23 @@ public class G1SoldierAI : MonoBehaviour
         if (playerSpotted && state == SoldierState.Patrol)
         {
             state = SoldierState.Alert;
+            // Human Reaction Delay: Give player 0.65s (or 0.8f on Casual) reaction window before firing!
+            float delay = G1Difficulty.Casual ? 0.8f : (G1Difficulty.Easy ? 0.65f : 0.45f);
+            nextBurstTime = Time.time + delay;
+
+            // HECU Radio Bark Callout
+            if (G1SoldierBarks.Instance != null)
+            {
+                G1SoldierBarks.Instance.PlayBark("CONTACT!", true);
+            }
+            else
+            {
+                G1Audio.Play("radio_static", transform.position, 0.6f);
+            }
+
+            // Telegraph Red Laser Sight Line
+            StartCoroutine(ShowTelegraphLaser(delay));
+
             if (anim) anim.CrossFade("Walk", 0.1f);
         }
         else if (!playerSpotted && state != SoldierState.Patrol)
@@ -194,8 +211,33 @@ public class G1SoldierAI : MonoBehaviour
         }
     }
 
+    IEnumerator ShowTelegraphLaser(float duration)
+    {
+        var laserGo = new GameObject("TelegraphLaser");
+        var laser = laserGo.AddComponent<LineRenderer>();
+        laser.startWidth = 0.03f;
+        laser.endWidth = 0.01f;
+        laser.material = new Material(Shader.Find("Unlit/Color")) { color = new Color(1f, 0.15f, 0.1f, 0.85f) };
+
+        float elapsed = 0f;
+        while (elapsed < duration && state != SoldierState.Dead && player != null)
+        {
+            elapsed += Time.deltaTime;
+            Vector3 eyePos = transform.position + Vector3.up * 1.5f + transform.forward * 0.45f;
+            Vector3 targetPos = player.transform.position + Vector3.up * 1.3f;
+            laser.SetPosition(0, eyePos);
+            laser.SetPosition(1, targetPos);
+            yield return null;
+        }
+        Destroy(laserGo);
+    }
+
     bool CheckLineOfSight()
     {
+        // Door ambush prevention: do not target player through doors during opening grace period
+        if (Time.time < SlidingDoor.GlobalDoorOpeningGraceTime)
+            return false;
+
         Vector3 eyePos = transform.position + Vector3.up * 1.5f + transform.forward * 0.45f;
         Vector3 targetPos = player.transform.position + Vector3.up * 1.5f;
         Vector3 dir = targetPos - eyePos;
