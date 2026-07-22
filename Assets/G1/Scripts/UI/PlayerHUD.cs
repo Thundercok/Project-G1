@@ -117,8 +117,23 @@ public class PlayerHUD : MonoBehaviour
         _radFlashTime = Time.time + 0.6f;
     }
 
+    private bool IsCutsceneActive()
+    {
+        if (G1CutsceneManager.Instance != null && G1CutsceneManager.Instance.isCutsceneActive)
+            return true;
+        if (G1IntroStory.IsActive)
+            return true;
+        if (G1EndingCutscene.IsPlaying)
+            return true;
+        return false;
+    }
+
     void OnGUI()
     {
+        // Suppress all HUD elements during cutscenes so typewriter & subtitle text are clear and unobscured
+        if (IsCutsceneActive())
+            return;
+
         // 1. Draw Crosshair in center
         if (drawCrosshair && Cursor.lockState == CursorLockMode.Locked)
         {

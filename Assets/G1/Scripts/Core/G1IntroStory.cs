@@ -14,9 +14,10 @@ public sealed class G1IntroStory : MonoBehaviour
 {
     /// Set the instant a story is requested so duplicate triggers can't double it.
     public static bool RequestedOrPlayed { get; private set; }
+    public static bool IsActive { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() => RequestedOrPlayed = false;
+    static void ResetStatics() { RequestedOrPlayed = false; IsActive = false; }
 
     // One beat of the cold open: a large headline (typed out) + a small subline.
     struct Beat
@@ -90,6 +91,7 @@ public sealed class G1IntroStory : MonoBehaviour
         Cursor.visible = false;
 
         active = true;
+        IsActive = true;
         bgAlpha = 1f;
         StartCoroutine(RoutinePlay());
     }
@@ -163,6 +165,7 @@ public sealed class G1IntroStory : MonoBehaviour
         }
 
         active = false;
+        IsActive = false;
         Destroy(this);
     }
 

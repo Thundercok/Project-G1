@@ -17,6 +17,7 @@ public class G1EndingCutscene : MonoBehaviour
 {
     static G1EndingCutscene instance;
     static bool sequenceStarted;
+    public static bool IsPlaying => sequenceStarted;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() { instance = null; sequenceStarted = false; }
@@ -61,6 +62,8 @@ public class G1EndingCutscene : MonoBehaviour
 
     void LockPlayer()
     {
+        if (G1CutsceneManager.Instance != null)
+            G1CutsceneManager.Instance.isCutsceneActive = true;
         var mouseLook = FindFirstObjectByType<MouseLook>();
         var playerMove = FindFirstObjectByType<PlayerMovement>();
         if (mouseLook != null) mouseLook.enabled = false;

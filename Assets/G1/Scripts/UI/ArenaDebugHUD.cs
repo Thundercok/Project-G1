@@ -20,6 +20,12 @@ public sealed class ArenaDebugHUD : MonoBehaviour
     {
         if (!visible)
             return;
+        if (G1CutsceneManager.Instance != null && G1CutsceneManager.Instance.isCutsceneActive)
+            return;
+        if (G1IntroStory.IsActive)
+            return;
+        if (G1EndingCutscene.IsPlaying)
+            return;
         if (style == null)
         {
             style = new GUIStyle(GUI.skin.label)
