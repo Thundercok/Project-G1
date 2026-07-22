@@ -44,9 +44,11 @@ public class PlayerHUD : MonoBehaviour
         vignetteTex = MakeVignette();
         flashlight = GetComponentInChildren<G1Flashlight>();
 
-        // Ensure PlayerInventoryRestorer is present to apply campaign inventory carryover
+        // Ensure PlayerInventoryRestorer and G1TutorialSystem are present
         if (GetComponent<G1PlayerInventoryRestorer>() == null)
             gameObject.AddComponent<G1PlayerInventoryRestorer>();
+        if (GetComponent<G1TutorialSystem>() == null)
+            gameObject.AddComponent<G1TutorialSystem>();
 
         // Load Share Tech Mono
         var fontAsset = Resources.Load<Font>("Fonts/ShareTechMono-Regular");
