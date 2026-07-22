@@ -10,6 +10,25 @@ a crowbar, and a man in a suit who is always watching.
 
 ![Test scene](docs/images/unity_pov.png)
 
+## Story
+
+You are a senior test engineer who survives the failure of an experiment meant to
+hold open a doorway to *elsewhere*. But the Threshold is not a door to another
+**place** — it is a door to every previous **time** the same disaster happened.
+Project G1 is a **loop**. The "aliens" are the time-folded remains of everyone who
+came before you. You survive every iteration because you are the **Anchor** — the
+disaster cannot exist without you. And the man in the suit is not here to save you:
+he audits the loop for a bureaucracy that **harvests catastrophes that never end**,
+and he needs you to keep *almost* escaping, forever.
+
+The game opens with a **skippable narrative cinematic** laying out the premise, and
+ends on a real choice at the Threshold ring: **step through** (the loop resets — the
+Auditor wins) or **turn your crowbar on the resonance emitters** (the loop collapses,
+every trapped echo is freed, and the Anchor is unmade). The first weapon in the game
+is the tool that ends it.
+
+> Full lore lives in [docs/story.md](docs/story.md).
+
 ## Current features
 
 - **Campaign & Level Generation** — Complete 3-level campaign programmatically generated from modular Blender-scripted environment kits:
@@ -114,6 +133,8 @@ docs/             documentation (start here: docs/asset-pipeline.md)
 - ~~Checkpoints, main menu, settings (sensitivity/FOV/volume)~~ ✓
 - ~~Ambience + music soundscapes~~ ✓
 - ~~Level 1 (Corvus Annex) → Level 2 (Quarantine Zone) → Level 3 (Threshold Boss Arena)~~ ✓
+- ~~Skippable opening story cinematic + branching finale (Stabilize / Collapse the loop)~~ ✓
+- ~~Loop-lore layer: iteration graffiti, degrading Sweeper radio, one-word Taken echoes~~ ✓
 - Save/load game state serialization to disk
 - Secondary fire modes for firearms (SMG grenade launcher, shotgun double-barrel)
 - Advanced multi-phase alien boss mechanics in Level 3
