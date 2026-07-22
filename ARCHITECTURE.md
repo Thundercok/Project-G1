@@ -16,7 +16,12 @@ Assets/G1/
 ├── Models/               # Character & Weapon FBX Models (Protagonist, Villain, Firearms)
 ├── Prefabs/              # Game & Entity Prefabs
 ├── Resources/            # Audio & Font Resources (ShareTechMono, G1Audio SFX)
-├── Scenes/               # Unity Scenes (MenuScene, MainScene, Level1, Level2, Level3, HugeMap)
+├── Scenes/               # Clean 5-Scene Production Setup:
+│   ├── MenuScene.unity   # Index 0: Main Menu, Level Select, Battlefield Select
+│   ├── TestScene.unity   # Index 1: Campaign Act I — Industrial Core
+│   ├── Level2.unity      # Index 2: Campaign Act II — Hydro Facility
+│   ├── Level3.unity      # Index 3: Campaign Act III — Surface Command & Finale
+│   └── HugeMap.unity     # Index 4: The Corvus Sprawl 600x600m Open Battlefield
 └── Scripts/              # C# Logic divided into 6 modular domain folders:
     ├── Core/             # HealthSystem, G1Difficulty, G1ObjectiveManager, G1TutorialSystem, G1SaveSystem, G1Audio
     ├── Interaction/      # SlidingDoor, Breakable, IUsable
