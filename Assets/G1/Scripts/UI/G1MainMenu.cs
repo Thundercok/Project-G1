@@ -1,13 +1,13 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// Retro terminal main menu: typewriter title, keyboard-navigated items,
-/// ambient hum, flickering emergency light. All OnGUI (project convention).
+/// campaign continue & level select, ambient hum, flickering emergency light. All OnGUI (project convention).
 public sealed class G1MainMenu : MonoBehaviour
 {
     public Light flickerLight;
 
-    static readonly string[] Items = { "[ PLAY ]", "[ SETTINGS ]", "[ QUIT ]" };
     static readonly Color Teal = new Color(0.16f, 0.75f, 0.75f);
     static readonly Color Dim = new Color(0.29f, 0.29f, 0.29f);
 
@@ -16,6 +16,9 @@ public sealed class G1MainMenu : MonoBehaviour
     Font font;
     G1SettingsPanel settings;
     AudioSource hum;
+
+    bool inLevelSelect;
+    List<string> currentMenuItems = new List<string>();
 
     void Start()
     {
@@ -32,6 +35,33 @@ public sealed class G1MainMenu : MonoBehaviour
         hum.volume = 0.3f;
         if (hum.clip)
             hum.Play();
+
+        RefreshMenu();
+    }
+
+    void RefreshMenu()
+    {
+        currentMenuItems.Clear();
+        if (inLevelSelect)
+        {
+            var data = G1SaveSystem.Load();
+            currentMenuItems.Add("[ LEVEL 1: SUB-SURFACE ]");
+            if (data.maxUnlockedLevelIndex >= 2) currentMenuItems.Add("[ LEVEL 2: QUARANTINE ]");
+            if (data.maxUnlockedLevelIndex >= 3) currentMenuItems.Add("[ LEVEL 3: THRESHOLD ]");
+            currentMenuItems.Add("[ BACK ]");
+        }
+        else
+        {
+            if (G1SaveSystem.HasSaveData())
+            {
+                currentMenuItems.Add("[ CONTINUE CAMPAIGN ]");
+            }
+            currentMenuItems.Add("[ NEW GAME ]");
+            currentMenuItems.Add("[ LEVEL SELECT ]");
+            currentMenuItems.Add("[ SETTINGS ]");
+            currentMenuItems.Add("[ QUIT ]");
+        }
+        selected = 0;
     }
 
     void Update()
@@ -42,21 +72,57 @@ public sealed class G1MainMenu : MonoBehaviour
 
         if (settings != null && settings.visible)
             return;
+
+        int count = currentMenuItems.Count;
+        if (count == 0) return;
+
         if (Input.GetKeyDown(KeyCode.DownArrow))
-            selected = (selected + 1) % Items.Length;
+            selected = (selected + 1) % count;
         if (Input.GetKeyDown(KeyCode.UpArrow))
-            selected = (selected + Items.Length - 1) % Items.Length;
+            selected = (selected + count - 1) % count;
         if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
             Activate(selected);
     }
 
     void Activate(int i)
     {
-        switch (i)
+        if (inLevelSelect)
         {
-            case 0: SceneManager.LoadScene("TestScene"); break;
-            case 1: if (settings) settings.visible = true; break;
-            case 2: Application.Quit(); break;
+            if (i == currentMenuItems.Count - 1) // BACK
+            {
+                inLevelSelect = false;
+                RefreshMenu();
+                return;
+            }
+            if (i == 0) SceneManager.LoadScene("TestScene");
+            else if (i == 1) SceneManager.LoadScene("Level2");
+            else if (i == 2) SceneManager.LoadScene("Level3");
+            return;
+        }
+
+        string chosen = currentMenuItems[i];
+        if (chosen.Contains("CONTINUE"))
+        {
+            var data = G1SaveSystem.Load();
+            SceneManager.LoadScene(string.IsNullOrEmpty(data.currentScene) ? "TestScene" : data.currentScene);
+        }
+        else if (chosen.Contains("NEW GAME"))
+        {
+            G1SaveSystem.ClearSave();
+            SceneManager.LoadScene("TestScene");
+        }
+        else if (chosen.Contains("LEVEL SELECT"))
+        {
+            inLevelSelect = true;
+            RefreshMenu();
+        }
+        else if (chosen.Contains("SETTINGS"))
+        {
+            if (settings) settings.visible = true;
+        }
+        else if (chosen.Contains("QUIT"))
+        {
+            Application.Quit();
         }
     }
 
@@ -80,15 +146,22 @@ public sealed class G1MainMenu : MonoBehaviour
         // typewriter reveal, 40 ms per character
         const string full = "PROJECT G1";
         int chars = Mathf.Min(full.Length, (int)((Time.time - startTime) / 0.04f));
-        GUI.Label(new Rect(cx - 300, Screen.height * 0.25f, 600, 70),
+        GUI.Label(new Rect(cx - 300, Screen.height * 0.2f, 600, 70),
                   full.Substring(0, chars), title);
 
-        var item = new GUIStyle(title) { fontSize = 26 };
-        for (int i = 0; i < Items.Length; i++)
+        var subtitleStyle = new GUIStyle(title) { fontSize = 18 };
+        subtitleStyle.normal.textColor = Dim;
+        if (inLevelSelect)
+        {
+            GUI.Label(new Rect(cx - 300, Screen.height * 0.32f, 600, 30), "-- SELECT CAMPAIGN LEVEL --", subtitleStyle);
+        }
+
+        var item = new GUIStyle(title) { fontSize = 24 };
+        for (int i = 0; i < currentMenuItems.Count; i++)
         {
             item.normal.textColor = i == selected ? Teal : Dim;
-            var r = new Rect(cx - 200, Screen.height * 0.45f + i * 52, 400, 44);
-            GUI.Label(r, Items[i], item);
+            var r = new Rect(cx - 250, Screen.height * (inLevelSelect ? 0.42f : 0.38f) + i * 48, 500, 40);
+            GUI.Label(r, currentMenuItems[i], item);
             if (r.Contains(Event.current.mousePosition))
             {
                 selected = i;

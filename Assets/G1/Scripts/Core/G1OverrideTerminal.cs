@@ -78,6 +78,11 @@ public class G1OverrideTerminal : MonoBehaviour, IUsable
         // Unlock elevator
         G1LevelExitTrigger.ElevatorUnlocked = true;
 
+        if (G1ObjectiveManager.Instance != null)
+        {
+            G1ObjectiveManager.Instance.CompleteObjective("override_terminal");
+        }
+
         // Open target door (Door 4)
         if (targetDoor != null)
         {

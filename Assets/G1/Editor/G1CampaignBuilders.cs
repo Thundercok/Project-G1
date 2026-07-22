@@ -32,17 +32,23 @@ public static class G1CampaignBuilders
         return go;
     }
 
-    static void SpawnPrefab(string path, Vector3 pos, float yaw = 0f)
+    static GameObject SpawnPrefabAndReturn(string path, Vector3 pos, float yaw = 0f)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
         if (!prefab)
         {
             Debug.LogWarning("Missing prefab " + path + " — build Level 1 first");
-            return;
+            return null;
         }
         var go = (GameObject)Object.Instantiate(
             prefab, pos, Quaternion.Euler(0f, yaw, 0f));
         go.name = prefab.name;
+        return go;
+    }
+
+    static void SpawnPrefab(string path, Vector3 pos, float yaw = 0f)
+    {
+        SpawnPrefabAndReturn(path, pos, yaw);
     }
 
     static void Cameo(Vector3 pos, float yaw)
@@ -64,7 +70,7 @@ public static class G1CampaignBuilders
         go.AddComponent<G1GManCameo>();
     }
 
-    static void Exit(string name, Vector3 pos, Vector3 size, string next)
+    static GameObject Exit(string name, Vector3 pos, Vector3 size, string next, string wpLabel = "EVAC EXIT")
     {
         var go = new GameObject(name);
         go.transform.position = pos;
@@ -72,6 +78,9 @@ public static class G1CampaignBuilders
         col.isTrigger = true;
         col.size = size;
         go.AddComponent<G1LevelExitTrigger>().nextScene = next;
+        var wp = go.AddComponent<G1Waypoint>();
+        wp.label = wpLabel;
+        return go;
     }
 
     static void Checkpoint(string name, Vector3 pos)
@@ -176,9 +185,25 @@ public static class G1CampaignBuilders
         }
 
         // sweeper patrol (prefabs carry full AI; they hold position and aggro)
-        SpawnPrefab("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(6f, 0f, 12f), 200f);
-        SpawnPrefab("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(2f, 0f, -12f), 320f);
-        SpawnPrefab("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(22f, 0f, -4f), 270f);
+        var s1 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(6f, 0f, 12f), 200f);
+        var s2 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(2f, 0f, -12f), 320f);
+        var s3 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(22f, 0f, -4f), 270f);
+
+        // Setup Level 2 Objectives
+        var objGo = new GameObject("ObjectiveManager");
+        var objMgr = objGo.AddComponent<G1ObjectiveManager>();
+        objMgr.AddObjective("hecu_patrol", "Eliminate Surface HECU Sweeper Patrols", mandatory: true, requiredCount: 3);
+        objMgr.AddObjective("evac_shaft", "Locate Maintenance Access Shaft to Undercroft", mandatory: false);
+
+        foreach (var soldier in new[] { s1, s2, s3 })
+        {
+            if (soldier != null)
+            {
+                var hp = soldier.GetComponent<HealthSystem>();
+                if (hp != null)
+                    hp.OnDeath += (pos, nrm) => { if (G1ObjectiveManager.Instance != null) G1ObjectiveManager.Instance.IncrementProgress("hecu_patrol"); };
+            }
+        }
 
         G1HealthPack.Create(new Vector3(-20f, 0.5f, -8f));
         G1AmmoPack.Create(new Vector3(-14f, 0.5f, 10f));
@@ -250,12 +275,31 @@ public static class G1CampaignBuilders
         }
 
         // the taken and the strays defend the hall
-        SpawnPrefab("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-6f, 0f, 12f));
-        SpawnPrefab("Assets/G1/Prefabs/Zombie.prefab", new Vector3(6f, 0f, 18f));
-        SpawnPrefab("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-4f, 0f, 26f));
-        SpawnPrefab("Assets/G1/Prefabs/Alien.prefab", new Vector3(8f, 0f, 24f));
-        SpawnPrefab("Assets/G1/Prefabs/Alien.prefab", new Vector3(-8f, 0f, 32f));
-        SpawnPrefab("Assets/G1/Prefabs/Alien.prefab", new Vector3(4f, 0f, 38f));
+        var enemies = new List<GameObject>
+        {
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-6f, 0f, 12f)),
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3(6f, 0f, 18f)),
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-4f, 0f, 26f)),
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab", new Vector3(8f, 0f, 24f)),
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab", new Vector3(-8f, 0f, 32f)),
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab", new Vector3(4f, 0f, 38f))
+        };
+
+        // Setup Level 3 Objectives
+        var objGo = new GameObject("ObjectiveManager");
+        var objMgr = objGo.AddComponent<G1ObjectiveManager>();
+        objMgr.AddObjective("undercroft_guardians", "Neutralize Undercroft Guardians", mandatory: true, requiredCount: 6);
+        objMgr.AddObjective("threshold_portal", "Enter Xen Threshold Portal", mandatory: false);
+
+        foreach (var enemy in enemies)
+        {
+            if (enemy != null)
+            {
+                var hp = enemy.GetComponent<HealthSystem>();
+                if (hp != null)
+                    hp.OnDeath += (pos, nrm) => { if (G1ObjectiveManager.Instance != null) G1ObjectiveManager.Instance.IncrementProgress("undercroft_guardians"); };
+            }
+        }
 
         G1HealthPack.Create(new Vector3(-12f, 0.5f, 10f));
         G1HealthPack.Create(new Vector3(12f, 0.5f, 30f));

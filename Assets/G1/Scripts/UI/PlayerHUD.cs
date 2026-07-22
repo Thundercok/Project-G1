@@ -32,6 +32,8 @@ public class PlayerHUD : MonoBehaviour
     G1Flashlight flashlight;
     float _radFlashTime;
 
+    float _objFlashTime;
+
     void Start()
     {
         playerHealth = GetComponent<HealthSystem>();
@@ -40,9 +42,35 @@ public class PlayerHUD : MonoBehaviour
         vignetteTex = MakeVignette();
         flashlight = GetComponentInChildren<G1Flashlight>();
 
+        // Ensure PlayerInventoryRestorer is present to apply campaign inventory carryover
+        if (GetComponent<G1PlayerInventoryRestorer>() == null)
+            gameObject.AddComponent<G1PlayerInventoryRestorer>();
+
         // Load Share Tech Mono
         var fontAsset = Resources.Load<Font>("Fonts/ShareTechMono-Regular");
         if (fontAsset != null) _hudFont = fontAsset;
+
+        G1ObjectiveManager.OnObjectiveUpdated += HandleObjectiveUpdated;
+    }
+
+    void OnDestroy()
+    {
+        G1ObjectiveManager.OnObjectiveUpdated -= HandleObjectiveUpdated;
+    }
+
+    void HandleObjectiveUpdated(G1ObjectiveManager.Objective activeObj, bool isNewCompletion)
+    {
+        _objFlashTime = Time.time + 3f;
+        if (isNewCompletion)
+        {
+            ShowTerminalLog("OBJECTIVE COMPLETED!");
+            G1Audio.Play2D("pickup", 0.9f, 1.4f);
+        }
+        else if (activeObj != null)
+        {
+            ShowTerminalLog($"NEW OBJECTIVE: {activeObj.GetDisplayText().ToUpper()}");
+            G1Audio.Play2D("pickup", 0.7f, 1.2f);
+        }
     }
 
     public void ShowWeaponPickup(string weaponName)
@@ -74,6 +102,8 @@ public class PlayerHUD : MonoBehaviour
         }
 
         // Draw HUD elements with drop shadows for legibility
+        DrawObjectiveHUD();
+        DrawWaypointMarker();
         DrawHealthHUD();
         DrawAmmoHUD();
         DrawWeaponPickup();
@@ -86,6 +116,37 @@ public class PlayerHUD : MonoBehaviour
         // Damage vignette
         if (camFX && camFX.DamageFlashAlpha > 0.01f)
             DrawDamageVignette(camFX.DamageFlashAlpha);
+    }
+
+    void DrawObjectiveHUD()
+    {
+        string text = G1ObjectiveManager.Instance != null 
+            ? G1ObjectiveManager.Instance.GetActiveObjectiveText() 
+            : null;
+
+        if (string.IsNullOrEmpty(text)) return;
+
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 18,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.UpperLeft,
+            font = _hudFont
+        };
+
+        Color textCol = Time.time < _objFlashTime 
+            ? Color.Lerp(hudColor, new Color(0.2f, 1f, 0.8f), Mathf.PingPong(Time.time * 6f, 1f)) 
+            : new Color(hudColor.r, hudColor.g, hudColor.b, 0.8f);
+
+        string display = $"[!] OBJECTIVE: {text.ToUpper()}";
+
+        // Shadow
+        style.normal.textColor = new Color(0f, 0f, 0f, 0.7f);
+        GUI.Label(new Rect(32, 28, 600, 35), display, style);
+
+        // Main text
+        style.normal.textColor = textCol;
+        GUI.Label(new Rect(30, 26, 600, 35), display, style);
     }
 
     void DrawCrosshair()
@@ -320,5 +381,73 @@ public class PlayerHUD : MonoBehaviour
         // Draw text (retro green/cyan terminal look)
         style.normal.textColor = new Color(0.2f, 0.9f, 0.6f, alpha);
         GUI.Label(new Rect(Screen.width/2f - 300, Screen.height - 180, 600, 80), _displayedTerminalLog, style);
+    }
+
+    void DrawWaypointMarker()
+    {
+        Camera mainCam = Camera.main;
+        if (mainCam == null) return;
+
+        Vector3 targetPos = Vector3.zero;
+        string label = "OBJECTIVE";
+        bool hasTarget = false;
+
+        var activeWp = G1ObjectiveManager.Instance != null ? G1ObjectiveManager.Instance.GetActiveWaypoint() : null;
+        if (activeWp != null)
+        {
+            targetPos = activeWp.GetWorldPosition();
+            label = activeWp.label;
+            hasTarget = true;
+        }
+        else
+        {
+            // Fallback: look for G1LevelExitTrigger in scene
+            var exit = Object.FindObjectOfType<G1LevelExitTrigger>();
+            if (exit != null)
+            {
+                targetPos = exit.transform.position + Vector3.up * 1.2f;
+                label = "EVAC EXIT";
+                hasTarget = true;
+            }
+        }
+
+        if (!hasTarget) return;
+
+        float dist = Vector3.Distance(transform.position, targetPos);
+        Vector3 screenPos = mainCam.WorldToScreenPoint(targetPos);
+
+        // Position on GUI
+        float guiX = screenPos.x;
+        float guiY = Screen.height - screenPos.y;
+
+        // If behind camera, clamp to bottom edge
+        if (screenPos.z < 0)
+        {
+            guiX = Screen.width - guiX;
+            guiY = Screen.height - 45f;
+        }
+
+        // Clamp to screen bounds with padding
+        float pad = 50f;
+        guiX = Mathf.Clamp(guiX, pad, Screen.width - pad);
+        guiY = Mathf.Clamp(guiY, pad, Screen.height - pad);
+
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 16,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter,
+            font = _hudFont
+        };
+
+        string text = $"[◆ {label.ToUpper()} - {Mathf.CeilToInt(dist)}m]";
+
+        // Drop shadow
+        style.normal.textColor = new Color(0f, 0f, 0f, 0.75f);
+        GUI.Label(new Rect(guiX - 149, guiY - 14, 300, 30), text, style);
+
+        // Marker color (glowing amber/gold)
+        style.normal.textColor = new Color(1f, 0.75f, 0.2f, 0.95f);
+        GUI.Label(new Rect(guiX - 150, guiY - 15, 300, 30), text, style);
     }
 }

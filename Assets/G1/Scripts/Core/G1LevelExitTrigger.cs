@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// Campaign flow: entering the trigger loads the next scene (or restarts the
-/// current one when nextScene is empty). Clears the checkpoint — saves are
-/// per-level.
+/// current one when nextScene is empty). Clears the checkpoint and saves
+/// player inventory & unlocked campaign progress.
 public class G1LevelExitTrigger : MonoBehaviour
 {
     public string nextScene = "";
@@ -18,6 +18,18 @@ public class G1LevelExitTrigger : MonoBehaviour
         if (fired || !other.CompareTag("Player"))
             return;
 
+        // Check if level objectives are incomplete
+        if (G1ObjectiveManager.Instance != null && !G1ObjectiveManager.Instance.IsLevelComplete())
+        {
+            var hud = other.GetComponent<PlayerHUD>();
+            if (hud != null)
+            {
+                string activeText = G1ObjectiveManager.Instance.GetActiveObjectiveText();
+                hud.ShowTerminalLog($"OBJECTIVE INCOMPLETE: {activeText.ToUpper()}");
+            }
+            return;
+        }
+
         if (requireUnlock && !ElevatorUnlocked)
         {
             var hud = other.GetComponent<PlayerHUD>();
@@ -29,14 +41,17 @@ public class G1LevelExitTrigger : MonoBehaviour
         }
 
         fired = true;
-        Debug.Log("Level complete → " +
-                  (string.IsNullOrEmpty(nextScene) ? "restart" : nextScene));
+        string targetScene = string.IsNullOrEmpty(nextScene) ? SceneManager.GetActiveScene().name : nextScene;
+        Debug.Log("Level complete → " + targetScene);
 
         var playerHud = other.GetComponent<PlayerHUD>();
         if (playerHud != null)
         {
-            playerHud.ShowTerminalLog("ELEVATOR STATUS: ESCAPING FACILITY...");
+            playerHud.ShowTerminalLog("ELEVATOR STATUS: ESCAPING FACILITY... LEVEL CLEARED");
         }
+
+        // Save inventory and campaign progression for next level
+        G1SaveSystem.SaveLevelClear(targetScene, other.gameObject);
 
         PlayerPrefs.DeleteKey("G1_CP_Data");
         G1Audio.Play2D("pickup", 0.8f, 0.8f);
@@ -49,3 +64,4 @@ public class G1LevelExitTrigger : MonoBehaviour
             ? SceneManager.GetActiveScene().name : nextScene);
     }
 }
+

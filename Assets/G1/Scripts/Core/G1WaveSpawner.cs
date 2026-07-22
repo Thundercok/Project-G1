@@ -170,6 +170,11 @@ public class G1WaveSpawner : MonoBehaviour
             overrideTerminal.isUnlocked = true;
         }
 
+        if (G1ObjectiveManager.Instance != null)
+        {
+            G1ObjectiveManager.Instance.CompleteObjective("breach_wave");
+        }
+
         // Let ThreatDirector know things calmed down
         if (ThreatDirector.Instance != null)
             ThreatDirector.Instance.ReportSoldierDead();

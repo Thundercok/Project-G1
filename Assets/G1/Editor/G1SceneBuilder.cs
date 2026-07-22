@@ -731,6 +731,9 @@ public static class G1SceneBuilder
         var overrideTerm = overrideTermGo.AddComponent<G1OverrideTerminal>();
         overrideTerm.targetDoor = slideDoor4;
         overrideTerm.lockedMessage = "EMERGENCY CONSOLE: OVERRIDE LOCKED. ELIMINATE ALL SPECIMENS IN BREACH ZONE FIRST.";
+        var wpTerm = overrideTermGo.AddComponent<G1Waypoint>();
+        wpTerm.objectiveId = "override_terminal";
+        wpTerm.label = "OVERRIDE CONSOLE";
 
         // Wave spawner — wires signal light, override terminal, and Door 4 together
         var waveTriggerGo = new GameObject("WaveTrigger_Breach");
@@ -745,6 +748,9 @@ public static class G1SceneBuilder
         waveSpawner.spawnElite      = new Vector3(12f, 0f, 73f);
         waveSpawner.signalLight     = signalLt;
         waveSpawner.overrideTerminal = overrideTerm;
+        var wpBreach = waveTriggerGo.AddComponent<G1Waypoint>();
+        wpBreach.objectiveId = "breach_wave";
+        wpBreach.label = "BREACH ZONE";
 
         // Ambient portal light (atmosphere, always on)
         var l10 = SpawnLight("Breach_PortalLight", new Vector3(12f, 2.5f, 68f),
@@ -805,6 +811,12 @@ public static class G1SceneBuilder
         exitTrigger.requireUnlock = true;
         // Reset static flag so each play session starts locked
         G1LevelExitTrigger.ElevatorUnlocked = false;
+
+        // Level 1 Objective Manager
+        var objMgrGo = new GameObject("ObjectiveManager");
+        var objMgr = objMgrGo.AddComponent<G1ObjectiveManager>();
+        objMgr.AddObjective("breach_wave", "Eliminate Alien Breach Threat");
+        objMgr.AddObjective("override_terminal", "Override Elevator Console & Evacuate");
     }
 
     /// Seeded point in the arena, kept clear of the player spawn and doorway.
