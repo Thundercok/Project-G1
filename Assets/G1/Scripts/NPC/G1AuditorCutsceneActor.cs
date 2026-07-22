@@ -1,11 +1,11 @@
 using UnityEngine;
 
 /// Auditor (G-Man style mysterious suit character) cutscene actor.
-/// Turns to observe Chad Thundercock, triggers subtitles/dialogue, and vanishes when approached.
+/// When Chad Thundercock spots the Auditor, it triggers Chad's inner character thoughts.
 public class G1AuditorCutsceneActor : MonoBehaviour
 {
-    [Header("Auditor Settings")]
-    public string dialogLine = "Subject: Chad Thundercock... anomalous potential detected.";
+    [Header("Chad's Character Thoughts")]
+    public string dialogLine = "Who is that guy in the dark suit? He's watching me... then vanishing!";
     public float triggerRadius = 8.0f;
     public float vanishRadius = 4.0f;
     public bool vanishOnClose = true;
@@ -43,13 +43,13 @@ public class G1AuditorCutsceneActor : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * 3.5f);
         }
 
-        // Trigger subtitle line on approach
+        // Trigger Chad's inner monologue thought on approach
         if (dist <= triggerRadius && !hasTriggeredLine)
         {
             hasTriggeredLine = true;
             if (G1CutsceneManager.Instance != null && !string.IsNullOrEmpty(dialogLine))
             {
-                G1CutsceneManager.Instance.ShowSubtitle($"[THE AUDITOR]: \"{dialogLine}\"", 5.0f);
+                G1CutsceneManager.Instance.ShowSubtitle($"[CHAD'S THOUGHTS]: \"{dialogLine}\"", 5.0f);
             }
         }
 

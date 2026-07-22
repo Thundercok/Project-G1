@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// Level 3 Final Threshold Ending Cutscene.
-/// Triggers upon reaching the Xen Portal. Plays G-Man Auditor final disposition cutscene.
+/// Triggers upon reaching the Xen Portal. Plays Chad Thundercock's final character thoughts & disposition card.
 public class G1EndingCutscene : MonoBehaviour
 {
     private bool hasTriggered = false;
@@ -39,14 +39,14 @@ public class G1EndingCutscene : MonoBehaviour
 
         if (G1CutsceneManager.Instance != null)
         {
-            G1CutsceneManager.Instance.ShowSubtitle("[THE AUDITOR]: \"Experiment failed... yet you survived the alien horde and government hit squads, Chad Thundercock.\"", 6.0f);
+            G1CutsceneManager.Instance.ShowSubtitle("[CHAD'S THOUGHTS]: \"Experiment failed... facility overrun by aliens... and a government execution order on my head.\"", 6.0f);
         }
 
         yield return new WaitForSeconds(6.5f);
 
         if (G1CutsceneManager.Instance != null)
         {
-            G1CutsceneManager.Instance.ShowSubtitle("[THE AUDITOR]: \"Step through the portal ring. You are now... uncontained.\"", 6.0f);
+            G1CutsceneManager.Instance.ShowSubtitle("[CHAD'S THOUGHTS]: \"They thought I wouldn't survive... Time to step through the portal and get out NOW!\"", 6.0f);
         }
 
         yield return new WaitForSeconds(6.5f);
@@ -88,8 +88,8 @@ public class G1EndingCutscene : MonoBehaviour
 
             GUI.color = new Color(0.2f, 0.9f, 0.4f, 1f);
             GUI.Label(new Rect(0, y + 95, Screen.width, 45), "SUBJECT: CHAD THUNDERCOCK", titleStyle);
-            GUI.Label(new Rect(0, y + 145, Screen.width, 35), "EVALUATION: SURVIVED ALIEN & MILITARY PURGE", bodyStyle);
-            GUI.Label(new Rect(0, y + 180, Screen.width, 35), "DISPOSITION: ESCAPED — STATUS: UNCONTAINED", bodyStyle);
+            GUI.Label(new Rect(0, y + 145, Screen.width, 35), "SURVIVAL STATUS: SURVIVED ALIEN & MILITARY PURGE", bodyStyle);
+            GUI.Label(new Rect(0, y + 180, Screen.width, 35), "DIRECTIVE COMPLETE: ESCAPED — STATUS: UNCONTAINED", bodyStyle);
         }
     }
 

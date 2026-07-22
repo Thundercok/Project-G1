@@ -61,7 +61,7 @@ public static class G1CampaignBuilders
         SpawnPrefabAndReturn(path, pos, yaw);
     }
 
-    static void Cameo(Vector3 pos, float yaw, string dialog = "Subject Chad Thundercock... anomalous potential detected.")
+    static void Cameo(Vector3 pos, float yaw, string dialog = "The military sweepers are executing everyone on the surface yard... I need to get back down into the Undercroft!")
     {
         var fbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/G1/Models/Villain.fbx");
         var ctrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
@@ -387,7 +387,7 @@ public static class G1CampaignBuilders
         pl.range = 14f;
         pl.intensity = 2.5f;
 
-        Cameo(new Vector3(3.5f, 0f, 43f), 250f, "Step into the aperture, Chad Thundercock. My employers are expecting you.");
+        Cameo(new Vector3(3.5f, 0f, 43f), 250f, "That suit guy again... standing right beside the portal ring. No time to ask questions — ESCAPE NOW!");
 
         // ending disposition cutscene trigger at the Xen Threshold Portal
         var endCutsceneTrigger = new GameObject("EndingCutsceneTrigger");

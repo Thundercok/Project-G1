@@ -537,7 +537,7 @@ public static class G1SceneBuilder
             var auditor = (GameObject)Object.Instantiate(auditorPrefab, new Vector3(14f, 1.0f, 25f), Quaternion.Euler(0f, -120f, 0f));
             auditor.name = "TheAuditor_ControlRoom";
             var actor = auditor.AddComponent<G1AuditorCutsceneActor>();
-            actor.dialogLine = "Subject Chad Thundercock... anomalous potential detected in Sector C.";
+            actor.dialogLine = "What the... who is that guy in the dark suit observing me behind the glass?";
             actor.triggerRadius = 10f;
             actor.vanishRadius = 4.5f;
         }
