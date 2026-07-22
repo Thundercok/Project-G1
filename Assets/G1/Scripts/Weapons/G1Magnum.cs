@@ -109,14 +109,23 @@ public class G1Magnum : WeaponBase
             camFX.Punch(recoilAccum);
             camFX.Shake(0.24f);
         }
+        AddRecoilImpulse(new Vector3(0f, 0.11f, -0.22f));
 
+        Vector3 origin = muzzlePoint ? muzzlePoint.position : viewCamera.transform.position;
         if (RayHit(range, out RaycastHit hit))
         {
             bool hitEnemy = ApplyHit(hit, damage, hitForce);
             if (weaponFX)
+            {
                 weaponFX.SpawnBulletDecal(hit);
+                weaponFX.PlayTracerBeam(origin, hit.point, new Color(1f, 0.9f, 0.5f));
+            }
             if (hitEnemy && camFX)
                 camFX.ShowHitMarker();
+        }
+        else if (weaponFX)
+        {
+            weaponFX.PlayTracerBeam(origin, origin + viewCamera.transform.forward * range, new Color(1f, 0.9f, 0.5f));
         }
     }
 

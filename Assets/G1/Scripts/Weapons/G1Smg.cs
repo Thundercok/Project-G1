@@ -83,14 +83,23 @@ public class G1Smg : WeaponBase
             camFX.Punch(0.8f);
             camFX.Shake(0.05f);
         }
+        AddRecoilImpulse(new Vector3(Random.Range(-0.012f, 0.012f), 0.02f, -0.045f));
         G1Audio.Play2D("fire_smg", 0.55f);
+        Vector3 origin = muzzlePoint ? muzzlePoint.position : viewCamera.transform.position;
         if (RayHit(range, out RaycastHit hit))
         {
             bool hitEnemy = ApplyHit(hit, damage, hitForce);
             if (weaponFX)
+            {
                 weaponFX.SpawnBulletDecal(hit);
+                weaponFX.PlayTracerBeam(origin, hit.point, new Color(1f, 0.8f, 0.3f));
+            }
             if (hitEnemy && camFX)
                 camFX.ShowHitMarker();
+        }
+        else if (weaponFX)
+        {
+            weaponFX.PlayTracerBeam(origin, origin + viewCamera.transform.forward * range, new Color(1f, 0.8f, 0.3f));
         }
     }
 

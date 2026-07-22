@@ -82,8 +82,10 @@ public class G1Shotgun : WeaponBase
             camFX.Punch(7f);        // ~2x
             camFX.Shake(0.32f);
         }
+        AddRecoilImpulse(new Vector3(0f, 0.14f, -0.30f));
         G1Audio.Play2D("fire_shotgun", 1f, 0.85f);
 
+        Vector3 origDouble = muzzlePoint ? muzzlePoint.position : viewCamera.transform.position;
         bool hitAnyEnemy = false;
         for (int i = 0; i < pellets * 2; i++)
         {
@@ -91,7 +93,10 @@ public class G1Shotgun : WeaponBase
             {
                 if (ApplyHit(hit, damage, hitForce)) hitAnyEnemy = true;
                 if (weaponFX)
+                {
                     weaponFX.SpawnBulletDecal(hit);
+                    weaponFX.PlayTracerBeam(origDouble, hit.point, new Color(1f, 0.75f, 0.2f));
+                }
             }
         }
         if (hitAnyEnemy && camFX)
@@ -112,8 +117,10 @@ public class G1Shotgun : WeaponBase
             camFX.Punch(3.5f);
             camFX.Shake(0.16f);
         }
+        AddRecoilImpulse(new Vector3(0f, 0.07f, -0.16f));
         G1Audio.Play2D("fire_shotgun", 0.85f);
 
+        Vector3 orig = muzzlePoint ? muzzlePoint.position : viewCamera.transform.position;
         bool hitAnyEnemy = false;
         for (int i = 0; i < pellets; i++)
         {
@@ -122,7 +129,10 @@ public class G1Shotgun : WeaponBase
                 bool hitEnemy = ApplyHit(hit, damage, hitForce);
                 if (hitEnemy) hitAnyEnemy = true;
                 if (weaponFX)
+                {
                     weaponFX.SpawnBulletDecal(hit);
+                    weaponFX.PlayTracerBeam(orig, hit.point, new Color(1f, 0.75f, 0.2f));
+                }
             }
         }
 

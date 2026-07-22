@@ -129,23 +129,37 @@ public class G1NPCCombat : MonoBehaviour
         Vector3 targetPos = player.transform.position + Vector3.up * 1.3f;
         Vector3 dir = (targetPos - eyePos).normalized;
 
-        // NO HITSCAN: Launch visible 3D tracer projectile (24 m/s)
-        var projGo = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        Destroy(projGo.GetComponent<Collider>());
-        projGo.transform.position = eyePos;
-        projGo.transform.localScale = Vector3.one * 0.14f;
+        // Instant Hitscan with Tracer Beam
+        float range = 100f;
+        float damage = 5f;
+        Vector3 endPoint = eyePos + dir * range;
 
-        var proj = projGo.AddComponent<G1VisibleProjectile>();
-        proj.Launch(dir, 5f, 24f, new Color(1f, 0.8f, 0.2f), true);
+        if (Physics.Raycast(eyePos, dir, out RaycastHit hit, range))
+        {
+            endPoint = hit.point;
+            var playerHp = hit.collider.GetComponentInParent<HealthSystem>();
+            if (playerHp != null && hit.collider.CompareTag("Player"))
+            {
+                playerHp.TakeDamage(damage, hit.point, hit.normal);
+                if (ThreatDirector.Instance != null)
+                {
+                    ThreatDirector.Instance.ReportPlayerHit();
+                }
+            }
+        }
 
-        // Telegraphed laser sight beam
-        var laser = new GameObject("TelegraphLaser").AddComponent<LineRenderer>();
-        laser.startWidth = 0.04f;
-        laser.endWidth = 0.01f;
-        laser.material = new Material(Shader.Find("Unlit/Color")) { color = new Color(1f, 0.2f, 0.1f, 0.8f) };
-        laser.SetPosition(0, eyePos);
-        laser.SetPosition(1, eyePos + dir * 12f);
-        Destroy(laser.gameObject, 0.12f);
+        // Tracer beam
+        var tracer = new GameObject("EnemyTracer").AddComponent<LineRenderer>();
+        tracer.startWidth = 0.04f;
+        tracer.endWidth = 0.01f;
+        tracer.positionCount = 2;
+        tracer.SetPosition(0, eyePos);
+        tracer.SetPosition(1, endPoint);
+        tracer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        tracer.receiveShadows = false;
+        var mat = new Material(Shader.Find("Unlit/Color")) { color = new Color(1f, 0.8f, 0.2f) };
+        tracer.material = mat;
+        Destroy(tracer.gameObject, 0.04f);
     }
 
     void PlayMuzzleFlash()

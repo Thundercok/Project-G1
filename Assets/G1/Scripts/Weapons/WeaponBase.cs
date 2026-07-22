@@ -11,11 +11,17 @@ public abstract class WeaponBase : MonoBehaviour
     public Transform muzzlePoint;
     public CameraEffects camFX;
 
-    [Header("View bob")]
+    [Header("View bob & Damped Spring")]
     public float bobAmount = 0.012f;
+    public float swayAmount = 0.015f;
+    public float springStiffness = 220f;
+    public float springDamping = 18f;
 
     protected Vector3 restPos;
+    protected Vector3 springOffset;
+    protected Vector3 springVelocity;
     float bobT;
+    bool wasGrounded;
 
     protected bool InputLocked => Cursor.lockState != CursorLockMode.Locked
                                 || G1MobSpawnerToolbox.IsOpen;
@@ -35,21 +41,52 @@ public abstract class WeaponBase : MonoBehaviour
     {
         if (!InputLocked)
             HandleInput();
-        ApplyBob();
+        UpdateSpringPhysics();
+        ApplyBobAndSway();
+    }
+
+    /// Add snappy recoil or impact impulse to the viewmodel spring
+    public void AddRecoilImpulse(Vector3 impulse)
+    {
+        springVelocity += impulse;
+    }
+
+    void UpdateSpringPhysics()
+    {
+        // 2nd-order damped harmonic oscillator physics
+        Vector3 accel = -springStiffness * springOffset - springDamping * springVelocity;
+        springVelocity += accel * Time.deltaTime;
+        springOffset += springVelocity * Time.deltaTime;
+
+        // Landing impact dip
+        if (movement)
+        {
+            if (movement.Grounded && !wasGrounded)
+            {
+                springVelocity += Vector3.down * 0.15f;
+            }
+            wasGrounded = movement.Grounded;
+        }
     }
 
     /// Per-weapon input handling; only called while the cursor is locked.
     protected abstract void HandleInput();
 
-    void ApplyBob()
+    void ApplyBobAndSway()
     {
         Vector3 hv = movement ? movement.Velocity : Vector3.zero;
         hv.y = 0f;
         float speed = movement && movement.Grounded ? hv.magnitude : 0f;
-        bobT += Time.deltaTime * Mathf.Lerp(1f, 10f, Mathf.Clamp01(speed / 8f));
+        bobT += Time.deltaTime * Mathf.Lerp(1f, 12f, Mathf.Clamp01(speed / 8f));
         float amp = bobAmount * Mathf.Clamp01(speed / 4f);
-        transform.localPosition = restPos + new Vector3(
-            Mathf.Cos(bobT) * amp, Mathf.Abs(Mathf.Sin(bobT)) * amp, 0f);
+
+        // Mouse sway
+        float mouseX = InputLocked ? 0f : Input.GetAxis("Mouse X") * swayAmount;
+        float mouseY = InputLocked ? 0f : Input.GetAxis("Mouse Y") * swayAmount;
+        Vector3 swayTarget = new Vector3(-mouseX, -mouseY, 0f);
+
+        Vector3 bobPos = new Vector3(Mathf.Cos(bobT) * amp, Mathf.Abs(Mathf.Sin(bobT)) * amp, 0f);
+        transform.localPosition = restPos + bobPos + swayTarget + springOffset;
     }
 
     protected bool RayHit(float range, out RaycastHit hit)

@@ -88,14 +88,23 @@ public class G1Pistol : WeaponBase
             camFX.Punch(1.5f);
             camFX.Shake(0.04f);
         }
+        AddRecoilImpulse(new Vector3(0f, 0.03f, -0.07f));
         G1Audio.Play2D("fire_pistol", 0.7f);
+        Vector3 origin = muzzlePoint ? muzzlePoint.position : viewCamera.transform.position;
         if (RayHit(range, out RaycastHit hit))
         {
             bool hitEnemy = ApplyHit(hit, damage, hitForce);
             if (weaponFX)
+            {
                 weaponFX.SpawnBulletDecal(hit);
+                weaponFX.PlayTracerBeam(origin, hit.point, new Color(1f, 0.85f, 0.4f));
+            }
             if (hitEnemy && camFX)
                 camFX.ShowHitMarker();
+        }
+        else if (weaponFX)
+        {
+            weaponFX.PlayTracerBeam(origin, origin + viewCamera.transform.forward * range, new Color(1f, 0.85f, 0.4f));
         }
     }
 

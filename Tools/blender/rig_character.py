@@ -231,10 +231,40 @@ else:
     }
     idle, idle_len = make_action("Idle", idle_keys, 120)
 
-# push both actions onto NLA so the FBX exporter writes them as clips
+# --- High-Octane Run Cycle (20 frames) ---
+RA, RS, RARM_A = 38, 65, 28
+run_keys = {
+    "thigh.L": [(1, R(-RA), None), (5, R(12), None), (11, R(RA * 0.8), None), (16, R(0), None), (21, R(-RA), None)],
+    "thigh.R": [(1, R(RA * 0.8), None), (5, R(0), None), (11, R(-RA), None), (16, R(12), None), (21, R(RA * 0.8), None)],
+    "shin.L": [(1, R(12), None), (5, R(6), None), (11, R(35), None), (16, R(RS), None), (21, R(12), None)],
+    "shin.R": [(1, R(35), None), (5, R(RS), None), (11, R(12), None), (16, R(6), None), (21, R(35), None)],
+    "upper_arm.L": [(1, R(RARM_A), None), (11, R(-RARM_A), None), (21, R(RARM_A), None)],
+    "upper_arm.R": [(1, R(-RARM_A), None), (11, R(RARM_A), None), (21, R(-RARM_A), None)],
+    "forearm.L": [(1, R(22), None)],
+    "forearm.R": [(1, R(22), None)],
+    "hips": [(1, None, (0, -0.03, 0)), (5, None, (0, 0.02, 0)), (11, None, (0, -0.03, 0)), (16, None, (0, 0.02, 0)), (21, None, (0, -0.03, 0))],
+    "chest": [(1, R(8), None), (11, R(10), None), (21, R(8), None)],
+}
+run, run_len = make_action("Run", run_keys, 20)
+
+# --- Combat Idle Stance (60 frames) ---
+combat_keys = {
+    "chest": [(1, R(5), None), (30, R(7), None), (61, R(5), None)],
+    "head": [(1, R(-2), None), (30, R(-3), None), (61, R(-2), None)],
+    "upper_arm.R": [(1, R(25, -10, 15), None), (30, R(27, -10, 15), None), (61, R(25, -10, 15), None)],
+    "forearm.R": [(1, R(45), None), (30, R(47), None), (61, R(45), None)],
+    "upper_arm.L": [(1, R(15, 10, -10), None), (30, R(17, 10, -10), None), (61, R(15, 10, -10), None)],
+    "forearm.L": [(1, R(30), None), (30, R(32), None), (61, R(30), None)],
+    "thigh.L": [(1, R(-6), None)],
+    "thigh.R": [(1, R(6), None)],
+    "hips": [(1, None, (0, -0.02, 0))],
+}
+combat_idle, combat_len = make_action("CombatIdle", combat_keys, 60)
+
+# push all actions onto NLA so the FBX exporter writes them as clips
 ad = arm.animation_data
 ad.action = None
-for act, length in ((idle, idle_len), (walk, walk_len)):
+for act, length in ((idle, idle_len), (walk, walk_len), (run, run_len), (combat_idle, combat_len)):
     tr = ad.nla_tracks.new()
     tr.name = act.name
     strip = tr.strips.new(act.name, 1, act)

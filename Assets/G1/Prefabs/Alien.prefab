@@ -296,8 +296,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aaf0f6867b0d4437390e6d2cda4d2442, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  forceMultiplier: 12
-  torqueMultiplier: 15
+  forceMultiplier: 24
+  torqueMultiplier: 25
   lieDuration: 5
   sinkDuration: 2
 --- !u!195 &8909793842876409424

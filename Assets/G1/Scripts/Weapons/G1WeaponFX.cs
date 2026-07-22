@@ -152,6 +152,26 @@ public class G1WeaponFX : MonoBehaviour
         PlayImpactFX(hit.point, hit.normal);
     }
 
+    /// Fast-fading unlit hitscan tracer line beam
+    public void PlayTracerBeam(Vector3 start, Vector3 end, Color tracerColor)
+    {
+        var lineGo = new GameObject("TracerBeam");
+        var line = lineGo.AddComponent<LineRenderer>();
+        line.startWidth = 0.04f;
+        line.endWidth = 0.01f;
+        line.positionCount = 2;
+        line.SetPosition(0, start);
+        line.SetPosition(1, end);
+        line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        line.receiveShadows = false;
+
+        var mat = new Material(Shader.Find("Unlit/Color"));
+        mat.color = tracerColor;
+        line.material = mat;
+
+        Destroy(lineGo, 0.04f);
+    }
+
     // Programmatic double-sided cross star mesh
     Mesh CreateCrossMesh(float s)
     {

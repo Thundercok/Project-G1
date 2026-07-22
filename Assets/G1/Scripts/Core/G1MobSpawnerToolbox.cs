@@ -220,9 +220,11 @@ public class G1MobSpawnerToolbox : MonoBehaviour
                     go.AddComponent<G1AlienAI>();
             }
 
-            // Ensure health bar
+            // Ensure health bar and death ragdoll physics
             if (go.GetComponent<WorldSpaceHealthBar>() == null)
                 go.AddComponent<WorldSpaceHealthBar>();
+            if (go.GetComponent<G1DeathPhysics>() == null)
+                go.AddComponent<G1DeathPhysics>();
 
             // Scale boss up
             if (kind == "BOSS")
@@ -250,6 +252,7 @@ public class G1MobSpawnerToolbox : MonoBehaviour
             var hs       = go.AddComponent<HealthSystem>();
             hs.maxHealth = mob.hp;
             go.AddComponent<WorldSpaceHealthBar>();
+            go.AddComponent<G1DeathPhysics>();
 
             var agent          = go.AddComponent<NavMeshAgent>();
             agent.radius       = 0.38f;
