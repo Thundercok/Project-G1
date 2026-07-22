@@ -73,6 +73,7 @@ public class G1ZombieAI : MonoBehaviour
                 isChasing = true;
                 if (patrol) patrol.enabled = false;
                 if (anim) anim.CrossFade("Walk", 0.1f);
+                SpeakTakenWord();
             }
         }
         else
@@ -188,6 +189,22 @@ public class G1ZombieAI : MonoBehaviour
             if (rightArm) rightArm.localRotation = Quaternion.Euler(-80f + angleOffset, 0f, -40f);
             yield return null;
         }
+    }
+
+    // A Taken is a human whose echo has been folded back from a future loop. Now
+    // and then, at the moment of aggro, the person underneath surfaces for one
+    // clear word before the hunger takes over again. Rare and squad-throttled so
+    // it stays haunting instead of chatty.
+    static float _nextTakenWord;
+    void SpeakTakenWord()
+    {
+        if (Time.time < _nextTakenWord) return;
+        if (Random.value > 0.22f) return;                 // most stay silent
+        _nextTakenWord = Time.time + 9f;
+        G1Audio.Play("enemy_attack", transform.position, 0.5f, 0.55f, 0.1f);
+        if (G1CutsceneManager.Instance != null)
+            G1CutsceneManager.Instance.ShowSubtitle(
+                "[TAKEN]: \"" + G1LoreText.NextTakenWord() + "\"", 3f);
     }
 
     private Vector3 GetSeparationOffset()

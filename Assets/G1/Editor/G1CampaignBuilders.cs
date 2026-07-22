@@ -83,6 +83,18 @@ public static class G1CampaignBuilders
         actor.vanishRadius = 4f;
     }
 
+    // Spray-painted message from a previous loop. Empty text pulls the next line
+    // from G1LoreText by tier. Face the wall by setting yaw.
+    static void Graffiti(Vector3 pos, float yaw, int tier, string text = "")
+    {
+        var go = new GameObject("Graffiti");
+        go.transform.position = pos;
+        go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+        var g = go.AddComponent<G1Graffiti>();
+        g.tier = Mathf.Clamp(tier, 1, 3);
+        g.text = text;
+    }
+
     static GameObject Exit(string name, Vector3 pos, Vector3 size, string next, string wpLabel = "EVAC EXIT")
     {
         var go = new GameObject(name);
@@ -345,7 +357,7 @@ public static class G1CampaignBuilders
         var objGo = new GameObject("ObjectiveManager");
         var objMgr = objGo.AddComponent<G1ObjectiveManager>();
         objMgr.AddObjective("undercroft_guardians", "Neutralize Undercroft Guardians", mandatory: true, requiredCount: 6);
-        objMgr.AddObjective("threshold_portal", "Enter Xen Threshold Portal", mandatory: false);
+        objMgr.AddObjective("threshold_portal", "Step through the Threshold — OR break its emitters to end the loop", mandatory: false);
 
         foreach (var enemy in enemies)
         {
@@ -386,6 +398,30 @@ public static class G1CampaignBuilders
         pl.color = teal;
         pl.range = 14f;
         pl.intensity = 2.5f;
+
+        // RESONANCE EMITTERS: the ring's anchor points. Step through the portal
+        // to stabilize (loop continues), or smash every emitter with the crowbar
+        // to collapse the ring (loop breaks). See G1ResonanceEmitter / G1EndingCutscene.
+        var emitterMat = Mat(new Color(0.95f, 0.5f, 0.12f), 2.6f);   // hot amber — "hit me"
+        float[] emitterX = { -3f, 0f, 3f };
+        foreach (float ex in emitterX)
+        {
+            var emitter = GameObject.CreatePrimitive(PrimitiveType.Cube);   // keeps its BoxCollider so the crowbar can hit it
+            emitter.name = "ResonanceEmitter";
+            // In front of the portal trigger (z 40-44) so the player can smash
+            // them to collapse the loop WITHOUT stepping through and stabilizing it.
+            emitter.transform.position = new Vector3(ex, 1.1f, 38.5f);
+            emitter.transform.localScale = new Vector3(0.45f, 2.2f, 0.45f);
+            emitter.GetComponent<Renderer>().sharedMaterial = emitterMat;
+            var eh = emitter.AddComponent<HealthSystem>();
+            eh.maxHealth = 60f;
+            emitter.AddComponent<Breakable>();
+            emitter.AddComponent<G1ResonanceEmitter>();
+        }
+
+        // Messages from previous loops, telling the player how to actually win.
+        Graffiti(new Vector3(-6.2f, 2.2f, 42.8f), 90f, 3, "BREAK THE RING, NOT THE GLASS");
+        Graffiti(new Vector3(6.2f, 2.2f, 41.5f), -90f, 3, "YOU ARE THE ANCHOR — END IT");
 
         Cameo(new Vector3(3.5f, 0f, 43f), 250f, "That suit guy again... standing right beside the portal ring. No time to ask questions — ESCAPE NOW!");
 
