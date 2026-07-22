@@ -78,8 +78,28 @@ public class HealthSystem : MonoBehaviour, IDamageable
         {
             IsDead = true;
             if (!camFx)
+            {
                 G1Audio.Play(GetComponent<Breakable>() ? "crate_break" : "enemy_death",
                              transform.position, 0.8f);
+
+                // Reward aggression: Siphon Health & Armor directly to player on every kill!
+                if (!CompareTag("Player") && GetComponent<Breakable>() == null)
+                {
+                    var playerObj = GameObject.FindWithTag("Player");
+                    if (playerObj != null)
+                    {
+                        var playerHs = playerObj.GetComponent<HealthSystem>();
+                        if (playerHs != null && !playerHs.IsDead)
+                        {
+                            float hpGain = G1Difficulty.KillHealthReward;
+                            float armGain = G1Difficulty.KillArmorReward;
+                            if (hpGain > 0f) playerHs.Heal(hpGain);
+                            if (armGain > 0f) playerHs.AddArmor(armGain);
+                            G1Audio.Play2D("pickup", 0.45f, 1.3f);
+                        }
+                    }
+                }
+            }
             OnDeath?.Invoke(hitPoint, hitNormal);
         }
     }
