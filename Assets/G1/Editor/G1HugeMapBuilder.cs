@@ -122,13 +122,31 @@ public static class G1HugeMapBuilder
             new G1MissionSetup.Def { id = "gunship", description = "Destroy the HECU gunship", mandatory = false, count = 1 },
         };
 
-        // three survivors stranded across the districts
+        // three survivors stranded across the districts. The northern one is an
+        // engineer who, once freed, HANDS YOU A FOLLOW-UP QUEST: restore the
+        // signal at the comms array (SE). Rescuing all three + doing his quest
+        // are what unlock the extraction gate.
         SpawnRescuable(new Vector3(-150f, 0.1f, 20f));    // allied base (west)
-        SpawnRescuable(new Vector3(10f, 0.1f, 150f));     // lab complex (north)
         SpawnRescuable(new Vector3(150f, 0.1f, -10f));    // hangar (east)
 
-        // extraction teleport gate on the plaza's south approach, gated on the
-        // rescue objective (G1LevelExitTrigger checks IsLevelComplete).
+        Vector3 commsArray = new Vector3(155f, 0f, -150f);
+        SpawnQuestGiver(new Vector3(10f, 0.1f, 150f),     // lab complex (north)
+            "ENGINEER OKAFOR",
+            "You made it! The Sweepers cut our comms — the array's still intact " +
+            "at the southeast dish. Reach it and restore the signal, or nobody " +
+            "topside knows we're alive. Go!",
+            "restore-comms", "Restore the signal at the comms array", commsArray);
+
+        // the quest's destination: a zone at the comms array that completes it
+        var zoneGo = new GameObject("QuestZone_Comms");
+        zoneGo.transform.position = commsArray + Vector3.up * 2f;
+        var zc = zoneGo.AddComponent<BoxCollider>();
+        zc.isTrigger = true;
+        zc.size = new Vector3(10f, 6f, 10f);
+        zoneGo.AddComponent<G1QuestZone>().objectiveId = "restore-comms";
+
+        // extraction teleport gate on the plaza's south approach, gated on ALL
+        // mandatory objectives (rescues + the engineer's quest).
         BuildExtractionGate(new Vector3(0f, 0f, -40f));
 
         // ---------------- ALLIES (good side) — many, spread across the west ----
@@ -332,6 +350,36 @@ public static class G1HugeMapBuilder
             r.sharedMaterial = m;
         }
         go.AddComponent<G1Rescuable>().objectiveId = "rescue";
+    }
+
+    static void SpawnQuestGiver(Vector3 pos, string name, string dialogue,
+                                string questId, string questDesc, Vector3 questTarget)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{Models}/Protagonist.fbx");
+        var ctrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
+            "Assets/G1/Anim/Protagonist.controller");
+        if (prefab == null) return;
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        go.name = "QuestGiver";
+        go.transform.position = pos;
+        var anim = go.GetComponent<Animator>();
+        if (!anim) anim = go.AddComponent<Animator>();
+        if (ctrl) anim.runtimeAnimatorController = ctrl;
+        int idx = 0;
+        foreach (var r in go.GetComponentsInChildren<Renderer>())
+        {
+            var m = r.sharedMaterial != null ? new Material(r.sharedMaterial) : new Material(Shader.Find("Standard"));
+            m.color = idx++ == 0 ? new Color(0.95f, 0.8f, 0.2f) : new Color(0.55f, 0.45f, 0.12f);
+            r.sharedMaterial = m;
+        }
+        var qg = go.AddComponent<G1QuestGiver>();
+        qg.npcName = name;
+        qg.dialogue = dialogue;
+        qg.rescueObjectiveId = "rescue";
+        qg.questId = questId;
+        qg.questDescription = questDesc;
+        qg.questMandatory = true;
+        qg.questTarget = questTarget;
     }
 
     static void BuildExtractionGate(Vector3 pos)

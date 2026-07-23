@@ -14,6 +14,7 @@ public sealed class G1MissionAssistant : MonoBehaviour
 
     struct Snap { public int count; public bool done; }
     readonly Dictionary<string, Snap> snap = new Dictionary<string, Snap>();
+    bool primed;
 
     // comms line being shown
     string fullLine = "";
@@ -51,6 +52,7 @@ public sealed class G1MissionAssistant : MonoBehaviour
         if (om == null) return;
         foreach (var o in om.objectives)
             snap[o.id] = new Snap { count = o.currentCount, done = o.isCompleted };
+        primed = true;
     }
 
     void OnUpdated(G1ObjectiveManager.Objective active, bool isNewCompletion)
@@ -58,11 +60,21 @@ public sealed class G1MissionAssistant : MonoBehaviour
         var om = G1ObjectiveManager.Instance;
         if (om == null) return;
 
+        // before the intro primes us, just track state silently (no spam)
+        if (!primed)
+        {
+            foreach (var o in om.objectives)
+                snap[o.id] = new Snap { count = o.currentCount, done = o.isCompleted };
+            return;
+        }
+
         foreach (var o in om.objectives)
         {
             snap.TryGetValue(o.id, out Snap prev);
             bool known = snap.ContainsKey(o.id);
-            if (o.isCompleted && (!known || !prev.done))
+            if (!known && !o.isCompleted)
+                Say("New objective — " + o.description + ".");   // quest handed out
+            else if (o.isCompleted && (!known || !prev.done))
                 Say("Objective complete — " + o.description + ".");
             else if (known && o.currentCount > prev.count && !o.isCompleted)
                 Say(o.description + ": " + o.currentCount + " of " + o.requiredCount + ".");
