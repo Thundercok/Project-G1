@@ -1209,6 +1209,14 @@ public static class G1SceneBuilder
     {
         var protagonist = SpawnCharacter($"{Models}/Protagonist.fbx",
                                          new Vector3(2f, 0f, -8f), protagonistCtrl);
+        // Color protagonist NPC as a scientist (orange lab coat) to prevent missing texture pink color
+        int pRenderIdx = 0;
+        foreach (var r in protagonist.GetComponentsInChildren<Renderer>())
+        {
+            var m = new Material(Shader.Find("Standard"));
+            m.color = pRenderIdx++ == 0 ? new Color(0.85f, 0.42f, 0.06f) : new Color(0.5f, 0.25f, 0.04f);
+            r.sharedMaterial = m;
+        }
         var patrol = new GameObject("PatrolPath").transform;
         Vector3[] pts =
         {

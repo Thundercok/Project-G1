@@ -249,7 +249,7 @@ public static class G1HugeMapBuilder
         int idx = 0;
         foreach (var r in go.GetComponentsInChildren<Renderer>())
         {
-            var m = r.sharedMaterial != null ? new Material(r.sharedMaterial) : new Material(Shader.Find("Standard"));
+            var m = new Material(Shader.Find("Standard"));
             m.color = idx++ == 0 ? tint : tint * 0.6f;
             r.sharedMaterial = m;
         }
@@ -345,7 +345,7 @@ public static class G1HugeMapBuilder
         int idx = 0;
         foreach (var r in go.GetComponentsInChildren<Renderer>())
         {
-            var m = r.sharedMaterial != null ? new Material(r.sharedMaterial) : new Material(Shader.Find("Standard"));
+            var m = new Material(Shader.Find("Standard"));
             m.color = idx++ == 0 ? new Color(0.9f, 0.85f, 0.3f) : new Color(0.5f, 0.47f, 0.18f);
             r.sharedMaterial = m;
         }
@@ -368,7 +368,7 @@ public static class G1HugeMapBuilder
         int idx = 0;
         foreach (var r in go.GetComponentsInChildren<Renderer>())
         {
-            var m = r.sharedMaterial != null ? new Material(r.sharedMaterial) : new Material(Shader.Find("Standard"));
+            var m = new Material(Shader.Find("Standard"));
             m.color = idx++ == 0 ? new Color(0.95f, 0.8f, 0.2f) : new Color(0.55f, 0.45f, 0.12f);
             r.sharedMaterial = m;
         }

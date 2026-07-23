@@ -23,7 +23,7 @@ Assets/G1/
 │   ├── Level3.unity      # Index 3: Campaign Act III — Surface Command & Finale
 │   └── HugeMap.unity     # Index 4: The Corvus Sprawl 600x600m Open Battlefield
 └── Scripts/              # C# Logic divided into 6 modular domain folders:
-    ├── Core/             # HealthSystem, G1Difficulty, G1ObjectiveManager, G1TutorialSystem, G1SaveSystem, G1Audio
+    ├── Core/             # HealthSystem, G1Difficulty, G1ObjectiveManager, G1TutorialSystem, G1SaveSystem, G1Audio, G1MissionAssistant, G1MissionSetup, G1QuestGiver, G1Rescuable
     ├── Interaction/      # SlidingDoor, Breakable, IUsable
     ├── NPC/              # G1SoldierAI (F.E.A.R. GOAP), G1FactionFighter, G1Ally, G1AlienAI, G1ZombieAI, Ragdoll Physics
     ├── Player/           # PlayerMovement (Quake bhop), MouseLook, PlayerUse, CameraEffects
