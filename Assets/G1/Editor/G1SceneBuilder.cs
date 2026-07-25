@@ -262,7 +262,7 @@ public static class G1SceneBuilder
         return ctrl;
     }
 
-    static Material MakeMat(string name, Color color, float smooth = 0.15f, string texName = null, float tileX = 1f, float tileY = 1f)
+    static Material MakeMat(string name, Color color, float smooth = 0.15f, string texName = null, float tileX = 1f, float tileY = 1f, float metallic = 0f)
     {
         string path = $"{MatDir}/{name}.mat";
         var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -273,6 +273,7 @@ public static class G1SceneBuilder
         }
         mat.color = color;
         mat.SetFloat("_Glossiness", smooth);
+        mat.SetFloat("_Metallic", metallic);
 
         if (!string.IsNullOrEmpty(texName))
         {
@@ -585,6 +586,13 @@ public static class G1SceneBuilder
         Slab("CorridorWallW", new Vector3(-2f, 1.5f, 6.5f), new Vector3(0.5f, 3, 19), concrete);
         Slab("CorridorWallE", new Vector3(2f, 1.5f, 6.5f), new Vector3(0.5f, 3, 19), concrete);
         
+        // Spawn structural pillars along the corridor walls to add architectural depth
+        for (float z = 1f; z <= 13f; z += 4f)
+        {
+            SpawnModular("prop_pillar_structural", new Vector3(-1.75f, 0f, z), Quaternion.Euler(0f, 90f, 0f), new Vector3(1f, 1f, 1f), concrete);
+            SpawnModular("prop_pillar_structural", new Vector3(1.75f, 0f, z), Quaternion.Euler(0f, -90f, 0f), new Vector3(1f, 1f, 1f), concrete);
+        }
+        
         // Doorframe 2 (Corridor to Control Room)
         Slab("CorridorFrameL", new Vector3(-1f, 1.25f, 16f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
         Slab("CorridorFrameR", new Vector3(1f, 1.25f, 16f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
@@ -611,6 +619,12 @@ public static class G1SceneBuilder
         Slab("ControlRoomWallE", new Vector3(14f, 1.5f, 22f), new Vector3(0.5f, 3, 12), concrete);
         Slab("ControlRoomWallN_L", new Vector3(2f, 1.5f, 28f), new Vector3(8, 3, 0.5f), concrete);
         Slab("ControlRoomWallN_R", new Vector3(12f, 1.5f, 28f), new Vector3(4, 3, 0.5f), concrete);
+
+        // Spawn structural pillars at room boundaries
+        SpawnModular("prop_pillar_structural", new Vector3(-1.75f, 0f, 18f), Quaternion.Euler(0f, 90f, 0f), new Vector3(1f, 1f, 1f), concrete);
+        SpawnModular("prop_pillar_structural", new Vector3(-1.75f, 0f, 24f), Quaternion.Euler(0f, 90f, 0f), new Vector3(1f, 1f, 1f), concrete);
+        SpawnModular("prop_pillar_structural", new Vector3(13.75f, 0f, 18f), Quaternion.Euler(0f, -90f, 0f), new Vector3(1f, 1f, 1f), concrete);
+        SpawnModular("prop_pillar_structural", new Vector3(13.75f, 0f, 24f), Quaternion.Euler(0f, -90f, 0f), new Vector3(1f, 1f, 1f), concrete);
         
         // Window overlooking Industrial Hall
         var glass = Slab("ControlRoomWindow", new Vector3(8f, 1.5f, 28f), new Vector3(4, 3, 0.1f), MakeMat("WindowGlass", new Color(0.2f, 0.6f, 0.7f, 0.3f), 0.9f));
@@ -677,6 +691,13 @@ public static class G1SceneBuilder
         SpawnModular("prop_pillar_structural", new Vector3(20f, 1.5f, 35f), Quaternion.identity, new Vector3(0.7f, 3f, 0.7f), hazard);
         SpawnModular("prop_pillar_structural", new Vector3(4f, 1.5f, 49f), Quaternion.identity, new Vector3(0.7f, 3f, 0.7f), hazard);
         SpawnModular("prop_pillar_structural", new Vector3(20f, 1.5f, 49f), Quaternion.identity, new Vector3(0.7f, 3f, 0.7f), hazard);
+
+        // Spawn wall structural pillars along the sides to break up flat walls
+        for (float z = 32f; z <= 50f; z += 6f)
+        {
+            SpawnModular("prop_pillar_structural", new Vector3(-3.75f, 0f, z), Quaternion.Euler(0f, 90f, 0f), new Vector3(1f, 1f, 1f), concrete);
+            SpawnModular("prop_pillar_structural", new Vector3(27.75f, 0f, z), Quaternion.Euler(0f, -90f, 0f), new Vector3(1f, 1f, 1f), concrete);
+        }
 
         SpawnModular("prop_generator_large", new Vector3(-2f, 0.75f, 31f), Quaternion.identity, new Vector3(1.2f, 1.5f, 1.8f), greenMat);
         SpawnModular("prop_generator_large", new Vector3(26f, 0.75f, 53f), Quaternion.identity, new Vector3(1.2f, 1.5f, 1.8f), greenMat);
@@ -943,13 +964,13 @@ public static class G1SceneBuilder
 
     static void BuildArena(ArenaConfig cfg, System.Random rng)
     {
-        Material concrete = MakeMat("Concrete", new Color(0.85f, 0.87f, 0.90f), 0.2f, "tex_concrete_wall", 4f, 2f);
-        Material floorMat = MakeMat("Floor", new Color(0.75f, 0.77f, 0.80f), 0.35f, "tex_floor_metal_grid", 6f, 6f);
-        Material hazard = MakeMat("HazardOrange", new Color(1f, 1f, 1f), 0.2f, "tex_hazard_stripe", 2f, 2f);
-        Material wood = MakeMat("CrateWood", new Color(0.55f, 0.42f, 0.25f), 0.15f, "tex_steel_panel", 1f, 1f);
-        Material doorMat = MakeMat("DoorSteel", new Color(0.85f, 0.88f, 0.92f), 0.4f, "tex_steel_panel", 2f, 2f);
-        Material metalMat = MakeMat("PropMetal", new Color(0.8f, 0.85f, 0.88f), 0.3f, "tex_steel_panel", 2f, 2f);
-        Material greenMat = MakeMat("IndustrialGreen", new Color(0.5f, 0.7f, 0.5f), 0.2f, "tex_steel_panel", 2f, 2f);
+        Material concrete = MakeMat("Concrete", new Color(0.85f, 0.87f, 0.90f), 0.1f, "tex_concrete_wall", 4f, 2f, 0.0f);
+        Material floorMat = MakeMat("Floor", new Color(0.75f, 0.77f, 0.80f), 0.42f, "tex_floor_metal_grid", 6f, 6f, 0.85f);
+        Material hazard = MakeMat("HazardOrange", new Color(1f, 1f, 1f), 0.2f, "tex_hazard_stripe", 2f, 2f, 0.1f);
+        Material wood = MakeMat("CrateWood", new Color(0.55f, 0.42f, 0.25f), 0.15f, "tex_steel_panel", 1f, 1f, 0.05f);
+        Material doorMat = MakeMat("DoorSteel", new Color(0.85f, 0.88f, 0.92f), 0.45f, "tex_steel_panel", 2f, 2f, 0.9f);
+        Material metalMat = MakeMat("PropMetal", new Color(0.8f, 0.85f, 0.88f), 0.4f, "tex_steel_panel", 2f, 2f, 0.85f);
+        Material greenMat = MakeMat("IndustrialGreen", new Color(0.5f, 0.7f, 0.5f), 0.35f, "tex_steel_panel", 2f, 2f, 0.75f);
 
         BuildAtriumHub(cfg, floorMat, concrete, metalMat, hazard);
         BuildLockerRoom(cfg, floorMat, concrete, metalMat, doorMat, hazard);

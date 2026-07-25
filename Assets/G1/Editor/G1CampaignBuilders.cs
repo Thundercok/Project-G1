@@ -11,10 +11,12 @@ using UnityEngine.SceneManagement;
 public static class G1CampaignBuilders
 {
     // ---------------------------------------------------------- shared bits
-    static Material Mat(Color c, float emission = 0f, string texName = null, float tileX = 1f, float tileY = 1f)
+    static Material Mat(Color c, float emission = 0f, string texName = null, float tileX = 1f, float tileY = 1f, float metallic = 0f, float smoothness = 0.15f)
     {
         var m = new Material(Shader.Find("Standard"));
         m.color = c;
+        m.SetFloat("_Metallic", metallic);
+        m.SetFloat("_Glossiness", smoothness);
         if (emission > 0f)
         {
             m.EnableKeyword("_EMISSION");
@@ -175,23 +177,45 @@ public static class G1CampaignBuilders
 
         // overcast dawn: flat grey-blue ambient, no sun, distant fog
         RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.36f, 0.42f, 0.50f);
+        RenderSettings.ambientMode = AmbientMode.Flat;
+        RenderSettings.ambientLight = new Color(0.18f, 0.22f, 0.32f); // cool shadow fill
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 30f;
-        RenderSettings.fogEndDistance = 90f;
-        RenderSettings.fogColor = new Color(0.45f, 0.50f, 0.56f);
+        RenderSettings.fogStartDistance = 25f;
+        RenderSettings.fogEndDistance = 75f;
+        RenderSettings.fogColor = new Color(0.24f, 0.28f, 0.36f); // cool industrial haze
 
-        var concrete = Mat(new Color(0.85f, 0.88f, 0.90f), 0f, "tex_concrete_wall", 8f, 2f);
-        var asphalt = Mat(new Color(0.75f, 0.77f, 0.80f), 0f, "tex_floor_metal_grid", 10f, 10f);
-        var green = Mat(new Color(0.6f, 0.7f, 0.6f), 0f, "tex_steel_panel", 2f, 2f);
-        var wood = Mat(new Color(0.6f, 0.5f, 0.3f), 0f, "tex_steel_panel", 1f, 1f);
+        // Warm dawn sun casting soft shadows
+        var sun = new GameObject("DawnSun");
+        var sunLt = sun.AddComponent<Light>();
+        sunLt.type = LightType.Directional;
+        sunLt.color = new Color(1f, 0.72f, 0.48f); // Golden sunrise light
+        sunLt.intensity = 1.35f;
+        sunLt.shadows = LightShadows.Soft;
+        sun.transform.rotation = Quaternion.Euler(14f, 45f, 0f);
+
+        var concrete = Mat(new Color(0.85f, 0.88f, 0.90f), 0f, "tex_concrete_wall", 8f, 2f, 0f, 0.1f);
+        var asphalt = Mat(new Color(0.75f, 0.77f, 0.80f), 0f, "tex_floor_metal_grid", 10f, 10f, 0.85f, 0.4f);
+        var green = Mat(new Color(0.6f, 0.7f, 0.6f), 0f, "tex_steel_panel", 2f, 2f, 0.75f, 0.45f);
+        var wood = Mat(new Color(0.6f, 0.5f, 0.3f), 0f, "tex_steel_panel", 1f, 1f, 0.05f, 0.15f);
 
         Slab("Yard", new Vector3(0, -0.25f, 0), new Vector3(60, 0.5f, 40), asphalt);
         Slab("WallN", new Vector3(0, 2f, 20), new Vector3(60.5f, 4, 0.6f), concrete);
         Slab("WallS", new Vector3(0, 2f, -20), new Vector3(60.5f, 4, 0.6f), concrete);
         Slab("WallW", new Vector3(-30, 2f, 0), new Vector3(0.6f, 4, 40.5f), concrete);
         Slab("WallE", new Vector3(30, 2f, 0), new Vector3(0.6f, 4, 40.5f), concrete);
+
+        // Spawn perimeter structural pillars to break up the flat concrete yard walls
+        for (float x = -24f; x <= 24f; x += 8f)
+        {
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(x, 0f, 19.6f), 180f);
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(x, 0f, -19.6f), 0f);
+        }
+        for (float z = -15f; z <= 15f; z += 6f)
+        {
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(-29.6f, 0f, z), 90f);
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(29.6f, 0f, z), -90f);
+        }
 
         // elevator starting room (player spawn, west side)
         Slab("ElevatorFloor", new Vector3(-27f, -0.25f, 10f), new Vector3(6, 0.5f, 6), asphalt);
@@ -303,7 +327,7 @@ public static class G1CampaignBuilders
         shaftConsole.name = "ShaftQuestionConsole";
         shaftConsole.transform.position = new Vector3(23f, 1f, -15f);
         shaftConsole.transform.localScale = new Vector3(1.1f, 1.5f, 0.4f);
-        shaftConsole.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.85f, 0.15f, 0.15f), 1.4f);
+        shaftConsole.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.85f, 0.15f, 0.15f), 1.8f, metallic: 0.9f, smoothness: 0.6f);
         var q2 = shaftConsole.AddComponent<G1QuestionTerminal>();
         q2.question = "Who really 'audits' this facility — and what do they want?";
         q2.options = new[]
@@ -314,6 +338,16 @@ public static class G1CampaignBuilders
         };
         q2.correctIndex = 1;
         q2.objectiveId = "solve_shaft";
+
+        // Pulsing amber warning beacon light on top of the console
+        var beaconGo = new GameObject("TerminalBeaconLight");
+        beaconGo.transform.position = new Vector3(23f, 1.8f, -15f);
+        var bl = beaconGo.AddComponent<Light>();
+        bl.type = LightType.Point;
+        bl.color = new Color(1f, 0.35f, 0f);
+        bl.range = 8f;
+        bl.intensity = 2.2f;
+        bl.shadows = LightShadows.Soft;
 
         Player(new Vector3(-27.5f, 0.05f, 10f), "CHAPTER TWO",
                "QUARANTINE — Surface Motor Pool, dawn", "ambient_industrial");
@@ -343,7 +377,7 @@ public static class G1CampaignBuilders
         RenderSettings.fogEndDistance = 45f;
         RenderSettings.fogColor = new Color(0.02f, 0.07f, 0.08f);
 
-        var rock = Mat(new Color(0.6f, 0.65f, 0.7f), 0f, "tex_concrete_wall", 6f, 6f);
+        var rock = Mat(new Color(0.6f, 0.65f, 0.7f), 0f, "tex_concrete_wall", 6f, 6f, 0.05f, 0.25f);
         var teal = new Color(0.16f, 0.75f, 0.75f);
 
         Slab("Floor", new Vector3(0, -0.25f, 20), new Vector3(30, 0.5f, 56), rock);
@@ -352,8 +386,15 @@ public static class G1CampaignBuilders
         Slab("WallS", new Vector3(0, 4f, -8), new Vector3(30.5f, 8, 0.6f), rock);
         Slab("WallN", new Vector3(0, 4f, 48), new Vector3(30.5f, 8, 0.6f), rock);
 
-        // alien pods and spore lights along the hall
-        var podMat = Mat(Color.white, 0.8f, "tex_alien_bio", 2f, 2f);
+        // Spawn side structural pillars along the Undercroft walls for depth and rhythm
+        for (float z = 0f; z <= 40f; z += 8f)
+        {
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(-14.6f, 0f, z), 90f);
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(14.6f, 0f, z), -90f);
+        }
+
+        // alien pods and spore lights along the hall (organic wet finish + shadow-casting lights)
+        var podMat = Mat(Color.white, 0.8f, "tex_alien_bio", 2f, 2f, 0.1f, 0.75f);
         for (int i = 0; i < 6; i++)
         {
             float x = (i % 2 == 0) ? -11f : 11f;
@@ -370,6 +411,7 @@ public static class G1CampaignBuilders
             li.color = teal;
             li.range = 6f;
             li.intensity = 0.9f;
+            li.shadows = LightShadows.Soft;
         }
 
         // the taken and the strays defend the hall
