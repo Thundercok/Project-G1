@@ -686,10 +686,10 @@ public static class G1SceneBuilder
 
         // Ambush cover blocks and points
         var coverParent = new GameObject("CoverPoints").transform;
-        Vector3[] coverPts = { new Vector3(8f, 0.55f, 40f), new Vector3(16f, 0.55f, 45f), new Vector3(12f, 0.55f, 50f) };
+        Vector3[] coverPts = { new Vector3(8f, 0.45f, 40f), new Vector3(16f, 0.45f, 45f), new Vector3(12f, 0.45f, 50f) };
         for (int i = 0; i < coverPts.Length; i++)
         {
-            var block = SpawnModular("wall_straight_panel", coverPts[i], Quaternion.identity, new Vector3(1.7f, 1.1f, 0.4f), concrete);
+            var block = SpawnModular("wall_straight_panel", coverPts[i], Quaternion.identity, new Vector3(1.7f, 0.9f, 0.4f), concrete);
             block.name = $"CoverBlock_{i}";
             for (int side = -1; side <= 1; side += 2)
             {
@@ -804,15 +804,15 @@ public static class G1SceneBuilder
             new Vector3(7.5f, 0.4f, 60.5f), Quaternion.identity, wood);
 
         // --- BEAT 2: Three cover blocks ---
-        var coverA = Slab("BreachCover_A", new Vector3(9.5f, 0.55f, 65f), new Vector3(1.8f, 1.1f, 0.4f), concrete);
+        var coverA = Slab("BreachCover_A", new Vector3(9.5f, 0.45f, 65f), new Vector3(1.8f, 0.9f, 0.4f), concrete);
         var cpA1 = new GameObject("CP_A_South"); cpA1.transform.position = new Vector3(9.5f, 0.05f, 64.3f); cpA1.AddComponent<G1CoverPoint>();
         var cpA2 = new GameObject("CP_A_North"); cpA2.transform.position = new Vector3(9.5f, 0.05f, 65.7f); cpA2.AddComponent<G1CoverPoint>();
         
-        var coverB = Slab("BreachCover_B", new Vector3(9f, 0.55f, 69f), new Vector3(1.8f, 1.1f, 0.4f), concrete);
+        var coverB = Slab("BreachCover_B", new Vector3(9f, 0.45f, 69f), new Vector3(1.8f, 0.9f, 0.4f), concrete);
         var cpB1 = new GameObject("CP_B_South"); cpB1.transform.position = new Vector3(9f, 0.05f, 68.3f); cpB1.AddComponent<G1CoverPoint>();
         var cpB2 = new GameObject("CP_B_North"); cpB2.transform.position = new Vector3(9f, 0.05f, 69.7f); cpB2.AddComponent<G1CoverPoint>();
         
-        var coverC = Slab("BreachCover_C", new Vector3(9.5f, 0.55f, 72f), new Vector3(1.8f, 1.1f, 0.4f), concrete);
+        var coverC = Slab("BreachCover_C", new Vector3(9.5f, 0.45f, 72f), new Vector3(1.8f, 0.9f, 0.4f), concrete);
         var cpC1 = new GameObject("CP_C_South"); cpC1.transform.position = new Vector3(9.5f, 0.05f, 71.3f); cpC1.AddComponent<G1CoverPoint>();
         var cpC2 = new GameObject("CP_C_North"); cpC2.transform.position = new Vector3(9.5f, 0.05f, 72.7f); cpC2.AddComponent<G1CoverPoint>();
 

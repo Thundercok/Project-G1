@@ -9,7 +9,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Speeds (m/s; HL1 units * 0.0254)")]
     public float maxSpeed = 8.1f;        // ~320 ups
     public float stopSpeed = 2.5f;       // ~100 ups
-    public float jumpSpeed = 6.8f;       // ~45 HU jump apex
+    public float jumpSpeed = 7.2f;       // ~45 HU jump apex
 
     [Header("Acceleration")]
     public float accelerate = 10f;       // sv_accelerate
