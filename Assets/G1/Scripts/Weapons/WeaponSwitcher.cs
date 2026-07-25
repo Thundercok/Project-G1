@@ -33,8 +33,13 @@ public class WeaponSwitcher : MonoBehaviour
         Select(index);
     }
 
+    public bool wheelOnly = true;
+
     void Update()
     {
+        // Weapon Wheel is the sole weapon selector when wheelOnly is true
+        if (wheelOnly) return;
+
         for (int i = 0; i < weapons.Length; i++)
             if (Input.GetKeyDown(KeyCode.Alpha1 + i) && IsUnlocked(i))
                 Select(i);
