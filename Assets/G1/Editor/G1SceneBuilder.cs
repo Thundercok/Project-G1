@@ -336,7 +336,7 @@ public static class G1SceneBuilder
         RenderSettings.fogColor = new Color(0.08f, 0.09f, 0.12f);
     }
 
-    static Light SpawnLight(string name, Vector3 pos, Color color, float range, float intensity, LightShadows shadows = LightShadows.Soft)
+    static Light SpawnLight(string name, Vector3 pos, Color color, float range, float intensity, LightShadows shadows = LightShadows.Soft, bool createFixture = true)
     {
         var go = new GameObject(name);
         go.transform.position = pos;
@@ -346,7 +346,50 @@ public static class G1SceneBuilder
         lt.range = range;
         lt.intensity = intensity;
         lt.shadows = shadows;
+
+        if (createFixture)
+        {
+            var fixture = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            fixture.name = name + "_Fixture";
+            Object.DestroyImmediate(fixture.GetComponent<Collider>());
+            fixture.transform.SetParent(go.transform, false);
+            fixture.transform.localPosition = new Vector3(0f, 0.12f, 0f);
+            fixture.transform.localScale = new Vector3(0.6f, 0.1f, 1.2f);
+
+            var emissiveMat = MakeMat($"Fixture_{name}", color, 0.9f);
+            emissiveMat.EnableKeyword("_EMISSION");
+            emissiveMat.SetColor("_EmissionColor", color * (intensity * 1.6f));
+            fixture.GetComponent<Renderer>().sharedMaterial = emissiveMat;
+        }
+
         return lt;
+    }
+
+    static void SpawnCeilingBeams(Vector3 center, Vector3 roomSize, Material metalMat, float beamSpacing = 6f)
+    {
+        var parent = new GameObject("CeilingBeams").transform;
+        float halfX = roomSize.x * 0.5f;
+        float halfZ = roomSize.z * 0.5f;
+        float ceilingY = center.y + roomSize.y * 0.5f - 0.2f;
+
+        for (float z = center.z - halfZ + 3f; z <= center.z + halfZ - 3f; z += beamSpacing)
+        {
+            var beam = Slab("CeilingBeam", new Vector3(center.x, ceilingY, z), new Vector3(roomSize.x - 0.8f, 0.35f, 0.3f), metalMat);
+            beam.transform.SetParent(parent, true);
+        }
+    }
+
+    static void SpawnIndustrialPipes(Vector3 start, Vector3 end, float radius, Material mat)
+    {
+        var pipe = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        pipe.name = "IndustrialPipe";
+        Object.DestroyImmediate(pipe.GetComponent<Collider>());
+        Vector3 mid = (start + end) * 0.5f;
+        pipe.transform.position = mid;
+        float len = Vector3.Distance(start, end);
+        pipe.transform.localScale = new Vector3(radius, len * 0.5f, radius);
+        pipe.transform.rotation = Quaternion.FromToRotation(Vector3.up, end - start);
+        pipe.GetComponent<Renderer>().sharedMaterial = mat;
     }
 
     static GameObject Slab(string name, Vector3 pos, Vector3 size, Material mat)
@@ -473,9 +516,11 @@ public static class G1SceneBuilder
         Slab("HubWallS",   new Vector3(0f,   2.25f, -54f),  new Vector3(48f, 4.5f, 0.5f), concrete);
         Slab("HubWallW",   new Vector3(-24f, 2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
         Slab("HubWallE",   new Vector3(24f,  2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
-        // North wall, split to leave the x[-6,6] opening into the Locker Room.
         Slab("HubWallN_W", new Vector3(-15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
         Slab("HubWallN_E", new Vector3( 15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
+
+        // Ceiling I-Beams for structural industrial depth
+        SpawnCeilingBeams(new Vector3(0f, 2f, -33.5f), new Vector3(48f, 4.5f, 41f), metalMat, 8f);
 
         // --- Short landmark dividers (open, not sealing) that hint the wings ---
         Slab("RecordsDivider",  new Vector3(-12f, 1.1f, -46f), new Vector3(0.4f, 2.2f, 12f), metalMat);
@@ -592,6 +637,10 @@ public static class G1SceneBuilder
             SpawnModular("prop_pillar_structural", new Vector3(-1.75f, 0f, z), Quaternion.Euler(0f, 90f, 0f), new Vector3(1f, 1f, 1f), concrete);
             SpawnModular("prop_pillar_structural", new Vector3(1.75f, 0f, z), Quaternion.Euler(0f, -90f, 0f), new Vector3(1f, 1f, 1f), concrete);
         }
+
+        // Industrial conduit pipes running along ceiling line
+        SpawnIndustrialPipes(new Vector3(-1.7f, 2.6f, -3f), new Vector3(-1.7f, 2.6f, 16f), 0.12f, concrete);
+        SpawnIndustrialPipes(new Vector3(1.7f, 2.6f, -3f), new Vector3(1.7f, 2.6f, 16f), 0.12f, concrete);
         
         // Doorframe 2 (Corridor to Control Room)
         Slab("CorridorFrameL", new Vector3(-1f, 1.25f, 16f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
@@ -625,6 +674,9 @@ public static class G1SceneBuilder
         SpawnModular("prop_pillar_structural", new Vector3(-1.75f, 0f, 24f), Quaternion.Euler(0f, 90f, 0f), new Vector3(1f, 1f, 1f), concrete);
         SpawnModular("prop_pillar_structural", new Vector3(13.75f, 0f, 18f), Quaternion.Euler(0f, -90f, 0f), new Vector3(1f, 1f, 1f), concrete);
         SpawnModular("prop_pillar_structural", new Vector3(13.75f, 0f, 24f), Quaternion.Euler(0f, -90f, 0f), new Vector3(1f, 1f, 1f), concrete);
+
+        // Ceiling steel beams
+        SpawnCeilingBeams(new Vector3(6f, 1.25f, 22f), new Vector3(16f, 3f, 12f), metalMat, 4f);
         
         // Window overlooking Industrial Hall
         var glass = Slab("ControlRoomWindow", new Vector3(8f, 1.5f, 28f), new Vector3(4, 3, 0.1f), MakeMat("WindowGlass", new Color(0.2f, 0.6f, 0.7f, 0.3f), 0.9f));
@@ -686,6 +738,9 @@ public static class G1SceneBuilder
         Slab("IndustrialWallE", new Vector3(28f, 1.5f, 42f), new Vector3(0.5f, 3, 28), concrete);
         Slab("IndustrialWallN_L", new Vector3(2f, 1.5f, 56f), new Vector3(12, 3, 0.5f), concrete);
         Slab("IndustrialWallN_R", new Vector3(22f, 1.5f, 56f), new Vector3(12, 3, 0.5f), concrete);
+
+        // Heavy industrial ceiling steel trusses
+        SpawnCeilingBeams(new Vector3(12f, 1.25f, 42f), new Vector3(32f, 3f, 28f), metalMat, 6f);
 
         SpawnModular("prop_pillar_structural", new Vector3(4f, 1.5f, 35f), Quaternion.identity, new Vector3(0.7f, 3f, 0.7f), hazard);
         SpawnModular("prop_pillar_structural", new Vector3(20f, 1.5f, 35f), Quaternion.identity, new Vector3(0.7f, 3f, 0.7f), hazard);

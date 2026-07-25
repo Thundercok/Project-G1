@@ -217,6 +217,24 @@ public static class G1CampaignBuilders
             SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(29.6f, 0f, z), -90f);
         }
 
+        // Perimeter floodlight towers shining onto the motor pool yard
+        Vector3[] floodlightPos = { new Vector3(-22f, 0f, 16f), new Vector3(22f, 0f, 16f), new Vector3(-22f, 0f, -16f), new Vector3(22f, 0f, -16f) };
+        for (int i = 0; i < floodlightPos.Length; i++)
+        {
+            var p = floodlightPos[i];
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", p, 0f);
+            var flGo = new GameObject($"YardFloodlight_{i}");
+            flGo.transform.position = p + Vector3.up * 3.6f;
+            flGo.transform.rotation = Quaternion.LookRotation(new Vector3(0f, 0.2f, 0f) - flGo.transform.position);
+            var flLt = flGo.AddComponent<Light>();
+            flLt.type = LightType.Spot;
+            flLt.spotAngle = 65f;
+            flLt.color = new Color(1f, 0.88f, 0.75f);
+            flLt.range = 35f;
+            flLt.intensity = 2.5f;
+            flLt.shadows = LightShadows.Soft;
+        }
+
         // elevator starting room (player spawn, west side)
         Slab("ElevatorFloor", new Vector3(-27f, -0.25f, 10f), new Vector3(6, 0.5f, 6), asphalt);
         Slab("ElevatorCeiling", new Vector3(-27f, 3.25f, 10f), new Vector3(6, 0.5f, 6), concrete);
@@ -391,6 +409,32 @@ public static class G1CampaignBuilders
         {
             SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(-14.6f, 0f, z), 90f);
             SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(14.6f, 0f, z), -90f);
+        }
+
+        // Overhead alien structural archways spanning the cavern roof
+        for (float z = 4f; z <= 44f; z += 10f)
+        {
+            var arch = Slab("AlienArch", new Vector3(0f, 7.2f, z), new Vector3(29.5f, 0.4f, 0.8f), rock);
+            arch.transform.rotation = Quaternion.Euler(0f, 0f, 2f);
+        }
+
+        // Glowing Xen crystal clusters along the cavern floor
+        var crystalMat = Mat(teal, 3.0f, null, 1f, 1f, 0.2f, 0.9f);
+        Vector3[] crystalLocs = { new Vector3(-13f, 0.4f, 8f), new Vector3(13f, 0.4f, 18f), new Vector3(-13f, 0.4f, 28f), new Vector3(13f, 0.4f, 36f) };
+        foreach (var cl in crystalLocs)
+        {
+            var crystal = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            crystal.name = "XenCrystalCluster";
+            crystal.transform.position = cl;
+            crystal.transform.localScale = new Vector3(0.8f, 1.6f, 0.8f);
+            crystal.transform.rotation = Quaternion.Euler(15f, 30f, -20f);
+            crystal.GetComponent<Renderer>().sharedMaterial = crystalMat;
+            var clLt = crystal.AddComponent<Light>();
+            clLt.type = LightType.Point;
+            clLt.color = teal;
+            clLt.range = 8f;
+            clLt.intensity = 1.8f;
+            clLt.shadows = LightShadows.Soft;
         }
 
         // alien pods and spore lights along the hall (organic wet finish + shadow-casting lights)
