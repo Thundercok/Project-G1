@@ -13,9 +13,11 @@ public sealed class G1StoryCard : MonoBehaviour
     float shownAt = -1f;
     bool played;
     Font font;
+    Texture2D _pixelTex;
 
     void Start()
     {
+        _pixelTex = Texture2D.whiteTexture;
         font = Resources.Load<Font>("Fonts/ShareTechMono-Regular");
         if (showOnStart)
             Show();
@@ -57,7 +59,21 @@ public sealed class G1StoryCard : MonoBehaviour
 
         int chars = Mathf.Min(title.Length, (int)(t / 0.05f));
         float y = Screen.height * 0.72f;
+
+        // Dark gradient background behind text for legibility
+        Color old = GUI.color;
+        GUI.color = new Color(0f, 0f, 0f, 0.5f * alpha);
+        GUI.DrawTexture(new Rect(0, y - 10, Screen.width * 0.55f, 90), _pixelTex);
+        GUI.color = old;
+
         GUI.Label(new Rect(60, y, 800, 44), title.Substring(0, chars), style);
+
+        // Teal glow bar under chapter title
+        old = GUI.color;
+        float barProgress = Mathf.Clamp01(t / 1.5f);
+        GUI.color = new Color(0.16f, 0.75f, 0.75f, 0.7f * alpha);
+        GUI.DrawTexture(new Rect(60, y + 42, 300 * barProgress, 2f), _pixelTex);
+        GUI.color = old;
 
         var sub = new GUIStyle(style) { fontSize = 20 };
         sub.normal.textColor = new Color(0.83f, 0.85f, 0.86f, alpha * 0.9f);

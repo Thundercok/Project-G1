@@ -357,6 +357,7 @@ MonoBehaviour:
   opportunistTimeout: 6
   executeHpThreshold: 0.5
   dropChance: 0.72
+  encounterFrozen: 0
 --- !u!114 &8662648162677252712
 MonoBehaviour:
   m_ObjectHideFlags: 0

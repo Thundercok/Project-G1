@@ -284,6 +284,17 @@ public static class G1SceneBuilder
                 mat.mainTexture = tex;
                 mat.mainTextureScale = new Vector2(tileX, tileY);
             }
+
+            // Auto-bind corresponding PBR Normal Map if available
+            string normPath = $"Assets/G1/Textures/{texName}_normal.png";
+            var normTex = AssetDatabase.LoadAssetAtPath<Texture2D>(normPath);
+            if (normTex != null)
+            {
+                mat.EnableKeyword("_NORMALMAP");
+                mat.SetTexture("_BumpMap", normTex);
+                mat.SetTextureScale("_BumpMap", new Vector2(tileX, tileY));
+                mat.SetFloat("_BumpScale", 1.0f);
+            }
         }
         return mat;
     }
@@ -799,6 +810,14 @@ public static class G1SceneBuilder
         SpawnLight("Industrial_Light2", new Vector3(20f, 5f, 35f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
         SpawnLight("Industrial_Light3", new Vector3(4f, 5f, 49f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
         SpawnLight("Industrial_Light4", new Vector3(20f, 5f, 49f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
+
+        // Cinematic Encounter Trigger at Industrial Hall entrance (Z=29)
+        var triggerGo = new GameObject("EncounterTrigger_IndustrialHall");
+        triggerGo.transform.position = new Vector3(12f, 1.5f, 29f);
+        var boxCol = triggerGo.AddComponent<BoxCollider>();
+        boxCol.isTrigger = true;
+        boxCol.size = new Vector3(20f, 4f, 2f);
+        triggerGo.AddComponent<G1HECUEncounterTrigger>();
     }
 
     static void BuildAlienBreachZone(Material floorMat, Material concrete, Material metalMat, Material doorMat, Material greenMat, Material hazard, Material wood)
@@ -1480,11 +1499,23 @@ public static class G1SceneBuilder
             var flankR = (GameObject)Object.Instantiate(soldierPrefab, new Vector3(27f, 0f, 42f), Quaternion.Euler(0f, -90f, 0f));
             flankR.name = "HECU_FlankRight";
             flankR.AddComponent<AgentNavMeshWarp>();
-            
-            // Note: HECU_LastStand removed from breach zone.
-            // The zone is now controlled by G1WaveSpawner (alien waves only).
-            // The Industrial Hall ambush (Suppress + FlankLeft + FlankRight) is
-            // the HECU climax — they should not bleed into the alien zone.
+
+            // Wire HECU Encounter Trigger
+            var triggerGo = GameObject.Find("EncounterTrigger_IndustrialHall");
+            if (triggerGo != null)
+            {
+                var encTrigger = triggerGo.GetComponent<G1HECUEncounterTrigger>();
+                if (encTrigger != null)
+                {
+                    var s1 = suppress.GetComponent<G1SoldierAI>();
+                    var s2 = flankL.GetComponent<G1SoldierAI>();
+                    var s3 = flankR.GetComponent<G1SoldierAI>();
+                    encTrigger.soldiers = new G1SoldierAI[] { s1, s2, s3 };
+                    if (s1) s1.encounterFrozen = true;
+                    if (s2) s2.encounterFrozen = true;
+                    if (s3) s3.encounterFrozen = true;
+                }
+            }
         }
 
         // Set up ThreatDirector

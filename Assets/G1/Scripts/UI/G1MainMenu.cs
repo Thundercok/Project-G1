@@ -16,12 +16,14 @@ public sealed class G1MainMenu : MonoBehaviour
     Font font;
     G1SettingsPanel settings;
     AudioSource hum;
+    Texture2D _pixelTex;
 
     bool inLevelSelect;
     List<string> currentMenuItems = new List<string>();
 
     void Start()
     {
+        _pixelTex = Texture2D.whiteTexture;
         startTime = Time.time;
         font = Resources.Load<Font>("Fonts/ShareTechMono-Regular");
         settings = GetComponent<G1SettingsPanel>();
@@ -132,16 +134,48 @@ public sealed class G1MainMenu : MonoBehaviour
         }
     }
 
+    void DrawPanel(Rect r, Color fill, Color border, float borderWidth = 1f)
+    {
+        Color old = GUI.color;
+        GUI.color = fill;
+        GUI.DrawTexture(r, _pixelTex);
+        GUI.color = border;
+        GUI.DrawTexture(new Rect(r.x, r.y, r.width, borderWidth), _pixelTex);
+        GUI.DrawTexture(new Rect(r.x, r.yMax - borderWidth, r.width, borderWidth), _pixelTex);
+        GUI.DrawTexture(new Rect(r.x, r.y, borderWidth, r.height), _pixelTex);
+        GUI.DrawTexture(new Rect(r.xMax - borderWidth, r.y, borderWidth, r.height), _pixelTex);
+        GUI.color = old;
+    }
+
+    void DrawHLine(float x, float y, float width, Color color)
+    {
+        Color old = GUI.color;
+        GUI.color = color;
+        GUI.DrawTexture(new Rect(x, y, width, 1f), _pixelTex);
+        GUI.color = old;
+    }
+
     void OnGUI()
     {
         GUI.color = new Color(0.04f, 0.05f, 0.06f, 1f);
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height),
                         Texture2D.whiteTexture);
         GUI.color = Color.white;
+
         if (settings != null && settings.visible)
             return;
 
         float cx = Screen.width / 2f;
+
+        // Panel behind menu content
+        float panelW = 540f;
+        float panelH = inLevelSelect ? 320f : 400f;
+        float panelX = cx - panelW / 2f;
+        float panelY = Screen.height * 0.15f;
+        DrawPanel(new Rect(panelX, panelY, panelW, panelH),
+                  new Color(0.02f, 0.04f, 0.06f, 0.7f),
+                  new Color(0.16f, 0.75f, 0.75f, 0.3f));
+
         var title = new GUIStyle(GUI.skin.label)
         {
             fontSize = 48, alignment = TextAnchor.MiddleCenter,
@@ -155,6 +189,8 @@ public sealed class G1MainMenu : MonoBehaviour
         GUI.Label(new Rect(cx - 300, Screen.height * 0.2f, 600, 70),
                   full.Substring(0, chars), title);
 
+        DrawHLine(cx - 200, Screen.height * 0.2f + 65, 400, new Color(0.16f, 0.75f, 0.75f, 0.4f));
+
         var subtitleStyle = new GUIStyle(title) { fontSize = 18 };
         subtitleStyle.normal.textColor = Dim;
         if (inLevelSelect)
@@ -167,7 +203,7 @@ public sealed class G1MainMenu : MonoBehaviour
         {
             item.normal.textColor = i == selected ? Teal : Dim;
             var r = new Rect(cx - 250, Screen.height * (inLevelSelect ? 0.42f : 0.38f) + i * 48, 500, 40);
-            GUI.Label(r, currentMenuItems[i], item);
+            GUI.Label(r, (i == selected ? "▸ " : "   ") + currentMenuItems[i], item);
             if (r.Contains(Event.current.mousePosition))
             {
                 selected = i;
@@ -175,5 +211,15 @@ public sealed class G1MainMenu : MonoBehaviour
                     Activate(i);
             }
         }
+
+        var verStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 14,
+            alignment = TextAnchor.LowerRight
+        };
+        if (font) verStyle.font = font;
+        verStyle.normal.textColor = new Color(0.3f, 0.35f, 0.38f, 0.6f);
+        GUI.Label(new Rect(Screen.width - 310, Screen.height - 40, 300, 30),
+                  "BUILD v0.8.0 — PROJECT G1", verStyle);
     }
 }

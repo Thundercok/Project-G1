@@ -22,6 +22,8 @@ public class HealthSystem : MonoBehaviour, IDamageable
     public event Action<float, float> OnArmorChanged;
     /// (hitPoint, hitNormal) of the killing blow
     public event Action<Vector3, Vector3> OnDeath;
+    /// hitPoint of incoming damage (for damage direction HUD indicator)
+    public event Action<Vector3> OnDamaged;
 
     void Awake()
     {
@@ -68,6 +70,7 @@ public class HealthSystem : MonoBehaviour, IDamageable
 
         CurrentHealth = Mathf.Max(CurrentHealth - damage, 0f);
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        OnDamaged?.Invoke(hitPoint);
         var camFx = GetComponentInChildren<CameraEffects>();
         if (camFx)
         {

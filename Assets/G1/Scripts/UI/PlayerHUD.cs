@@ -8,11 +8,20 @@ public class PlayerHUD : MonoBehaviour
     [Header("Colors")]
     public Color hudColor = new Color(1f, 0.62f, 0.1f, 0.85f); // Translucent GoldSrc amber
     public Color crosshairColor = new Color(0.15f, 0.85f, 0.20f, 0.9f); // Translucent retro green
+    static readonly Color PanelFill = new Color(0.02f, 0.04f, 0.06f, 0.6f);
+    static readonly Color PanelBorder = new Color(0.16f, 0.75f, 0.75f, 0.3f);
+    static readonly Color Teal = new Color(0.16f, 0.75f, 0.75f);
 
     [Header("Crosshair")]
     public bool drawCrosshair = true;
     public float crosshairSize = 12f;
     public float crosshairThickness = 2f;
+
+    // Weapon slot display names
+    static readonly string[] SlotLabels = { "CR", "PT", "SG", "SM", "MG", "GR" };
+
+    // Damage direction state
+    float _dmgDirLeft, _dmgDirRight, _dmgDirTop, _dmgDirBottom;
 
     HealthSystem playerHealth;
     PlayerMovement playerMovement;
@@ -34,6 +43,7 @@ public class PlayerHUD : MonoBehaviour
     float _radFlashTime;
 
     float _objFlashTime;
+    G1WeaponWheel _weaponWheel;
 
     void Start()
     {
@@ -52,16 +62,59 @@ public class PlayerHUD : MonoBehaviour
         if (GetComponent<G1HEVSystem>() == null)
             gameObject.AddComponent<G1HEVSystem>();
 
+        _weaponWheel = GetComponent<G1WeaponWheel>();
+        if (_weaponWheel == null)
+            _weaponWheel = gameObject.AddComponent<G1WeaponWheel>();
+
         // Load Share Tech Mono
         var fontAsset = Resources.Load<Font>("Fonts/ShareTechMono-Regular");
         if (fontAsset != null) _hudFont = fontAsset;
 
         G1ObjectiveManager.OnObjectiveUpdated += HandleObjectiveUpdated;
+
+        if (playerHealth != null)
+            playerHealth.OnDamaged += HandleDamageDirection;
     }
 
     void OnDestroy()
     {
         G1ObjectiveManager.OnObjectiveUpdated -= HandleObjectiveUpdated;
+        if (playerHealth != null)
+            playerHealth.OnDamaged -= HandleDamageDirection;
+    }
+
+    void HandleDamageDirection(Vector3 sourcePos)
+    {
+        if (sourcePos == Vector3.zero) { _dmgDirLeft = _dmgDirRight = _dmgDirTop = _dmgDirBottom = Time.time + 0.5f; return; }
+        Vector3 dir = (sourcePos - transform.position).normalized;
+        Vector3 localDir = transform.InverseTransformDirection(dir);
+        if (localDir.x < -0.3f) _dmgDirLeft = Time.time + 0.5f;
+        if (localDir.x > 0.3f) _dmgDirRight = Time.time + 0.5f;
+        if (localDir.z > 0.3f) _dmgDirTop = Time.time + 0.5f;
+        if (localDir.z < -0.3f) _dmgDirBottom = Time.time + 0.5f;
+    }
+
+    // --- Panel & Line drawing helpers ---
+    static void DrawPanel(Rect r, Color fill, Color border, float bw = 1f)
+    {
+        Texture2D t = Texture2D.whiteTexture;
+        Color old = GUI.color;
+        GUI.color = fill;
+        GUI.DrawTexture(r, t);
+        GUI.color = border;
+        GUI.DrawTexture(new Rect(r.x, r.y, r.width, bw), t);
+        GUI.DrawTexture(new Rect(r.x, r.yMax - bw, r.width, bw), t);
+        GUI.DrawTexture(new Rect(r.x, r.y, bw, r.height), t);
+        GUI.DrawTexture(new Rect(r.xMax - bw, r.y, bw, r.height), t);
+        GUI.color = old;
+    }
+
+    static void DrawHLine(float x, float y, float w, Color c)
+    {
+        Color old = GUI.color;
+        GUI.color = c;
+        GUI.DrawTexture(new Rect(x, y, w, 1f), Texture2D.whiteTexture);
+        GUI.color = old;
     }
 
     void HandleObjectiveUpdated(G1ObjectiveManager.Objective activeObj, bool isNewCompletion)
@@ -145,6 +198,9 @@ public class PlayerHUD : MonoBehaviour
             DrawCrosshair();
         }
 
+        // Draw HUD panel backgrounds first (behind text)
+        DrawHUDPanels();
+
         // Draw HUD elements with drop shadows for legibility
         DrawObjectiveHUD();
         DrawWaypointMarker();
@@ -153,6 +209,7 @@ public class PlayerHUD : MonoBehaviour
         DrawWeaponPickup();
         DrawTerminalLog();
         DrawCritFeedback();
+        DrawDamageDirection();
 
         // Hit marker
         if (camFX && camFX.HitMarkerActive)
@@ -161,6 +218,10 @@ public class PlayerHUD : MonoBehaviour
         // Damage vignette
         if (camFX && camFX.DamageFlashAlpha > 0.01f)
             DrawDamageVignette(camFX.DamageFlashAlpha);
+
+        // Weapon Radial Wheel (over all HUD elements when open)
+        if (_weaponWheel != null)
+            _weaponWheel.DrawWheel();
     }
 
     void DrawObjectiveHUD()
@@ -184,6 +245,9 @@ public class PlayerHUD : MonoBehaviour
             : new Color(hudColor.r, hudColor.g, hudColor.b, 0.8f);
 
         string display = $"[!] OBJECTIVE: {text.ToUpper()}";
+
+        // Panel background
+        DrawPanel(new Rect(24, 20, 520, 36), PanelFill, PanelBorder);
 
         // Shadow
         style.normal.textColor = new Color(0f, 0f, 0f, 0.7f);
@@ -324,6 +388,119 @@ public class PlayerHUD : MonoBehaviour
         GUI.Label(new Rect(Screen.width - 298, Screen.height - 78, 250, 60), ammoText, style);
         style.normal.textColor = ammoColor;
         GUI.Label(new Rect(Screen.width - 300, Screen.height - 80, 250, 60), ammoText, style);
+    }
+
+    // --- Professional HUD Panel Backgrounds ---
+    void DrawHUDPanels()
+    {
+        // Bottom-left health/armor/flashlight panel
+        float leftW = 520f;
+        float leftH = 72f;
+        float leftX = 24f;
+        float leftY = Screen.height - leftH - 14f;
+        DrawPanel(new Rect(leftX, leftY, leftW, leftH), PanelFill, PanelBorder);
+        // Thin teal separator between health and armor
+        DrawHLine(leftX + 290f, leftY + 8f, 1f, new Color(Teal.r, Teal.g, Teal.b, 0.2f));
+        // Vertical separator between health and armor
+        Color old = GUI.color;
+        GUI.color = new Color(Teal.r, Teal.g, Teal.b, 0.2f);
+        GUI.DrawTexture(new Rect(leftX + 310f, leftY + 8f, 1f, leftH - 16f), Texture2D.whiteTexture);
+        GUI.color = old;
+
+        // Bottom-right ammo panel
+        float rightW = 280f;
+        float rightH = 72f;
+        float rightX = Screen.width - rightW - 24f;
+        float rightY = Screen.height - rightH - 14f;
+        DrawPanel(new Rect(rightX, rightY, rightW, rightH), PanelFill, PanelBorder);
+    }
+
+    // --- Weapon Slot Bar ---
+    void DrawWeaponSlotBar()
+    {
+        if (switcher == null || switcher.weapons == null) return;
+        int count = Mathf.Min(switcher.weapons.Length, SlotLabels.Length);
+        float slotW = 44f;
+        float slotH = 28f;
+        float gap = 4f;
+        float totalW = count * slotW + (count - 1) * gap;
+        float startX = Screen.width / 2f - totalW / 2f;
+        float startY = Screen.height - slotH - 18f;
+
+        int activeIdx = -1;
+        for (int i = 0; i < count; i++)
+        {
+            if (switcher.weapons[i] != null && switcher.weapons[i].activeSelf)
+                activeIdx = i;
+        }
+
+        var labelStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 13,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter,
+            font = _hudFont
+        };
+
+        for (int i = 0; i < count; i++)
+        {
+            float sx = startX + i * (slotW + gap);
+            Rect slotRect = new Rect(sx, startY, slotW, slotH);
+            bool isActive = (i == activeIdx);
+            bool isUnlocked = switcher.IsUnlocked(i);
+
+            if (isActive)
+            {
+                // Active weapon slot: bright teal fill
+                DrawPanel(slotRect, new Color(Teal.r, Teal.g, Teal.b, 0.35f),
+                          new Color(Teal.r, Teal.g, Teal.b, 0.8f));
+                labelStyle.normal.textColor = Color.white;
+            }
+            else if (isUnlocked)
+            {
+                // Unlocked but inactive: dim border
+                DrawPanel(slotRect, new Color(0.02f, 0.04f, 0.06f, 0.5f),
+                          new Color(Teal.r, Teal.g, Teal.b, 0.2f));
+                labelStyle.normal.textColor = new Color(Teal.r, Teal.g, Teal.b, 0.6f);
+            }
+            else
+            {
+                // Locked slot: very dim
+                DrawPanel(slotRect, new Color(0.02f, 0.03f, 0.04f, 0.35f),
+                          new Color(0.2f, 0.2f, 0.2f, 0.15f));
+                labelStyle.normal.textColor = new Color(0.3f, 0.3f, 0.3f, 0.3f);
+            }
+
+            // Slot number + abbreviation
+            string slotText = isUnlocked ? $"{i + 1} {SlotLabels[i]}" : $"{i + 1}";
+            GUI.Label(slotRect, slotText, labelStyle);
+        }
+    }
+
+    // --- Damage Direction Indicator ---
+    void DrawDamageDirection()
+    {
+        Texture2D t = Texture2D.whiteTexture;
+        float sw = Screen.width;
+        float sh = Screen.height;
+        float thickness = 6f;
+        float edgeLen = sh * 0.25f;
+
+        DrawDmgEdge(_dmgDirLeft, new Rect(0, sh / 2f - edgeLen / 2f, thickness, edgeLen));
+        DrawDmgEdge(_dmgDirRight, new Rect(sw - thickness, sh / 2f - edgeLen / 2f, thickness, edgeLen));
+        DrawDmgEdge(_dmgDirTop, new Rect(sw / 2f - edgeLen / 2f, 0, edgeLen, thickness));
+        DrawDmgEdge(_dmgDirBottom, new Rect(sw / 2f - edgeLen / 2f, sh - thickness, edgeLen, thickness));
+    }
+
+    void DrawDmgEdge(float until, Rect r)
+    {
+        float remaining = until - Time.time;
+        if (remaining <= 0f) return;
+        float alpha = Mathf.Clamp01(remaining / 0.5f) * 0.65f;
+        Color old = GUI.color;
+        GUI.color = new Color(0.9f, 0.1f, 0.05f, alpha);
+        GUI.DrawTexture(r, Texture2D.whiteTexture);
+        GUI.color = old;
     }
 
     void DrawWeaponPickup()

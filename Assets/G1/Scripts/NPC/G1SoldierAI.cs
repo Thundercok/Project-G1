@@ -32,6 +32,9 @@ public class G1SoldierAI : MonoBehaviour
     [Header("Drop Settings")]
     [Range(0f, 1f)] public float dropChance = 0.72f;
 
+    [Header("Cutscene & Scripted Events")]
+    public bool encounterFrozen = false;
+
     private SoldierState state = SoldierState.Patrol;
     private HealthSystem myHealth;
     private Animator anim;
@@ -165,6 +168,9 @@ public class G1SoldierAI : MonoBehaviour
 
     void PollDetection()
     {
+        if (encounterFrozen)
+            return;
+
         playerSpotted = false;
         int count = Physics.OverlapSphereNonAlloc(transform.position, detectRadius, detectBuf, playerMask);
         
@@ -210,6 +216,16 @@ public class G1SoldierAI : MonoBehaviour
                 ResetPatrol();
             }
         }
+    }
+
+    public void ForceAlertAt(Vector3 targetPos)
+    {
+        encounterFrozen = false;
+        playerSpotted = true;
+        state = SoldierState.Alert;
+        nextBurstTime = Time.time + 0.4f;
+        if (anim) anim.CrossFade("Walk", 0.1f);
+        if (barks != null) barks.PlayContactBark();
     }
 
     IEnumerator ShowTelegraphLaser(float duration)
