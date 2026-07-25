@@ -455,6 +455,13 @@ public static class G1SceneBuilder
         go.transform.position = p;
         var col = go.AddComponent<BoxCollider>();
         col.isTrigger = true;
+        col.size = size;
+        var c = go.AddComponent<G1StoryCard>();
+        c.showOnStart = false;
+        c.title = title;
+        c.subtitle = sub;
+    }
+
     static void BuildAtriumHub(ArenaConfig cfg, Material floorMat, Material concrete, Material metalMat, Material hazard)
     {
         if (!cfg.CampaignHub) return;
