@@ -193,8 +193,12 @@ public static class G1CampaignBuilders
         Slab("WallW", new Vector3(-30, 2f, 0), new Vector3(0.6f, 4, 40.5f), concrete);
         Slab("WallE", new Vector3(30, 2f, 0), new Vector3(0.6f, 4, 40.5f), concrete);
 
-        // elevator exit alcove (player spawn, west side)
-        Slab("ElevatorBox", new Vector3(-27f, 1.5f, 12f), new Vector3(4, 3, 4), concrete);
+        // elevator starting room (player spawn, west side)
+        Slab("ElevatorFloor", new Vector3(-27f, -0.25f, 10f), new Vector3(6, 0.5f, 6), asphalt);
+        Slab("ElevatorCeiling", new Vector3(-27f, 3.25f, 10f), new Vector3(6, 0.5f, 6), concrete);
+        Slab("ElevatorWallW", new Vector3(-30f, 1.5f, 10f), new Vector3(0.5f, 3f, 6f), concrete);
+        Slab("ElevatorWallN", new Vector3(-27f, 1.5f, 13f), new Vector3(6f, 3f, 0.5f), concrete);
+        Slab("ElevatorWallS", new Vector3(-27f, 1.5f, 7f), new Vector3(6f, 3f, 0.5f), concrete);
 
         // helicopter on its pad (center-east)
         Slab("HeliPad", new Vector3(12f, 0.05f, 0f), new Vector3(12, 0.1f, 12), concrete);
@@ -271,19 +275,26 @@ public static class G1CampaignBuilders
             }
         }
 
+        G1HealthPack.Create(new Vector3(-28f, 0.5f, 10.0f)); // Safe inside starter room
         G1HealthPack.Create(new Vector3(-20f, 0.5f, -8f));
+        G1AmmoPack.Create(new Vector3(-28f, 0.5f, 8.5f));   // Safe inside starter room
         G1AmmoPack.Create(new Vector3(-14f, 0.5f, 10f));
         G1AmmoPack.Create(new Vector3(18f, 0.5f, 12f));
-        G1ArmorPack.Create(new Vector3(-24f, 0.5f, 10f), 50f);
-        G1WallCharger.Create(new Vector3(-26.6f, 1.1f, 12f));
+        G1ArmorPack.Create(new Vector3(-28f, 0.5f, 11.5f), 50f); // Safe inside starter room
+        G1WallCharger.Create(new Vector3(-29.6f, 1.1f, 10f)); // Safe inside starter room back wall
 
         Checkpoint("Checkpoint_Yard", new Vector3(0f, 0f, 0f));
         Cameo(new Vector3(24f, 4.2f, 16f), 210f);   // on the perimeter wall
 
-        // maintenance shaft down (east corner) → Level 3, gated by a story question
-        Slab("ShaftHousing", new Vector3(26f, 1.2f, -16f), new Vector3(4, 2.4f, 4), concrete);
-        var l2Exit = Exit("ExitToUndercroft", new Vector3(26f, 1f, -16f),
-             new Vector3(2.5f, 2f, 2.5f), "Level3");
+        // maintenance shaft down (east corner) → Level 3, hollow walk-in alcove
+        Slab("ShaftFloor", new Vector3(26f, -0.25f, -16f), new Vector3(4, 0.5f, 4), asphalt);
+        Slab("ShaftCeiling", new Vector3(26f, 2.45f, -16f), new Vector3(4, 0.5f, 4), concrete);
+        Slab("ShaftWallE", new Vector3(28f, 1.1f, -16f), new Vector3(0.5f, 2.2f, 4f), concrete);
+        Slab("ShaftWallN", new Vector3(26f, 1.1f, -14f), new Vector3(4f, 2.2f, 0.5f), concrete);
+        Slab("ShaftWallS", new Vector3(26f, 1.1f, -18f), new Vector3(4f, 2.2f, 0.5f), concrete);
+
+        var l2Exit = Exit("ExitToUndercroft", new Vector3(26f, 1.1f, -16f),
+             new Vector3(2.5f, 2.2f, 2.5f), "Level3");
         var l2Et = l2Exit.GetComponent<G1LevelExitTrigger>();
         if (l2Et != null) l2Et.requireUnlock = true;
         objMgr.AddObjective("solve_shaft", "Answer the shaft access console to descend", mandatory: true);
@@ -304,7 +315,7 @@ public static class G1CampaignBuilders
         q2.correctIndex = 1;
         q2.objectiveId = "solve_shaft";
 
-        Player(new Vector3(-26f, 0.05f, 8f), "CHAPTER TWO",
+        Player(new Vector3(-27.5f, 0.05f, 10f), "CHAPTER TWO",
                "QUARANTINE — Surface Motor Pool, dawn", "ambient_industrial");
 
         FinishScene(scene, "Assets/Scenes/Level2.unity",
