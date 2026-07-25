@@ -433,6 +433,35 @@ public static class G1SceneBuilder
         return go;
     }
 
+    static void SpawnHubTerminal(Vector3 p, float yaw, string msg, Material fallbackMat)
+    {
+        var t = SpawnModular("prop_computer_terminal", p, Quaternion.Euler(0f, yaw, 0f), Vector3.one * 0.9f, fallbackMat);
+        t.AddComponent<G1Terminal>().logMessage = msg;
+    }
+
+    static void SpawnHubGraffiti(Vector3 p, float yaw, int tier, string text)
+    {
+        var go = new GameObject("HubGraffiti");
+        go.transform.position = p;
+        go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+        var g = go.AddComponent<G1Graffiti>();
+        g.tier = tier;
+        g.text = text;
+    }
+
+    static void SpawnHubCard(Vector3 p, Vector3 size, string title, string sub)
+    {
+        var go = new GameObject("HubLoreCard");
+        go.transform.position = p;
+        var col = go.AddComponent<BoxCollider>();
+        col.isTrigger = true;
+        col.size = size;
+        var c = go.AddComponent<G1StoryCard>();
+        c.showOnStart = false;
+        c.title = title;
+        c.subtitle = sub;
+    }
+
     static void BuildArena(ArenaConfig cfg, System.Random rng)
     {
         Material concrete = MakeMat("Concrete", new Color(0.85f, 0.87f, 0.90f), 0.2f, "tex_concrete_wall", 4f, 2f);
@@ -455,106 +484,78 @@ public static class G1SceneBuilder
         // =====================================================================
         if (cfg.CampaignHub)
         {
-        // Local dressing helpers (capture the materials above).
-        void HubTerminal(Vector3 p, float yaw, string msg)
-        {
-            var t = SpawnModular("prop_computer_terminal", p, Quaternion.Euler(0f, yaw, 0f), Vector3.one * 0.9f, floorMat);
-            t.AddComponent<G1Terminal>().logMessage = msg;
-        }
-        void HubGraffiti(Vector3 p, float yaw, int tier, string text)
-        {
-            var go = new GameObject("HubGraffiti");
-            go.transform.position = p;
-            go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-            var g = go.AddComponent<G1Graffiti>();
-            g.tier = tier;
-            g.text = text;
-        }
-        void HubCard(Vector3 p, Vector3 size, string title, string sub)
-        {
-            var go = new GameObject("HubLoreCard");
-            go.transform.position = p;
-            var col = go.AddComponent<BoxCollider>();
-            col.isTrigger = true;
-            col.size = size;
-            var c = go.AddComponent<G1StoryCard>();
-            c.showOnStart = false;
-            c.title = title;
-            c.subtitle = sub;
-        }
+            // --- Shell: floor, ceiling, perimeter ---
+            Slab("HubFloor",   new Vector3(0f, -0.25f, -33.5f), new Vector3(48f, 0.5f, 41f), floorMat);
+            Slab("HubCeiling", new Vector3(0f,  4.25f, -33.5f), new Vector3(48f, 0.5f, 41f), concrete);
+            Slab("HubWallS",   new Vector3(0f,   2.25f, -54f),  new Vector3(48f, 4.5f, 0.5f), concrete);
+            Slab("HubWallW",   new Vector3(-24f, 2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
+            Slab("HubWallE",   new Vector3(24f,  2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
+            // North wall, split to leave the x[-6,6] opening into the Locker Room.
+            Slab("HubWallN_W", new Vector3(-15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
+            Slab("HubWallN_E", new Vector3( 15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
 
-        // --- Shell: floor, ceiling, perimeter ---
-        Slab("HubFloor",   new Vector3(0f, -0.25f, -33.5f), new Vector3(48f, 0.5f, 41f), floorMat);
-        Slab("HubCeiling", new Vector3(0f,  4.25f, -33.5f), new Vector3(48f, 0.5f, 41f), concrete);
-        Slab("HubWallS",   new Vector3(0f,   2.25f, -54f),  new Vector3(48f, 4.5f, 0.5f), concrete);
-        Slab("HubWallW",   new Vector3(-24f, 2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
-        Slab("HubWallE",   new Vector3(24f,  2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
-        // North wall, split to leave the x[-6,6] opening into the Locker Room.
-        Slab("HubWallN_W", new Vector3(-15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
-        Slab("HubWallN_E", new Vector3( 15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
+            // --- Short landmark dividers (open, not sealing) that hint the wings ---
+            Slab("RecordsDivider",  new Vector3(-12f, 1.1f, -46f), new Vector3(0.4f, 2.2f, 12f), metalMat);
+            Slab("SecurityDivider", new Vector3( 12f, 1.1f, -46f), new Vector3(0.4f, 2.2f, 12f), metalMat);
 
-        // --- Short landmark dividers (open, not sealing) that hint the wings ---
-        Slab("RecordsDivider",  new Vector3(-12f, 1.1f, -46f), new Vector3(0.4f, 2.2f, 12f), metalMat);
-        Slab("SecurityDivider", new Vector3( 12f, 1.1f, -46f), new Vector3(0.4f, 2.2f, 12f), metalMat);
+            // --- Atrium lighting ---
+            SpawnLight("Hub_Light_Center", new Vector3(0f,   3.8f, -33f), new Color(0.85f, 0.9f, 1f), 20f, 1.5f);
+            SpawnLight("Hub_Light_West",   new Vector3(-16f, 3.8f, -44f), new Color(0.8f, 0.85f, 1f), 16f, 1.3f);
+            SpawnLight("Hub_Light_East",   new Vector3(16f,  3.8f, -44f), new Color(0.8f, 0.85f, 1f), 16f, 1.3f);
+            SpawnLight("Hub_Light_South",  new Vector3(0f,   3.8f, -50f), new Color(0.85f, 0.9f, 1f), 16f, 1.3f);
 
-        // --- Atrium lighting ---
-        SpawnLight("Hub_Light_Center", new Vector3(0f,   3.8f, -33f), new Color(0.85f, 0.9f, 1f), 20f, 1.5f);
-        SpawnLight("Hub_Light_West",   new Vector3(-16f, 3.8f, -44f), new Color(0.8f, 0.85f, 1f), 16f, 1.3f);
-        SpawnLight("Hub_Light_East",   new Vector3(16f,  3.8f, -44f), new Color(0.8f, 0.85f, 1f), 16f, 1.3f);
-        SpawnLight("Hub_Light_South",  new Vector3(0f,   3.8f, -50f), new Color(0.85f, 0.9f, 1f), 16f, 1.3f);
+            // --- Central kiosk: the "what is happening" briefing + arrival card ---
+            SpawnHubTerminal(new Vector3(0f, 1.0f, -30f), 180f,
+                "CORVUS DEEP RESEARCH ANNEX — SUB-LEVEL C ATRIUM. PROJECT G1 STATUS: WIDENING TEST SCHEDULED 0600. If you are reading this after the alarm, the Threshold has already failed. It always fails. Proceed to the emergency elevator — north.", floorMat);
+            SpawnHubCard(new Vector3(0f, 1.5f, -44f), new Vector3(10f, 3f, 4f),
+                "CHAPTER ONE", "COLD START — find the way up, and what keeps happening down here");
 
-        // --- Central kiosk: the "what is happening" briefing + arrival card ---
-        HubTerminal(new Vector3(0f, 1.0f, -30f), 180f,
-            "CORVUS DEEP RESEARCH ANNEX — SUB-LEVEL C ATRIUM. PROJECT G1 STATUS: WIDENING TEST SCHEDULED 0600. If you are reading this after the alarm, the Threshold has already failed. It always fails. Proceed to the emergency elevator — north.");
-        HubCard(new Vector3(0f, 1.5f, -44f), new Vector3(10f, 3f, 4f),
-            "CHAPTER ONE", "COLD START — find the way up, and what keeps happening down here");
+            // --- WEST: Records wing (personnel + maintenance truth) ---
+            for (int i = 0; i < 5; i++)
+                SpawnModular("prop_filing_cabinet", new Vector3(-21f, 0.9f, -52f + i * 1.4f), Quaternion.Euler(0f, 90f, 0f), new Vector3(0.6f, 1.8f, 0.6f), metalMat);
+            SpawnHubTerminal(new Vector3(-20f, 1.0f, -40f), 90f, "PERSONNEL FILE — C. THUNDERCOCK: " + G1LoreText.LoreCards[0].body, floorMat);
+            SpawnHubTerminal(new Vector3(-20f, 1.0f, -36f), 90f, "MAINTENANCE LOG — SUB-LEVEL C: " + G1LoreText.LoreCards[1].body, floorMat);
+            SpawnHubGraffiti(new Vector3(-23.6f, 2.4f, -46f), 90f, 1, "IT FAILS AT 0600");
+            SpawnHubGraffiti(new Vector3(-23.6f, 2.4f, -38f), 90f, 1, "WE'VE BEEN HERE");
+            SpawnHubCard(new Vector3(-18f, 1.5f, -48f), new Vector3(6f, 3f, 6f),
+                "RECORDS", "your file was reassigned to this test by no one");
+            // A previous iteration of you, slumped at the console you were meant to use.
+            var deadChad = SpawnModular("prop_body_soldier", new Vector3(-18f, 0f, -50f),
+                Quaternion.Euler(0f, 25f, 0f), new Vector3(0.85f, 0.85f, 0.85f), hazard);
+            deadChad.name = "DeadEngineer_PastLoop";
 
-        // --- WEST: Records wing (personnel + maintenance truth) ---
-        for (int i = 0; i < 5; i++)
-            SpawnModular("prop_filing_cabinet", new Vector3(-21f, 0.9f, -52f + i * 1.4f), Quaternion.Euler(0f, 90f, 0f), new Vector3(0.6f, 1.8f, 0.6f), metalMat);
-        HubTerminal(new Vector3(-20f, 1.0f, -40f), 90f, "PERSONNEL FILE — C. THUNDERCOCK: " + G1LoreText.LoreCards[0].body);
-        HubTerminal(new Vector3(-20f, 1.0f, -36f), 90f, "MAINTENANCE LOG — SUB-LEVEL C: " + G1LoreText.LoreCards[1].body);
-        HubGraffiti(new Vector3(-23.6f, 2.4f, -46f), 90f, 1, "IT FAILS AT 0600");
-        HubGraffiti(new Vector3(-23.6f, 2.4f, -38f), 90f, 1, "WE'VE BEEN HERE");
-        HubCard(new Vector3(-18f, 1.5f, -48f), new Vector3(6f, 3f, 6f),
-            "RECORDS", "your file was reassigned to this test by no one");
-        // A previous iteration of you, slumped at the console you were meant to use.
-        var deadChad = SpawnModular("prop_body_soldier", new Vector3(-18f, 0f, -50f),
-            Quaternion.Euler(0f, 25f, 0f), new Vector3(0.85f, 0.85f, 0.85f), hazard);
-        deadChad.name = "DeadEngineer_PastLoop";
+            // --- EAST: Security wing (CCTV + the Auditor's audit) ---
+            SpawnModular("prop_monitor_stack", new Vector3(20f, 0.9f, -38f), Quaternion.Euler(0f, -90f, 0f), Vector3.one, metalMat);
+            var hubCctv = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            hubCctv.name = "Hub_CCTV_Screen";
+            hubCctv.transform.position = new Vector3(19.4f, 1.5f, -38f);
+            hubCctv.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+            hubCctv.transform.localScale = new Vector3(1.4f, 1.0f, 1f);
+            Object.DestroyImmediate(hubCctv.GetComponent<Collider>());
+            hubCctv.AddComponent<G1CCTVScreen>();
+            SpawnHubTerminal(new Vector3(20f, 1.0f, -44f), -90f, "RECOVERED AUDIO — THE AUDITOR: " + G1LoreText.LoreCards[2].body, floorMat);
+            SpawnHubTerminal(new Vector3(20f, 1.0f, -48f), -90f, "CONCORDANCE MEMO — AUDIT STANDING: " + G1LoreText.LoreCards[3].body, floorMat);
+            SpawnHubGraffiti(new Vector3(23.6f, 2.4f, -42f), -90f, 2, "HE COUNTS US");
+            SpawnHubGraffiti(new Vector3(23.6f, 2.4f, -46f), -90f, 2, "THE DOOR GOES BACKWARDS");
+            SpawnHubCard(new Vector3(18f, 1.5f, -40f), new Vector3(6f, 3f, 6f),
+                "SECURITY", "someone has been watching every run from in here");
+            // The Auditor, watching from the far corner; gone if you approach.
+            var hubAuditorFbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/G1/Models/Villain.fbx");
+            if (hubAuditorFbx != null)
+            {
+                var hubAuditor = (GameObject)Object.Instantiate(hubAuditorFbx, new Vector3(21f, 0f, -51f), Quaternion.Euler(0f, -125f, 0f));
+                hubAuditor.name = "TheAuditor_Hub";
+                hubAuditor.AddComponent<G1GManCameo>().vanishDistance = 7f;
+            }
 
-        // --- EAST: Security wing (CCTV + the Auditor's audit) ---
-        SpawnModular("prop_monitor_stack", new Vector3(20f, 0.9f, -38f), Quaternion.Euler(0f, -90f, 0f), Vector3.one, metalMat);
-        var hubCctv = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        hubCctv.name = "Hub_CCTV_Screen";
-        hubCctv.transform.position = new Vector3(19.4f, 1.5f, -38f);
-        hubCctv.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
-        hubCctv.transform.localScale = new Vector3(1.4f, 1.0f, 1f);
-        Object.DestroyImmediate(hubCctv.GetComponent<Collider>());
-        hubCctv.AddComponent<G1CCTVScreen>();
-        HubTerminal(new Vector3(20f, 1.0f, -44f), -90f, "RECOVERED AUDIO — THE AUDITOR: " + G1LoreText.LoreCards[2].body);
-        HubTerminal(new Vector3(20f, 1.0f, -48f), -90f, "CONCORDANCE MEMO — AUDIT STANDING: " + G1LoreText.LoreCards[3].body);
-        HubGraffiti(new Vector3(23.6f, 2.4f, -42f), -90f, 2, "HE COUNTS US");
-        HubGraffiti(new Vector3(23.6f, 2.4f, -46f), -90f, 2, "THE DOOR GOES BACKWARDS");
-        HubCard(new Vector3(18f, 1.5f, -40f), new Vector3(6f, 3f, 6f),
-            "SECURITY", "someone has been watching every run from in here");
-        // The Auditor, watching from the far corner; gone if you approach.
-        var hubAuditorFbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/G1/Models/Villain.fbx");
-        if (hubAuditorFbx != null)
-        {
-            var hubAuditor = (GameObject)Object.Instantiate(hubAuditorFbx, new Vector3(21f, 0f, -51f), Quaternion.Euler(0f, -125f, 0f));
-            hubAuditor.name = "TheAuditor_Hub";
-            hubAuditor.AddComponent<G1GManCameo>().vanishDistance = 7f;
-        }
-
-        // --- SOUTH commons: rest stop, resources, one last note before the climb ---
-        SpawnModular("prop_lab_table", new Vector3(-4f, 0.45f, -50f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
-        SpawnModular("prop_lab_table", new Vector3(4f, 0.45f, -50f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
-        G1HealthPack.Create(new Vector3(-2f, 0.5f, -50f));
-        G1AmmoPack.Create(new Vector3(2f, 0.5f, -50f));
-        G1ArmorPack.Create(new Vector3(0f, 0.5f, -49f), 50f);
-        G1WallCharger.Create(new Vector3(0f, 1.1f, -53.6f));
-        HubGraffiti(new Vector3(0f, 2.4f, -53.6f), 0f, 1, "COUNT THE DOORS");
+            // --- SOUTH commons: rest stop, resources, one last note before the climb ---
+            SpawnModular("prop_lab_table", new Vector3(-4f, 0.45f, -50f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
+            SpawnModular("prop_lab_table", new Vector3(4f, 0.45f, -50f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
+            G1HealthPack.Create(new Vector3(-2f, 0.5f, -50f));
+            G1AmmoPack.Create(new Vector3(2f, 0.5f, -50f));
+            G1ArmorPack.Create(new Vector3(0f, 0.5f, -49f), 50f);
+            G1WallCharger.Create(new Vector3(0f, 1.1f, -53.6f));
+            SpawnHubGraffiti(new Vector3(0f, 2.4f, -53.6f), 0f, 1, "COUNT THE DOORS");
         } // end CampaignHub
 
         // 1. LOCKER ROOM (START) — with the hub, the south wall becomes the hub

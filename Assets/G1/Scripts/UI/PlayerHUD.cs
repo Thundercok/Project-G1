@@ -44,11 +44,13 @@ public class PlayerHUD : MonoBehaviour
         vignetteTex = MakeVignette();
         flashlight = GetComponentInChildren<G1Flashlight>();
 
-        // Ensure PlayerInventoryRestorer and G1TutorialSystem are present
+        // Ensure PlayerInventoryRestorer, G1TutorialSystem, and G1HEVSystem are present
         if (GetComponent<G1PlayerInventoryRestorer>() == null)
             gameObject.AddComponent<G1PlayerInventoryRestorer>();
         if (GetComponent<G1TutorialSystem>() == null)
             gameObject.AddComponent<G1TutorialSystem>();
+        if (GetComponent<G1HEVSystem>() == null)
+            gameObject.AddComponent<G1HEVSystem>();
 
         // Load Share Tech Mono
         var fontAsset = Resources.Load<Font>("Fonts/ShareTechMono-Regular");

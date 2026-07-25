@@ -18,6 +18,11 @@ public class G1HazardZone : MonoBehaviour
                 {
                     hud.ShowRadWarning();
                 }
+                var hev = other.GetComponent<G1HEVSystem>();
+                if (hev != null)
+                {
+                    hev.TriggerRadiation();
+                }
 
                 if (!warningOnly)
                 {

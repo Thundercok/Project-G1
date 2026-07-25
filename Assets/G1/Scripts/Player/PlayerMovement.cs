@@ -39,6 +39,7 @@ public class PlayerMovement : MonoBehaviour
     public float flySpeedMult = 1.6f;
     public float flySprintMult = 2.0f;
 
+    [HideInInspector] public float speedModifier = 1.0f;
     private float defaultHeight = 1.8f;
     private Vector3 defaultCameraLocalPos = new Vector3(0f, 1.62f, 0f);
     private bool isCrouching = false;
@@ -145,7 +146,7 @@ public class PlayerMovement : MonoBehaviour
             cameraTransform.localPosition = camPos;
         }
 
-        float currentMaxSpeed = maxSpeed;
+        float currentMaxSpeed = maxSpeed * speedModifier;
         if (isCrouching)
         {
             currentMaxSpeed *= crouchSpeedMult;
@@ -184,9 +185,25 @@ public class PlayerMovement : MonoBehaviour
             velocity.y -= gravity * dt;
         }
 
+        float prevY = velocity.y;
         cc.Move(velocity * dt);
         if ((cc.collisionFlags & CollisionFlags.Above) != 0 && velocity.y > 0f)
             velocity.y = 0f;
+
+        // Hard landing detection for falling damage & HEV warning
+        if (cc.isGrounded && !wasGrounded && prevY < -11.5f)
+        {
+            float dmg = (Mathf.Abs(prevY) - 11.5f) * 4.5f;
+            if (dmg > 0f && health != null)
+            {
+                health.TakeDamage(dmg, transform.position, Vector3.up);
+                var hev = GetComponent<G1HEVSystem>();
+                if (hev != null)
+                {
+                    hev.TriggerFracture();
+                }
+            }
+        }
     }
 
     void ApplyFriction(float dt)
