@@ -662,7 +662,7 @@ public static class G1SceneBuilder
         }
     }
 
-    static void BuildIndustrialHall(Material floorMat, Material concrete, Material metalMat, Material doorMat, Material greenMat, Material hazard)
+    static void BuildIndustrialHall(Material floorMat, Material concrete, Material metalMat, Material doorMat, Material greenMat, Material hazard, Material wood)
     {
         // 4. INDUSTRIAL HALL (Ambush Faction Arena)
         Slab("IndustrialFloor", new Vector3(12f, -0.25f, 42f), new Vector3(32, 0.5f, 28), floorMat);
@@ -725,7 +725,7 @@ public static class G1SceneBuilder
         SpawnLight("Industrial_Light4", new Vector3(20f, 5f, 49f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
     }
 
-    static void BuildAlienBreachZone(Material floorMat, Material concrete, Material metalMat, Material doorMat, Material greenMat, Material hazard)
+    static void BuildAlienBreachZone(Material floorMat, Material concrete, Material metalMat, Material doorMat, Material greenMat, Material hazard, Material wood)
     {
         // 5. ALIEN BREACH ZONE — redesigned with 3-beat Valve structure
         // --- Geometry: wider (12 m, was 8 m) so player has room to strafe ---
@@ -955,8 +955,8 @@ public static class G1SceneBuilder
         BuildLockerRoom(cfg, floorMat, concrete, metalMat, doorMat, hazard);
         BuildLabCorridor(floorMat, concrete, doorMat, wood);
         BuildControlRoom(floorMat, concrete, metalMat, doorMat);
-        BuildIndustrialHall(floorMat, concrete, metalMat, doorMat, greenMat, hazard);
-        BuildAlienBreachZone(floorMat, concrete, metalMat, doorMat, greenMat, hazard);
+        BuildIndustrialHall(floorMat, concrete, metalMat, doorMat, greenMat, hazard, wood);
+        BuildAlienBreachZone(floorMat, concrete, metalMat, doorMat, greenMat, hazard, wood);
         BuildElevatorShaft(floorMat, concrete, metalMat, doorMat, hazard);
     }
 
