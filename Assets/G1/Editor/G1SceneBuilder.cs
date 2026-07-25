@@ -455,111 +455,87 @@ public static class G1SceneBuilder
         go.transform.position = p;
         var col = go.AddComponent<BoxCollider>();
         col.isTrigger = true;
-        col.size = size;
-        var c = go.AddComponent<G1StoryCard>();
-        c.showOnStart = false;
-        c.title = title;
-        c.subtitle = sub;
+    static void BuildAtriumHub(ArenaConfig cfg, Material floorMat, Material concrete, Material metalMat, Material hazard)
+    {
+        if (!cfg.CampaignHub) return;
+
+        // --- Shell: floor, ceiling, perimeter ---
+        Slab("HubFloor",   new Vector3(0f, -0.25f, -33.5f), new Vector3(48f, 0.5f, 41f), floorMat);
+        Slab("HubCeiling", new Vector3(0f,  4.25f, -33.5f), new Vector3(48f, 0.5f, 41f), concrete);
+        Slab("HubWallS",   new Vector3(0f,   2.25f, -54f),  new Vector3(48f, 4.5f, 0.5f), concrete);
+        Slab("HubWallW",   new Vector3(-24f, 2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
+        Slab("HubWallE",   new Vector3(24f,  2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
+        // North wall, split to leave the x[-6,6] opening into the Locker Room.
+        Slab("HubWallN_W", new Vector3(-15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
+        Slab("HubWallN_E", new Vector3( 15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
+
+        // --- Short landmark dividers (open, not sealing) that hint the wings ---
+        Slab("RecordsDivider",  new Vector3(-12f, 1.1f, -46f), new Vector3(0.4f, 2.2f, 12f), metalMat);
+        Slab("SecurityDivider", new Vector3( 12f, 1.1f, -46f), new Vector3(0.4f, 2.2f, 12f), metalMat);
+
+        // --- Atrium lighting ---
+        SpawnLight("Hub_Light_Center", new Vector3(0f,   3.8f, -33f), new Color(0.85f, 0.9f, 1f), 20f, 1.5f);
+        SpawnLight("Hub_Light_West",   new Vector3(-16f, 3.8f, -44f), new Color(0.8f, 0.85f, 1f), 16f, 1.3f);
+        SpawnLight("Hub_Light_East",   new Vector3(16f,  3.8f, -44f), new Color(0.8f, 0.85f, 1f), 16f, 1.3f);
+        SpawnLight("Hub_Light_South",  new Vector3(0f,   3.8f, -50f), new Color(0.85f, 0.9f, 1f), 16f, 1.3f);
+
+        // --- Central kiosk: the "what is happening" briefing + arrival card ---
+        SpawnHubTerminal(new Vector3(0f, 1.0f, -30f), 180f,
+            "CORVUS DEEP RESEARCH ANNEX — SUB-LEVEL C ATRIUM. PROJECT G1 STATUS: WIDENING TEST SCHEDULED 0600. If you are reading this after the alarm, the Threshold has already failed. It always fails. Proceed to the emergency elevator — north.", floorMat);
+        SpawnHubCard(new Vector3(0f, 1.5f, -44f), new Vector3(10f, 3f, 4f),
+            "CHAPTER ONE", "COLD START — find the way up, and what keeps happening down here");
+
+        // --- WEST: Records wing (personnel + maintenance truth) ---
+        for (int i = 0; i < 5; i++)
+            SpawnModular("prop_filing_cabinet", new Vector3(-21f, 0.9f, -52f + i * 1.4f), Quaternion.Euler(0f, 90f, 0f), new Vector3(0.6f, 1.8f, 0.6f), metalMat);
+        SpawnHubTerminal(new Vector3(-20f, 1.0f, -40f), 90f, "PERSONNEL FILE — C. THUNDERCOCK: " + G1LoreText.LoreCards[0].body, floorMat);
+        SpawnHubTerminal(new Vector3(-20f, 1.0f, -36f), 90f, "MAINTENANCE LOG — SUB-LEVEL C: " + G1LoreText.LoreCards[1].body, floorMat);
+        SpawnHubGraffiti(new Vector3(-23.6f, 2.4f, -46f), 90f, 1, "IT FAILS AT 0600");
+        SpawnHubGraffiti(new Vector3(-23.6f, 2.4f, -38f), 90f, 1, "WE'VE BEEN HERE");
+        SpawnHubCard(new Vector3(-18f, 1.5f, -48f), new Vector3(6f, 3f, 6f),
+            "RECORDS", "your file was reassigned to this test by no one");
+        // A previous iteration of you, slumped at the console you were meant to use.
+        var deadChad = SpawnModular("prop_body_soldier", new Vector3(-18f, 0f, -50f),
+            Quaternion.Euler(0f, 25f, 0f), new Vector3(0.85f, 0.85f, 0.85f), hazard);
+        deadChad.name = "DeadEngineer_PastLoop";
+
+        // --- EAST: Security wing (CCTV + the Auditor's audit) ---
+        SpawnModular("prop_monitor_stack", new Vector3(20f, 0.9f, -38f), Quaternion.Euler(0f, -90f, 0f), Vector3.one, metalMat);
+        var hubCctv = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        hubCctv.name = "Hub_CCTV_Screen";
+        hubCctv.transform.position = new Vector3(19.4f, 1.5f, -38f);
+        hubCctv.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+        hubCctv.transform.localScale = new Vector3(1.4f, 1.0f, 1f);
+        Object.DestroyImmediate(hubCctv.GetComponent<Collider>());
+        hubCctv.AddComponent<G1CCTVScreen>();
+        SpawnHubTerminal(new Vector3(20f, 1.0f, -44f), -90f, "RECOVERED AUDIO — THE AUDITOR: " + G1LoreText.LoreCards[2].body, floorMat);
+        SpawnHubTerminal(new Vector3(20f, 1.0f, -48f), -90f, "CONCORDANCE MEMO — AUDIT STANDING: " + G1LoreText.LoreCards[3].body, floorMat);
+        SpawnHubGraffiti(new Vector3(23.6f, 2.4f, -42f), -90f, 2, "HE COUNTS US");
+        SpawnHubGraffiti(new Vector3(23.6f, 2.4f, -46f), -90f, 2, "THE DOOR GOES BACKWARDS");
+        SpawnHubCard(new Vector3(18f, 1.5f, -40f), new Vector3(6f, 3f, 6f),
+            "SECURITY", "someone has been watching every run from in here");
+        // The Auditor, watching from the far corner; gone if you approach.
+        var hubAuditorFbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/G1/Models/Villain.fbx");
+        if (hubAuditorFbx != null)
+        {
+            var hubAuditor = (GameObject)Object.Instantiate(hubAuditorFbx, new Vector3(21f, 0f, -51f), Quaternion.Euler(0f, -125f, 0f));
+            hubAuditor.name = "TheAuditor_Hub";
+            hubAuditor.AddComponent<G1GManCameo>().vanishDistance = 7f;
+        }
+
+        // --- SOUTH commons: rest stop, resources, one last note before the climb ---
+        SpawnModular("prop_lab_table", new Vector3(-4f, 0.45f, -50f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
+        SpawnModular("prop_lab_table", new Vector3(4f, 0.45f, -50f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
+        G1HealthPack.Create(new Vector3(-2f, 0.5f, -50f));
+        G1AmmoPack.Create(new Vector3(2f, 0.5f, -50f));
+        G1ArmorPack.Create(new Vector3(0f, 0.5f, -49f), 50f);
+        G1WallCharger.Create(new Vector3(0f, 1.1f, -53.6f));
+        SpawnHubGraffiti(new Vector3(0f, 2.4f, -53.6f), 0f, 1, "COUNT THE DOORS");
     }
 
-    static void BuildArena(ArenaConfig cfg, System.Random rng)
+    static void BuildLockerRoom(ArenaConfig cfg, Material floorMat, Material concrete, Material metalMat, Material doorMat, Material hazard)
     {
-        Material concrete = MakeMat("Concrete", new Color(0.85f, 0.87f, 0.90f), 0.2f, "tex_concrete_wall", 4f, 2f);
-        Material floorMat = MakeMat("Floor", new Color(0.75f, 0.77f, 0.80f), 0.35f, "tex_floor_metal_grid", 6f, 6f);
-        Material hazard = MakeMat("HazardOrange", new Color(1f, 1f, 1f), 0.2f, "tex_hazard_stripe", 2f, 2f);
-        Material wood = MakeMat("CrateWood", new Color(0.55f, 0.42f, 0.25f), 0.15f, "tex_steel_panel", 1f, 1f);
-        Material doorMat = MakeMat("DoorSteel", new Color(0.85f, 0.88f, 0.92f), 0.4f, "tex_steel_panel", 2f, 2f);
-        Material metalMat = MakeMat("PropMetal", new Color(0.8f, 0.85f, 0.88f), 0.3f, "tex_steel_panel", 2f, 2f);
-        Material greenMat = MakeMat("IndustrialGreen", new Color(0.5f, 0.7f, 0.5f), 0.2f, "tex_steel_panel", 2f, 2f);
-
-        // =====================================================================
-        // 0. ATRIUM HUB — large open explorable story-space (the "beginning").
-        //    One big floor (no gaps to fall through), a full ceiling, and a
-        //    perimeter wall. Zones are read by props/short dividers, not sealed
-        //    rooms, so the player roams freely and pieces together the loop
-        //    story from terminals, graffiti, lore cards, CCTV and a dead
-        //    previous-iteration engineer. No enemies here — Level 1 opens calm.
-        //    Hub occupies x[-24,24], z[-54,-13]; it opens north into the Locker
-        //    Room (x[-6,6] at z=-13) which continues to the descent.
-        // =====================================================================
-        if (cfg.CampaignHub)
-        {
-            // --- Shell: floor, ceiling, perimeter ---
-            Slab("HubFloor",   new Vector3(0f, -0.25f, -33.5f), new Vector3(48f, 0.5f, 41f), floorMat);
-            Slab("HubCeiling", new Vector3(0f,  4.25f, -33.5f), new Vector3(48f, 0.5f, 41f), concrete);
-            Slab("HubWallS",   new Vector3(0f,   2.25f, -54f),  new Vector3(48f, 4.5f, 0.5f), concrete);
-            Slab("HubWallW",   new Vector3(-24f, 2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
-            Slab("HubWallE",   new Vector3(24f,  2.25f, -33.5f), new Vector3(0.5f, 4.5f, 41f), concrete);
-            // North wall, split to leave the x[-6,6] opening into the Locker Room.
-            Slab("HubWallN_W", new Vector3(-15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
-            Slab("HubWallN_E", new Vector3( 15f, 2.25f, -13f), new Vector3(18f, 4.5f, 0.5f), concrete);
-
-            // --- Short landmark dividers (open, not sealing) that hint the wings ---
-            Slab("RecordsDivider",  new Vector3(-12f, 1.1f, -46f), new Vector3(0.4f, 2.2f, 12f), metalMat);
-            Slab("SecurityDivider", new Vector3( 12f, 1.1f, -46f), new Vector3(0.4f, 2.2f, 12f), metalMat);
-
-            // --- Atrium lighting ---
-            SpawnLight("Hub_Light_Center", new Vector3(0f,   3.8f, -33f), new Color(0.85f, 0.9f, 1f), 20f, 1.5f);
-            SpawnLight("Hub_Light_West",   new Vector3(-16f, 3.8f, -44f), new Color(0.8f, 0.85f, 1f), 16f, 1.3f);
-            SpawnLight("Hub_Light_East",   new Vector3(16f,  3.8f, -44f), new Color(0.8f, 0.85f, 1f), 16f, 1.3f);
-            SpawnLight("Hub_Light_South",  new Vector3(0f,   3.8f, -50f), new Color(0.85f, 0.9f, 1f), 16f, 1.3f);
-
-            // --- Central kiosk: the "what is happening" briefing + arrival card ---
-            SpawnHubTerminal(new Vector3(0f, 1.0f, -30f), 180f,
-                "CORVUS DEEP RESEARCH ANNEX — SUB-LEVEL C ATRIUM. PROJECT G1 STATUS: WIDENING TEST SCHEDULED 0600. If you are reading this after the alarm, the Threshold has already failed. It always fails. Proceed to the emergency elevator — north.", floorMat);
-            SpawnHubCard(new Vector3(0f, 1.5f, -44f), new Vector3(10f, 3f, 4f),
-                "CHAPTER ONE", "COLD START — find the way up, and what keeps happening down here");
-
-            // --- WEST: Records wing (personnel + maintenance truth) ---
-            for (int i = 0; i < 5; i++)
-                SpawnModular("prop_filing_cabinet", new Vector3(-21f, 0.9f, -52f + i * 1.4f), Quaternion.Euler(0f, 90f, 0f), new Vector3(0.6f, 1.8f, 0.6f), metalMat);
-            SpawnHubTerminal(new Vector3(-20f, 1.0f, -40f), 90f, "PERSONNEL FILE — C. THUNDERCOCK: " + G1LoreText.LoreCards[0].body, floorMat);
-            SpawnHubTerminal(new Vector3(-20f, 1.0f, -36f), 90f, "MAINTENANCE LOG — SUB-LEVEL C: " + G1LoreText.LoreCards[1].body, floorMat);
-            SpawnHubGraffiti(new Vector3(-23.6f, 2.4f, -46f), 90f, 1, "IT FAILS AT 0600");
-            SpawnHubGraffiti(new Vector3(-23.6f, 2.4f, -38f), 90f, 1, "WE'VE BEEN HERE");
-            SpawnHubCard(new Vector3(-18f, 1.5f, -48f), new Vector3(6f, 3f, 6f),
-                "RECORDS", "your file was reassigned to this test by no one");
-            // A previous iteration of you, slumped at the console you were meant to use.
-            var deadChad = SpawnModular("prop_body_soldier", new Vector3(-18f, 0f, -50f),
-                Quaternion.Euler(0f, 25f, 0f), new Vector3(0.85f, 0.85f, 0.85f), hazard);
-            deadChad.name = "DeadEngineer_PastLoop";
-
-            // --- EAST: Security wing (CCTV + the Auditor's audit) ---
-            SpawnModular("prop_monitor_stack", new Vector3(20f, 0.9f, -38f), Quaternion.Euler(0f, -90f, 0f), Vector3.one, metalMat);
-            var hubCctv = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            hubCctv.name = "Hub_CCTV_Screen";
-            hubCctv.transform.position = new Vector3(19.4f, 1.5f, -38f);
-            hubCctv.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
-            hubCctv.transform.localScale = new Vector3(1.4f, 1.0f, 1f);
-            Object.DestroyImmediate(hubCctv.GetComponent<Collider>());
-            hubCctv.AddComponent<G1CCTVScreen>();
-            SpawnHubTerminal(new Vector3(20f, 1.0f, -44f), -90f, "RECOVERED AUDIO — THE AUDITOR: " + G1LoreText.LoreCards[2].body, floorMat);
-            SpawnHubTerminal(new Vector3(20f, 1.0f, -48f), -90f, "CONCORDANCE MEMO — AUDIT STANDING: " + G1LoreText.LoreCards[3].body, floorMat);
-            SpawnHubGraffiti(new Vector3(23.6f, 2.4f, -42f), -90f, 2, "HE COUNTS US");
-            SpawnHubGraffiti(new Vector3(23.6f, 2.4f, -46f), -90f, 2, "THE DOOR GOES BACKWARDS");
-            SpawnHubCard(new Vector3(18f, 1.5f, -40f), new Vector3(6f, 3f, 6f),
-                "SECURITY", "someone has been watching every run from in here");
-            // The Auditor, watching from the far corner; gone if you approach.
-            var hubAuditorFbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/G1/Models/Villain.fbx");
-            if (hubAuditorFbx != null)
-            {
-                var hubAuditor = (GameObject)Object.Instantiate(hubAuditorFbx, new Vector3(21f, 0f, -51f), Quaternion.Euler(0f, -125f, 0f));
-                hubAuditor.name = "TheAuditor_Hub";
-                hubAuditor.AddComponent<G1GManCameo>().vanishDistance = 7f;
-            }
-
-            // --- SOUTH commons: rest stop, resources, one last note before the climb ---
-            SpawnModular("prop_lab_table", new Vector3(-4f, 0.45f, -50f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
-            SpawnModular("prop_lab_table", new Vector3(4f, 0.45f, -50f), Quaternion.identity, new Vector3(1.6f, 0.9f, 0.8f), metalMat);
-            G1HealthPack.Create(new Vector3(-2f, 0.5f, -50f));
-            G1AmmoPack.Create(new Vector3(2f, 0.5f, -50f));
-            G1ArmorPack.Create(new Vector3(0f, 0.5f, -49f), 50f);
-            G1WallCharger.Create(new Vector3(0f, 1.1f, -53.6f));
-            SpawnHubGraffiti(new Vector3(0f, 2.4f, -53.6f), 0f, 1, "COUNT THE DOORS");
-        } // end CampaignHub
-
-        // 1. LOCKER ROOM (START) — with the hub, the south wall becomes the hub
-        // opening; without it (AI test arenas), keep the room sealed.
+        // 1. LOCKER ROOM (START)
         Slab("LockerRoomFloor", new Vector3(0, -0.25f, -8f), new Vector3(12, 0.5f, 10), floorMat);
         if (!cfg.CampaignHub)
             Slab("LockerRoomWallS", new Vector3(0, 1.5f, -13f), new Vector3(12, 3, 0.5f), concrete);
@@ -593,7 +569,10 @@ public static class G1SceneBuilder
         // Spawn Locker Room Lights
         SpawnLight("LockerRoom_Light1", new Vector3(-3f, 2.5f, -8f), new Color(0.85f, 0.9f, 1f), 10f, 1.4f);
         SpawnLight("LockerRoom_Light2", new Vector3(3f, 2.5f, -8f), new Color(0.85f, 0.9f, 1f), 10f, 1.4f);
+    }
 
+    static void BuildLabCorridor(Material floorMat, Material concrete, Material doorMat, Material wood)
+    {
         // 2. LAB CORRIDOR
         Slab("CorridorFloor", new Vector3(0, -0.25f, 6.5f), new Vector3(4, 0.5f, 19), floorMat);
         Slab("CorridorWallW", new Vector3(-2f, 1.5f, 6.5f), new Vector3(0.5f, 3, 19), concrete);
@@ -614,7 +593,10 @@ public static class G1SceneBuilder
         var l3 = SpawnLight("Corridor_Light1", new Vector3(0f, 2.5f, 3f), new Color(0.95f, 0.95f, 0.9f), 9f, 1.3f);
         l3.gameObject.AddComponent<G1LightEffects>().effectType = G1LightEffects.EffectType.Flicker;
         SpawnLight("Corridor_Light2", new Vector3(0f, 2.5f, 11f), new Color(0.95f, 0.95f, 0.9f), 9f, 1.3f);
+    }
 
+    static void BuildControlRoom(Material floorMat, Material concrete, Material metalMat, Material doorMat)
+    {
         // 3. CONTROL ROOM
         Slab("ControlRoomFloor", new Vector3(6f, -0.25f, 22f), new Vector3(16, 0.5f, 12), floorMat);
         Slab("ControlRoomWallS_R", new Vector3(8f, 1.5f, 16f), new Vector3(12, 3, 0.5f), concrete);
@@ -671,7 +653,10 @@ public static class G1SceneBuilder
             actor.triggerRadius = 10f;
             actor.vanishRadius = 4.5f;
         }
+    }
 
+    static void BuildIndustrialHall(Material floorMat, Material concrete, Material metalMat, Material doorMat, Material greenMat, Material hazard)
+    {
         // 4. INDUSTRIAL HALL (Ambush Faction Arena)
         Slab("IndustrialFloor", new Vector3(12f, -0.25f, 42f), new Vector3(32, 0.5f, 28), floorMat);
         Slab("IndustrialWallS_L", new Vector3(-3f, 1.5f, 28f), new Vector3(2, 3, 0.5f), concrete);
@@ -731,15 +716,11 @@ public static class G1SceneBuilder
         SpawnLight("Industrial_Light2", new Vector3(20f, 5f, 35f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
         SpawnLight("Industrial_Light3", new Vector3(4f, 5f, 49f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
         SpawnLight("Industrial_Light4", new Vector3(20f, 5f, 49f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
+    }
 
-        // =====================================================================
+    static void BuildAlienBreachZone(Material floorMat, Material concrete, Material metalMat, Material doorMat, Material greenMat, Material hazard)
+    {
         // 5. ALIEN BREACH ZONE — redesigned with 3-beat Valve structure
-        // =====================================================================
-        // BEAT 1 (Z=56–63): Discovery. No enemies. Visual atmosphere + resources.
-        // BEAT 2 (Z=63–74): 3-wave encounter behind cover; waves are telegraphed.
-        // BEAT 3 (Z=74–83): Earned exit — override terminal gates Door 4.
-        // =====================================================================
-
         // --- Geometry: wider (12 m, was 8 m) so player has room to strafe ---
         Slab("BreachFloor", new Vector3(12f, -0.25f, 65f), new Vector3(12, 0.5f, 18), floorMat);
         Slab("BreachWallW", new Vector3(6f,  1.5f, 65f), new Vector3(0.5f, 3, 18), concrete);
@@ -752,8 +733,6 @@ public static class G1SceneBuilder
         Slab("BreachCeiling", new Vector3(12f, 3.25f, 65f), new Vector3(12, 0.5f, 18), concrete);
 
         // --- BEAT 1: Atmospheric dressing (no enemies, no damage) ---
-
-        // Torn wall sections at entry (visual storytelling — something broke through)
         var rub1 = Slab("BreachRubble_W1", new Vector3(7.5f, 0.25f, 58f), new Vector3(2f, 0.5f, 1.2f), concrete);
         rub1.transform.rotation = Quaternion.Euler(18f, 35f, 8f);
         var rub2 = Slab("BreachRubble_E1", new Vector3(16.5f, 0.2f, 60f), new Vector3(1.8f, 0.4f, 1.5f), concrete);
@@ -771,13 +750,11 @@ public static class G1SceneBuilder
             float pz = (i == 0 ? 60f  : (i == 1 ? 59f   : 62f));
             var pod = Slab($"AlienPod_{i}", new Vector3(px, 0.3f, pz), new Vector3(0.5f, 0.6f, 0.5f), podMat);
             pod.GetComponent<Renderer>().sharedMaterial = podMat;
-            // Teal accent point light per pod
             SpawnLight($"PodLight_{i}", new Vector3(px, 1.1f, pz),
                 new Color(0f, 1f, 0.8f), 3.5f, 1.2f, LightShadows.None);
         }
 
         // Warning zone — NO damage, only triggers geiger counter click + HUD rad icon.
-        // Teaches the "toxic floor" mechanic safely before the real puddle.
         Material warnMat = MakeMat("HazardWarnStripe", new Color(1f, 1f, 1f), 0.05f, "tex_hazard_stripe", 6f, 1f);
         warnMat.EnableKeyword("_EMISSION");
         warnMat.SetColor("_EmissionColor", new Color(0.25f, 0.18f, 0f));
@@ -788,58 +765,51 @@ public static class G1SceneBuilder
         warnZone.GetComponent<Collider>().isTrigger = true;
 
         // Actual toxic puddle — tight against EAST wall, only 1.8 m wide.
-        // Player can always walk along the west half of the 12 m corridor safely.
         Material toxicMat = MakeMat("ToxicWaste", new Color(0.2f, 1f, 0.3f), 0.1f, "tex_alien_bio", 3f, 3f);
         toxicMat.EnableKeyword("_EMISSION");
         toxicMat.SetColor("_EmissionColor", new Color(0.04f, 0.55f, 0.04f));
         var toxicWaste = Slab("ToxicWastePuddle", new Vector3(17f, -0.15f, 67f), new Vector3(1.8f, 0.4f, 4f), toxicMat);
         var toxicHazard = toxicWaste.AddComponent<G1HazardZone>();
-        toxicHazard.damagePerSecond = 7f;   // real damage — but it is avoidable
+        toxicHazard.damagePerSecond = 7f;
         toxicWaste.GetComponent<Collider>().isTrigger = true;
-        // Orange glow border so puddle edge is always readable
         SpawnLight("ToxicPuddleLight", new Vector3(17f, 0.8f, 67f),
             new Color(0.3f, 1f, 0.2f), 4f, 1.1f, LightShadows.None);
 
         // Jump pad — WEST wall, telegraphed with teal floor arrow stripe.
-        // Optional escape route / exploration, not required.
         Material jumpPadMat = MakeMat("XenJumpPad", new Color(0f, 0.95f, 0.85f), 0.2f);
         jumpPadMat.EnableKeyword("_EMISSION");
         jumpPadMat.SetColor("_EmissionColor", new Color(0f, 0.65f, 0.55f));
         var jumpPad = Slab("XenJumpPadPlatform", new Vector3(7.2f, -0.15f, 62f), new Vector3(1.8f, 0.3f, 1.8f), jumpPadMat);
         jumpPad.AddComponent<G1JumpPad>().launchForce = 12.0f;
         jumpPad.GetComponent<Collider>().isTrigger = true;
-        // Arrow stripe pointing toward pad so player understands it is intentional
         var arrowStripe = Slab("JumpPadArrow", new Vector3(7.2f, -0.22f, 60.5f), new Vector3(0.5f, 0.05f, 2.5f), jumpPadMat);
         arrowStripe.GetComponent<Collider>().enabled = false;
 
-        // --- BEAT 1: Pre-encounter resources — deliberately placed BEFORE trigger ---
-        // Player sees them, grabs them, then steps into the encounter.
+        // --- BEAT 1: Pre-encounter resources ---
         SpawnModular("prop_health_pack", new Vector3(12f, 0.3f, 63f), Quaternion.identity, Vector3.one * 0.6f, concrete)
             .AddComponent<G1HealthPack>();
         SpawnModular("prop_ammo_box",    new Vector3(10f, 0.3f, 63f), Quaternion.identity, Vector3.one * 0.6f, metalMat)
             .AddComponent<G1AmmoPack>();
         G1ArmorPack.Create(new Vector3(13.5f, 0.5f, 63f), 50f);
 
-        // Shotgun pickup for players who missed it in the corridor (second chance)
-        // Only if player hasn't grabbed it — placed in a corner, not on the main path
+        // Shotgun pickup for players who missed it
         SpawnWeaponPickup("Shotgun", G1WeaponPickup.WeaponType.Shotgun,
             new Vector3(7.5f, 0.4f, 60.5f), Quaternion.identity, wood);
 
-        // --- BEAT 2: Three cover blocks — all have G1CoverPoints for soldier AI ---
-        // Block A: first cover visible right from entry — safe side (west of puddle)
+        // --- BEAT 2: Three cover blocks ---
         var coverA = Slab("BreachCover_A", new Vector3(9.5f, 0.55f, 65f), new Vector3(1.8f, 1.1f, 0.4f), concrete);
         var cpA1 = new GameObject("CP_A_South"); cpA1.transform.position = new Vector3(9.5f, 0.05f, 64.3f); cpA1.AddComponent<G1CoverPoint>();
         var cpA2 = new GameObject("CP_A_North"); cpA2.transform.position = new Vector3(9.5f, 0.05f, 65.7f); cpA2.AddComponent<G1CoverPoint>();
-        // Block B: further in, on west side — flanking protection
+        
         var coverB = Slab("BreachCover_B", new Vector3(9f, 0.55f, 69f), new Vector3(1.8f, 1.1f, 0.4f), concrete);
         var cpB1 = new GameObject("CP_B_South"); cpB1.transform.position = new Vector3(9f, 0.05f, 68.3f); cpB1.AddComponent<G1CoverPoint>();
         var cpB2 = new GameObject("CP_B_North"); cpB2.transform.position = new Vector3(9f, 0.05f, 69.7f); cpB2.AddComponent<G1CoverPoint>();
-        // Block C: near exit — last stand position
+        
         var coverC = Slab("BreachCover_C", new Vector3(9.5f, 0.55f, 72f), new Vector3(1.8f, 1.1f, 0.4f), concrete);
         var cpC1 = new GameObject("CP_C_South"); cpC1.transform.position = new Vector3(9.5f, 0.05f, 71.3f); cpC1.AddComponent<G1CoverPoint>();
         var cpC2 = new GameObject("CP_C_North"); cpC2.transform.position = new Vector3(9.5f, 0.05f, 72.7f); cpC2.AddComponent<G1CoverPoint>();
 
-        // Signal light — dark until wave spawner activates it (player sees it flip on = warning)
+        // Signal light
         var signalLightGo = new GameObject("WaveSignalLight");
         signalLightGo.transform.position = new Vector3(12f, 2.8f, 65f);
         var signalLt = signalLightGo.AddComponent<Light>();
@@ -848,9 +818,9 @@ public static class G1SceneBuilder
         signalLt.range     = 14f;
         signalLt.intensity = 2.8f;
         signalLt.shadows   = LightShadows.None;
-        signalLt.enabled   = false; // off until waves start
+        signalLt.enabled   = false;
 
-        // --- Door 4 (locked until override terminal activated) ---
+        // --- Door 4 ---
         Slab("BreachExitFrameL", new Vector3( 9.8f, 1.25f, 74f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
         Slab("BreachExitFrameR", new Vector3(14.2f, 1.25f, 74f), new Vector3(0.4f, 2.5f, 0.4f), concrete);
         Slab("BreachExitLintel", new Vector3(12f,   2.6f,  74f), new Vector3(4.8f, 0.3f, 0.4f), concrete);
@@ -859,21 +829,19 @@ public static class G1SceneBuilder
         door4.name = "SlidingDoor_4";
         var slideDoor4 = door4.AddComponent<SlidingDoor>();
 
-        // Grenade pickup (slot 6) near the alien pods
+        // Grenade pickup
         var grenadePickup = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         grenadePickup.name = "GrenadePickup";
         grenadePickup.transform.position = new Vector3(10f, 0.6f, 62f);
         grenadePickup.transform.localScale = Vector3.one * 0.3f;
-        grenadePickup.GetComponent<Renderer>().sharedMaterial =
-            MakeMat("GrenadeOlive", new Color(0.5f, 0.5f, 0f));
+        grenadePickup.GetComponent<Renderer>().sharedMaterial = MakeMat("GrenadeOlive", new Color(0.5f, 0.5f, 0f));
         var grenadeCol = grenadePickup.GetComponent<SphereCollider>();
         grenadeCol.isTrigger = true;
         grenadeCol.radius = 2.2f;
-        grenadePickup.AddComponent<G1WeaponPickup>().weaponType =
-            G1WeaponPickup.WeaponType.Grenade;
+        grenadePickup.AddComponent<G1WeaponPickup>().weaponType = G1WeaponPickup.WeaponType.Grenade;
         grenadePickup.AddComponent<G1WeaponSpinner>();
 
-        // Checkpoints: after Locker Room, Control Room, Industrial Hall
+        // Checkpoints
         foreach (var (cpName, cpPos) in new (string, Vector3)[]
         {
             ("Checkpoint_Locker", new Vector3(0f, 0f, -1.5f)),
@@ -886,7 +854,7 @@ public static class G1SceneBuilder
             cp.AddComponent<G1Checkpoint>();
         }
 
-        // Override terminal — west wall, accessible from cover B/C position
+        // Override terminal
         var overrideTermGo = SpawnModular("prop_computer_terminal",
             new Vector3(7.5f, 0.9f, 71.5f), Quaternion.Euler(0f, 90f, 0f),
             Vector3.one * 0.9f, floorMat);
@@ -898,7 +866,7 @@ public static class G1SceneBuilder
         wpTerm.objectiveId = "override_terminal";
         wpTerm.label = "OVERRIDE CONSOLE";
 
-        // Wave spawner — wires signal light, override terminal, and Door 4 together
+        // Wave spawner
         var waveTriggerGo = new GameObject("WaveTrigger_Breach");
         waveTriggerGo.transform.position = new Vector3(12f, 1.5f, 63.5f);
         var waveColl = waveTriggerGo.AddComponent<BoxCollider>();
@@ -915,55 +883,41 @@ public static class G1SceneBuilder
         wpBreach.objectiveId = "breach_wave";
         wpBreach.label = "BREACH ZONE";
 
-        // Ambient portal light (atmosphere, always on)
-        var l10 = SpawnLight("Breach_PortalLight", new Vector3(12f, 2.5f, 68f),
-            new Color(0f, 1f, 0.8f), 12f, 1.8f);
+        // Ambient portal light
+        var l10 = SpawnLight("Breach_PortalLight", new Vector3(12f, 2.5f, 68f), new Color(0f, 1f, 0.8f), 12f, 1.8f);
         l10.gameObject.AddComponent<G1LightEffects>().effectType = G1LightEffects.EffectType.Pulse;
 
-        // Horde trigger node (now feeds ThreatDirector ambient horde, not the wave system)
-        // Moved to be in the back of the zone, only fires if ThreatDirector wants to
-        // escalate intensity naturally — not a level-scripted spike.
+        // Ambient horde trigger placeholder
         var ambientHordeTrigger = new GameObject("AmbientHordeTrigger_Breach");
         ambientHordeTrigger.transform.position = new Vector3(12f, 1f, 71f);
         var ambientHordeColl = ambientHordeTrigger.AddComponent<BoxCollider>();
         ambientHordeColl.isTrigger = true;
         ambientHordeColl.size = new Vector3(4f, 3f, 2f);
-        // No G1HordeTrigger — we intentionally leave this as a nav target only
+    }
 
-        // =====================================================================
-        // 6. EMERGENCY ELEVATOR — narrative-dressed earned exit
-        // =====================================================================
+    static void BuildElevatorShaft(Material floorMat, Material concrete, Material metalMat, Material doorMat, Material hazard)
+    {
+        // 6. EMERGENCY ELEVATOR
         Slab("ElevatorFloor", new Vector3(12f, -0.25f, 79f), new Vector3(7, 0.5f, 10), floorMat);
         Slab("ElevatorWallW", new Vector3(8.5f, 1.5f, 79f), new Vector3(0.5f, 3, 10), concrete);
         Slab("ElevatorWallE", new Vector3(15.5f,1.5f, 79f), new Vector3(0.5f, 3, 10), concrete);
         Slab("ElevatorWallN", new Vector3(12f, 1.5f, 84f), new Vector3(7, 3, 0.5f), concrete);
 
-        // Narrative: dead HECU soldier — tells player HECU was here and lost
-        var deadHECU = SpawnModular("prop_body_soldier",
-            new Vector3(9.5f, 0f, 76.5f), Quaternion.Euler(0f, 40f, 0f),
-            new Vector3(0.8f, 0.8f, 0.8f), concrete);
+        var deadHECU = SpawnModular("prop_body_soldier", new Vector3(9.5f, 0f, 76.5f), Quaternion.Euler(0f, 40f, 0f), new Vector3(0.8f, 0.8f, 0.8f), concrete);
         deadHECU.name = "DeadHECU_Elevator";
 
-        // Narrative: scattered equipment — the chaos of a failed evac
         var droppedKit = Slab("DroppedKit", new Vector3(14.5f, 0.1f, 76f), new Vector3(0.6f, 0.2f, 0.4f), metalMat);
         droppedKit.transform.rotation = Quaternion.Euler(0f, 65f, 12f);
 
-        // Reward health pack inside elevator — earned, not free
         SpawnModular("prop_health_pack", new Vector3(13f, 0.3f, 78f), Quaternion.identity, Vector3.one * 0.6f, concrete)
             .AddComponent<G1HealthPack>();
 
-        // Elevator lift platform
         var lift = Slab("ElevatorPlatform", new Vector3(12f, 0.05f, 81f), new Vector3(3f, 0.1f, 3f), metalMat);
 
-        // Stable amber light — opposite mood to the breach zone teal
-        SpawnLight("Elevator_MainLight", new Vector3(12f, 2.8f, 79f),
-            new Color(1f, 0.8f, 0.55f), 12f, 1.6f, LightShadows.Soft);
-        // Warning beacon above lift, pulsing orange
-        var l11 = SpawnLight("Elevator_WarningBeacon", new Vector3(12f, 2.9f, 81f),
-            new Color(1f, 0.4f, 0f), 6f, 2.2f, LightShadows.None);
+        SpawnLight("Elevator_MainLight", new Vector3(12f, 2.8f, 79f), new Color(1f, 0.8f, 0.55f), 12f, 1.6f, LightShadows.Soft);
+        var l11 = SpawnLight("Elevator_WarningBeacon", new Vector3(12f, 2.9f, 81f), new Color(1f, 0.4f, 0f), 6f, 2.2f, LightShadows.None);
         l11.gameObject.AddComponent<G1LightEffects>().effectType = G1LightEffects.EffectType.Pulse;
 
-        // Level exit trigger — requireUnlock = true; door must be opened via terminal
         var triggerObj = new GameObject("LevelExitTrigger");
         triggerObj.transform.position = new Vector3(12f, 0.5f, 81f);
         var triggerCol = triggerObj.AddComponent<BoxCollider>();
@@ -972,14 +926,31 @@ public static class G1SceneBuilder
         var exitTrigger = triggerObj.AddComponent<G1LevelExitTrigger>();
         exitTrigger.nextScene = "Level2";
         exitTrigger.requireUnlock = true;
-        // Reset static flag so each play session starts locked
         G1LevelExitTrigger.ElevatorUnlocked = false;
 
-        // Level 1 Objective Manager
         var objMgrGo = new GameObject("ObjectiveManager");
         var objMgr = objMgrGo.AddComponent<G1ObjectiveManager>();
         objMgr.AddObjective("breach_wave", "Eliminate Alien Breach Threat");
         objMgr.AddObjective("override_terminal", "Override Elevator Console & Evacuate");
+    }
+
+    static void BuildArena(ArenaConfig cfg, System.Random rng)
+    {
+        Material concrete = MakeMat("Concrete", new Color(0.85f, 0.87f, 0.90f), 0.2f, "tex_concrete_wall", 4f, 2f);
+        Material floorMat = MakeMat("Floor", new Color(0.75f, 0.77f, 0.80f), 0.35f, "tex_floor_metal_grid", 6f, 6f);
+        Material hazard = MakeMat("HazardOrange", new Color(1f, 1f, 1f), 0.2f, "tex_hazard_stripe", 2f, 2f);
+        Material wood = MakeMat("CrateWood", new Color(0.55f, 0.42f, 0.25f), 0.15f, "tex_steel_panel", 1f, 1f);
+        Material doorMat = MakeMat("DoorSteel", new Color(0.85f, 0.88f, 0.92f), 0.4f, "tex_steel_panel", 2f, 2f);
+        Material metalMat = MakeMat("PropMetal", new Color(0.8f, 0.85f, 0.88f), 0.3f, "tex_steel_panel", 2f, 2f);
+        Material greenMat = MakeMat("IndustrialGreen", new Color(0.5f, 0.7f, 0.5f), 0.2f, "tex_steel_panel", 2f, 2f);
+
+        BuildAtriumHub(cfg, floorMat, concrete, metalMat, hazard);
+        BuildLockerRoom(cfg, floorMat, concrete, metalMat, doorMat, hazard);
+        BuildLabCorridor(floorMat, concrete, doorMat, wood);
+        BuildControlRoom(floorMat, concrete, metalMat, doorMat);
+        BuildIndustrialHall(floorMat, concrete, metalMat, doorMat, greenMat, hazard);
+        BuildAlienBreachZone(floorMat, concrete, metalMat, doorMat, greenMat, hazard);
+        BuildElevatorShaft(floorMat, concrete, metalMat, doorMat, hazard);
     }
 
     /// Seeded point in the arena, kept clear of the player spawn and doorway.
