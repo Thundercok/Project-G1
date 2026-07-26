@@ -50,6 +50,11 @@ public sealed class G1CoverPoint : MonoBehaviour
         return best;
     }
 
+    /// Does this spot still hide me from where the threat is now? Callers hold
+    /// a claim across several seconds of a firefight, and a threat that has
+    /// flanked turns good cover into a place to die.
+    public bool IsValidAgainst(Vector3 threatPos) => Validate(transform.position, threatPos);
+
     // Hidden when crouched, exposed when standing to pop out and shoot
     private static bool Validate(Vector3 point, Vector3 threatPos)
     {

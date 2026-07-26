@@ -1,0 +1,246 @@
+{
+ "7a1a784a3809ed49": {
+  "role": "Echo",
+  "text": "You're the Anchor. I was too, forty loops ago... I still can't leave the spot where it took me. Go and stand there. Someone should see it who isn't already dead."
+ },
+ "eb8ac528864ea527": {
+  "role": "Echo",
+  "text": "West of the ruins. You'll know it. It's colder there."
+ },
+ "3a0d2def437193ac": {
+  "role": "Echo",
+  "text": "You haven't gone yet. It's still waiting. It's always waiting."
+ },
+ "9c96b65d6e85c837": {
+  "role": "Echo",
+  "text": "You saw. Then some part of it is finally over. Sorensen's aid post is east of the plaza — the living need you more."
+ },
+ "7610a2050c0d1ed1": {
+  "role": "Echo",
+  "text": "Go on. I'm not going anywhere. That's rather the problem."
+ },
+ "125e7944263b71e9": {
+  "role": "Medic",
+  "text": "I'm out of everything. Our resupply is sitting in the southern ruins with about thirty Taken walking circles around it. Get to the cache and I can keep people breathing."
+ },
+ "42a7430e9fb720a1": {
+  "role": "Medic",
+  "text": "Straight south into the ruins. Don't stop moving in there."
+ },
+ "66d674c8672ebff5": {
+  "role": "Medic",
+  "text": "No cache, no patients — that's the arithmetic. Please hurry."
+ },
+ "095172e9d6717fbe": {
+  "role": "Medic",
+  "text": "That's blood and bandages for a week. Patched you up too. Riggs is holding the motor pool — he pays better than I do."
+ },
+ "e7b9545ae8cd94fb": {
+  "role": "Medic",
+  "text": "Stay whole. I'd rather not see you on this table."
+ },
+ "b0d6984a3983d711": {
+  "role": "Quartermaster",
+  "text": "That gunship has strafed my yard four times. Every crate I move, it burns. Put it in the dirt and I'll open the good lockers for you."
+ },
+ "2eb4e9de63087a95": {
+  "role": "Quartermaster",
+  "text": "Aim for the rotor. It flies over the plaza — you can't miss it."
+ },
+ "b0e29fee9d52cc74": {
+  "role": "Quartermaster",
+  "text": "I can still hear rotors. That means you're not finished."
+ },
+ "9bfaf31b0a14d20d": {
+  "role": "Quartermaster",
+  "text": "Beautiful. Take everything you can carry. Chief Vance runs the base out west — she's been asking for a spare gun."
+ },
+ "480fa9e5d47203c1": {
+  "role": "Quartermaster",
+  "text": "Lockers are open. Help yourself, quietly."
+ },
+ "8e2c394dba997849": {
+  "role": "SecurityChief",
+  "text": "My line has been stuck sixty metres short of the plaza for two days. I don't need a hero, I need someone the Sweepers have to look at. Reach the plaza and my people follow you in."
+ },
+ "9228a0687820b20d": {
+  "role": "SecurityChief",
+  "text": "Then go. We move when you move."
+ },
+ "6b0bfb6a34496d70": {
+  "role": "SecurityChief",
+  "text": "The plaza's still theirs. Nothing's changed while you stood here."
+ },
+ "bdc7f5bef75391e1": {
+  "role": "SecurityChief",
+  "text": "The line's moving. First ground we've taken all week. Okafor's up at the labs — his comms problem is yours now."
+ },
+ "a0285659a426d7f6": {
+  "role": "SecurityChief",
+  "text": "You've got a squad behind you now. Use them."
+ },
+ "34ab1c0b92ac3406": {
+  "role": "Engineer",
+  "text": "The Sweepers cut our comms, but the southeast dish is still standing. Reach it and bring the array back up, or nobody topside ever learns we were here at all."
+ },
+ "7fdd449679d780d5": {
+  "role": "Engineer",
+  "text": "Southeast corner. Get the dish talking and get out."
+ },
+ "a0d473f83ce0653a": {
+  "role": "Engineer",
+  "text": "Still dead air. The array won't fix itself."
+ },
+ "11dda9fa3a00293b": {
+  "role": "Engineer",
+  "text": "We're on the air. Whatever that's worth in a loop. Dr. Halloran is in the northwest quarters — she'll want you."
+ },
+ "0fa38d0f1536fda3": {
+  "role": "Engineer",
+  "text": "Signal's holding. Thank you for that."
+ },
+ "1dabb6907c7ee7af": {
+  "role": "Researcher",
+  "text": "Everything we recorded about the Threshold is on one core in the northeast warehouse — including the iteration count. I need to know what number we're on. Bring it to me."
+ },
+ "97d1a59c955f9099": {
+  "role": "Researcher",
+  "text": "Northeast warehouse. And doctor — read nothing on the way back."
+ },
+ "14c146dfed22730a": {
+  "role": "Researcher",
+  "text": "Without that core we're guessing, and I'm tired of guessing."
+ },
+ "b626f1aee8e2b2b2": {
+  "role": "Researcher",
+  "text": "Iteration two hundred and six. Two hundred and six. ...Park is out on the east ridge. Tell him I said run."
+ },
+ "b152138b628dd80e": {
+  "role": "Researcher",
+  "text": "Two hundred and six. I keep saying it. It doesn't help."
+ },
+ "e2cbd99b703300e1": {
+  "role": "SignalTech",
+  "text": "There's a man in a suit standing on top of the command tower and he has not moved in three days. I want a relay at the base of that tower so we can hear what he's transmitting. Do it and get clear."
+ },
+ "9b5c8e41962d9208": {
+  "role": "SignalTech",
+  "text": "Base of the tower, dead centre of the plaza. Don't look up."
+ },
+ "05634c565e1cb093": {
+  "role": "SignalTech",
+  "text": "No relay, no idea what he's saying. Or to whom."
+ },
+ "b744a4cc945f1c3b": {
+  "role": "SignalTech",
+  "text": "It's a carrier signal. Outbound. He's reporting on you — and something out there is answering. Get to extraction."
+ },
+ "81f9ba4328dfb9cb": {
+  "role": "SignalTech",
+  "text": "Whatever's listening already knows your name. Go."
+ },
+ "3f4b72e7e74c19cc": {
+  "role": "SecurityChief",
+  "text": "Stop right there. Nobody walks into the Sprawl blind. We have people alive past this gate and no way to reach them — the yard beyond is HECU ground. Say the word and I open it, but the second it moves they will know you're coming. Find one of ours and get them talking."
+ },
+ "48b20eaa5a1d5da6": {
+  "role": "SecurityChief",
+  "text": "Opening the gate. Take the crate first, then hit Q — the suit reads bio-signals and you'll want to know who's breathing before you round a corner. My two are with you. Move!"
+ },
+ "5abd005a5328738d": {
+  "role": "SecurityChief",
+  "text": "Gate's open and the yard's hot. Go find our people."
+ },
+ "69968bc41190b771": {
+  "role": "SecurityChief",
+  "text": "You found one. That's more than we managed in two days. Take the resupply — and whatever that thing out there told you, keep walking."
+ },
+ "e2049fbcd1e7bd0c": {
+  "role": "SecurityChief",
+  "text": "Gate stays open. Bring them home if you can."
+ },
+ "690b3ad7a981e62b": {
+  "role": "Vi",
+  "text": "Hazard suit online. Local iteration index: unavailable. You are at the south gate of the Corvus Sprawl. There are people alive past this wall and no clean way to reach them."
+ },
+ "32b1e051a46e93a9": {
+  "role": "Auditor",
+  "text": "You found one of ours. Good. You always find one of ours."
+ },
+ "f9b539a7e422c886": {
+  "role": "Self",
+  "text": "It said it used to be me. Forty loops ago, it was me, and it is still standing at the place where it stopped."
+ },
+ "16e1b76ea3c06044": {
+  "role": "Auditor",
+  "text": "Forty-one was an excellent Anchor. Not as good as you. Nobody has ever been as good as you."
+ },
+ "8de119444f6a8f43": {
+  "role": "Vi",
+  "text": "Medical stores located in the southern ruins. Casualty count inside the Sprawl: rising."
+ },
+ "4df1939fe9b50f63": {
+  "role": "Self",
+  "text": "Sorensen doesn't know this has all happened before. I am not going to be the one who tells her."
+ },
+ "6867d775bd8fde30": {
+  "role": "Vi",
+  "text": "Rotor signature holding over the central plaza. Hostile. Four strafing runs on the motor pool in the last hour."
+ },
+ "2caee71ce457d4fd": {
+  "role": "Auditor",
+  "text": "You brought down a gunship that has been brought down two hundred and five times already. It flies again on Tuesday. It always flies again on Tuesday."
+ },
+ "7a07f4c9ae567b2f": {
+  "role": "Self",
+  "text": "Vance's line has been stuck sixty metres short of the plaza for two days. Two days, in a place where the days repeat."
+ },
+ "c6a7f5882dd1a606": {
+  "role": "Auditor",
+  "text": "Ground taken. Ground is not the thing you are running out of."
+ },
+ "110b1d65bee3df73": {
+  "role": "Vi",
+  "text": "All external communications severed. The southeast dish is structurally intact and unpowered."
+ },
+ "d619b1bdf32b0e1f": {
+  "role": "Auditor",
+  "text": "You put the Sprawl back on the air. Thank you, sincerely. It makes the reporting so much easier."
+ },
+ "fe497d1ae9c37a97": {
+  "role": "Self",
+  "text": "Halloran wants the iteration count off the data core. I already know I am not going to like the number."
+ },
+ "4854f0eaa3d8cee1": {
+  "role": "Auditor",
+  "text": "Two hundred and six. Say it again. It is a good number. A great deal of work went into reaching it."
+ },
+ "d7b6e7c5a73cba16": {
+  "role": "Vi",
+  "text": "Carrier signal originating from the command tower. Outbound. Encrypted. Continuous for seventy-one hours."
+ },
+ "b6a6411270bea221": {
+  "role": "Auditor",
+  "text": "You have heard it now, so I will not insult you. Yes, I file. Yes, something reads what I file. No, it is not coming to help you. It is coming to collect."
+ },
+ "e77529c98906559c": {
+  "role": "Auditor",
+  "text": "There is a ring in the southern ruins that has been humming since before you were assigned here. Step through it and you wake up in the locker room with clean hands and no memory of me. That is the offer. It has always been the offer."
+ },
+ "cdecbe36ec7835e8": {
+  "role": "Vi",
+  "text": "Three resonance emitters detected at the ring. Structural integrity: destructible."
+ },
+ "65e9115538f84fba": {
+  "role": "Self",
+  "text": "He keeps calling it an offer. He has never once called it a way out."
+ },
+ "91764f4849ce043b": {
+  "role": "Self",
+  "text": "Two hundred and six people stood here and stepped through. I am the two hundred and seventh, and I brought a crowbar."
+ },
+ "7794fd810e468982": {
+  "role": "Auditor",
+  "text": "...Ah. Well. That is inconvenient."
+ }
+}

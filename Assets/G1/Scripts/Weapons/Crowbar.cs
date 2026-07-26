@@ -28,7 +28,7 @@ public class Crowbar : WeaponBase
         if (swinging)
             return;
         // RMB: slower overhead heavy swing, 2.5x damage + knockback
-        if (Input.GetButtonDown("Fire2"))
+        if (SecondaryPressed)
         {
             StartCoroutine(Swing(true));
             return;

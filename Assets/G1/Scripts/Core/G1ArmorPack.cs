@@ -69,13 +69,30 @@ public sealed class G1WallCharger : MonoBehaviour, IUsable
         var health = user.GetComponent<HealthSystem>();
         if (health == null)
             return;
-        if (charge <= 0f || health.Armor >= health.maxArmor)
+
+        // A charger tops up the whole suit, not just the plating — with sprint
+        // drawing on the aux cell, a station next to a long run is worth
+        // stopping at even when your armor is already full.
+        var suit = user.GetComponent<G1SuitPower>();
+        bool wantsArmor = health.Armor < health.maxArmor;
+        bool wantsAux = suit != null && suit.Power < suit.maxPower;
+
+        if (charge <= 0f || (!wantsArmor && !wantsAux))
         {
             G1Audio.Play("hit_thunk", transform.position, 0.4f, 0.6f);   // empty click
             return;
         }
-        float give = Mathf.Min(ratePerUse, charge, health.maxArmor - health.Armor);
-        health.AddArmor(give);
+
+        float give = Mathf.Min(ratePerUse, charge);
+        if (wantsArmor)
+        {
+            give = Mathf.Min(give, health.maxArmor - health.Armor);
+            health.AddArmor(give);
+        }
+        else
+        {
+            suit.Recharge(give);
+        }
         charge -= give;
         G1Audio.Play("door_servo", transform.position, 0.6f, 1.5f);
         if (statusLight && charge <= 0f)

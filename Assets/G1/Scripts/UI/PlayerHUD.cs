@@ -31,6 +31,8 @@ public class PlayerHUD : MonoBehaviour
     int _charIndex;
 
     G1Flashlight flashlight;
+    G1SuitPower suitPower;
+    Texture2D _barTex;
     float _radFlashTime;
 
     float _objFlashTime;
@@ -43,6 +45,8 @@ public class PlayerHUD : MonoBehaviour
         camFX = GetComponentInChildren<CameraEffects>();
         vignetteTex = MakeVignette();
         flashlight = GetComponentInChildren<G1Flashlight>();
+        suitPower = GetComponent<G1SuitPower>();
+        _barTex = Texture2D.whiteTexture;
 
         // Ensure PlayerInventoryRestorer and G1TutorialSystem are present
         if (GetComponent<G1PlayerInventoryRestorer>() == null)
@@ -265,6 +269,35 @@ public class PlayerHUD : MonoBehaviour
             ? new Color(0.3f, 0.7f, 1f, 0.9f) : new Color(0.4f, 0.5f, 0.6f, 0.5f);
         GUI.Label(new Rect(340, Screen.height - 80, 250, 60), apText, apStyle);
 
+        // Draw the HEV aux cell — the sprint budget. Sits right of the AP
+        // readout as a bar rather than a number, because what you need to know
+        // mid-firefight is "can I still run", not the exact figure.
+        if (suitPower != null)
+        {
+            const float bx = 520f, bw = 130f, bh = 9f;
+            float by = Screen.height - 52f;
+
+            var auxStyle = new GUIStyle(style) { fontSize = 15, alignment = TextAnchor.LowerLeft };
+            auxStyle.normal.textColor = new Color(0f, 0f, 0f, 0.5f);
+            GUI.Label(new Rect(bx + 2, by - 30f, 80, 30), "AUX", auxStyle);
+            auxStyle.normal.textColor = new Color(hudColor.r, hudColor.g, hudColor.b, 0.7f);
+            GUI.Label(new Rect(bx, by - 32f, 80, 30), "AUX", auxStyle);
+
+            Color prev = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.45f);
+            GUI.DrawTexture(new Rect(bx - 1f, by - 1f, bw + 2f, bh + 2f), _barTex);
+
+            // amber while spending, blue at rest, red pulse while locked out
+            GUI.color = suitPower.Depleted
+                ? Color.Lerp(new Color(0.8f, 0.15f, 0.1f, 0.9f), new Color(0.4f, 0.1f, 0.1f, 0.6f),
+                             Mathf.PingPong(Time.time * 4f, 1f))
+                : suitPower.Draining
+                    ? new Color(1f, 0.62f, 0.1f, 0.9f)
+                    : new Color(0.3f, 0.7f, 1f, 0.75f);
+            GUI.DrawTexture(new Rect(bx, by, bw * suitPower.Fraction, bh), _barTex);
+            GUI.color = prev;
+        }
+
         // Draw Flashlight indicator if available
         if (flashlight != null)
         {
@@ -303,12 +336,19 @@ public class PlayerHUD : MonoBehaviour
         }
         if (active == null || !active.HasAmmo) return;
 
-        string ammoText = active.IsReloading ? "RELOAD" : $"{active.Clip} | {active.Reserve}";
+        // an infinity glyph where the reserve count goes, so "god mode is also
+        // paying for the bullets" is visible rather than something you infer
+        // after not running out for a while
+        string ammoText = active.IsReloading ? "RELOAD"
+            : G1GodModeAmmo.Unlimited ? $"{active.Clip} | ∞"
+            : $"{active.Clip} | {active.Reserve}";
 
         // Red when low ammo
-        Color ammoColor = (active.Clip <= 2 && !active.IsReloading)
-            ? new Color(1f, 0.15f, 0.15f, 0.9f)
-            : hudColor;
+        Color ammoColor = G1GodModeAmmo.Unlimited
+            ? new Color(0.4f, 0.95f, 0.5f, 0.9f)
+            : (active.Clip <= 2 && !active.IsReloading)
+                ? new Color(1f, 0.15f, 0.15f, 0.9f)
+                : hudColor;
 
         var style = new GUIStyle(GUI.skin.label)
         {

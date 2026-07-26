@@ -44,7 +44,7 @@ public class G1Pistol : WeaponBase
             return;
         }
         // RMB: rapid 3-round burst
-        if (Input.GetButtonDown("Fire2") && Time.time >= nextFire && clip > 0)
+        if (SecondaryPressed && Time.time >= nextFire && clip > 0)
         {
             StartCoroutine(Burst());
             return;
