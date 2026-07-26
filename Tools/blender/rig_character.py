@@ -70,12 +70,17 @@ def side_of(name):
 
 def bone_for(n):
     s = side_of(n)
-    if n in ("device", "device_screen"):
+    if n.startswith("device"):          # wrist unit, its screen and its strap
         return "forearm.R"
     if n in ("handle", "case") or n.startswith("latch"):
         return "hand.L"
+    # Skinning here is rigid: every mesh part belongs wholly to one bone, so
+    # each new piece of the model needs a home. An unmapped name raises rather
+    # than defaulting, because a part silently bound to the root bone is a limb
+    # that stays behind when the character walks.
     for pre in ("head", "hair", "nose", "goatee", "ear", "lens", "garm",
-                "gbridge", "eye", "brow", "mouth"):
+                "gbridge", "eye", "brow", "mouth",
+                "visor", "resp", "filter", "commpod", "lamp_"):
         if n.startswith(pre):
             return "head"
     if n.startswith(("neckseat", "neck", "collar")):
@@ -83,25 +88,28 @@ def bone_for(n):
     if n.startswith("jacket_low"):
         return "hips"
     for pre in ("chest", "emblem", "mark_", "backpack", "vent_", "pauldron",
-                "shoulder", "jacket", "shirt", "tie", "lapel"):
+                "shoulder", "jacket", "shirt", "tie", "lapel",
+                "strap_chest", "strap_shoulder", "pocket"):
         if n.startswith(pre):
             return "chest"
     if n.startswith("abdomen"):
         return "spine"
-    for pre in ("pelvis", "crotch", "belt", "pouch"):
+    for pre in ("pelvis", "crotch", "belt", "pouch", "hipplate"):
         if n.startswith(pre):
             return "hips"
-    if n.startswith("uarm"):
-        return "upper_arm" + s
-    for pre in ("farm", "elbow", "cuff"):
+    for pre in ("uarm", "armband"):
+        if n.startswith(pre):
+            return "upper_arm" + s
+    for pre in ("farm", "elbow", "cuff", "bracer"):
         if n.startswith(pre):
             return "forearm" + s
     if n.startswith("hand"):
         return "hand" + s
-    if n.startswith(("thigh",)):
+    if n.startswith("thigh"):
         return "thigh" + s
-    if n.startswith(("shin", "knee")):
-        return "shin" + s
+    for pre in ("shin", "knee"):
+        if n.startswith(pre):
+            return "shin" + s
     for pre in ("boot", "toecap", "shoe"):
         if n.startswith(pre):
             return "foot" + s
