@@ -134,16 +134,25 @@ public sealed class G1MainMenu : MonoBehaviour
         }
     }
 
-    void DrawPanel(Rect r, Color fill, Color border, float borderWidth = 1f)
+    void DrawModernPanel(Rect r, Color fill, Color accent, float accentWidth = 2f)
     {
+        Texture2D t = _pixelTex;
         Color old = GUI.color;
+        // Outer shadow
+        GUI.color = new Color(0f, 0f, 0f, fill.a * 0.3f);
+        GUI.DrawTexture(new Rect(r.x - 1, r.y - 1, r.width + 2, r.height + 2), t);
+        // Main fill
         GUI.color = fill;
-        GUI.DrawTexture(r, _pixelTex);
-        GUI.color = border;
-        GUI.DrawTexture(new Rect(r.x, r.y, r.width, borderWidth), _pixelTex);
-        GUI.DrawTexture(new Rect(r.x, r.yMax - borderWidth, r.width, borderWidth), _pixelTex);
-        GUI.DrawTexture(new Rect(r.x, r.y, borderWidth, r.height), _pixelTex);
-        GUI.DrawTexture(new Rect(r.xMax - borderWidth, r.y, borderWidth, r.height), _pixelTex);
+        GUI.DrawTexture(r, t);
+        // Bottom gradient strip for depth
+        GUI.color = new Color(fill.r + 0.03f, fill.g + 0.04f, fill.b + 0.05f, fill.a * 0.5f);
+        GUI.DrawTexture(new Rect(r.x, r.yMax - r.height * 0.25f, r.width, r.height * 0.25f), t);
+        // Left accent bar
+        GUI.color = accent;
+        GUI.DrawTexture(new Rect(r.x, r.y, accentWidth, r.height), t);
+        // Top highlight
+        GUI.color = new Color(1f, 1f, 1f, 0.04f);
+        GUI.DrawTexture(new Rect(r.x + accentWidth, r.y, r.width - accentWidth, 1f), t);
         GUI.color = old;
     }
 
@@ -172,9 +181,13 @@ public sealed class G1MainMenu : MonoBehaviour
         float panelH = inLevelSelect ? 320f : 400f;
         float panelX = cx - panelW / 2f;
         float panelY = Screen.height * 0.15f;
-        DrawPanel(new Rect(panelX, panelY, panelW, panelH),
-                  new Color(0.02f, 0.04f, 0.06f, 0.7f),
-                  new Color(0.16f, 0.75f, 0.75f, 0.3f));
+        DrawModernPanel(new Rect(panelX, panelY, panelW, panelH),
+                        new Color(0.02f, 0.04f, 0.06f, 0.7f),
+                        new Color(0.16f, 0.75f, 0.75f, 0.6f), 3f);
+
+        // Animated scanline
+        float scanlineY = panelY + Mathf.PingPong(Time.time * 30f, panelH);
+        DrawHLine(panelX, scanlineY, panelW, new Color(0.16f, 0.75f, 0.75f, 0.06f));
 
         var title = new GUIStyle(GUI.skin.label)
         {
@@ -203,6 +216,15 @@ public sealed class G1MainMenu : MonoBehaviour
         {
             item.normal.textColor = i == selected ? Teal : Dim;
             var r = new Rect(cx - 250, Screen.height * (inLevelSelect ? 0.42f : 0.38f) + i * 48, 500, 40);
+
+            if (i == selected)
+            {
+                Color oldColor = GUI.color;
+                GUI.color = new Color(0.16f, 0.75f, 0.75f, 0.12f);
+                GUI.DrawTexture(new Rect(cx - 240, r.y + (r.height - 36) / 2f, 480, 36), _pixelTex);
+                GUI.color = oldColor;
+            }
+
             GUI.Label(r, (i == selected ? "▸ " : "   ") + currentMenuItems[i], item);
             if (r.Contains(Event.current.mousePosition))
             {

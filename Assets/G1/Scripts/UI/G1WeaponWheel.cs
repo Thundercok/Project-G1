@@ -10,7 +10,7 @@ public class G1WeaponWheel : MonoBehaviour
     public bool isOpen;
 
     static readonly string[] WeaponNames = {
-        "CROWBAR", "PISTOL", "SHOTGUN", "SMG", "MAGNUM", "GRENADE"
+        "CROWBAR", "PISTOL", "SMG", "SHOTGUN", "MAGNUM", "GRENADE"
     };
 
     WeaponSwitcher switcher;
@@ -191,12 +191,22 @@ public class G1WeaponWheel : MonoBehaviour
                        : isUnlocked ? new Color(0.02f, 0.04f, 0.06f, 0.65f)
                        : new Color(0.01f, 0.02f, 0.03f, 0.4f);
 
-            Color border = isSelected ? (isUnlocked ? Teal : Color.red)
-                         : isActive ? Teal
+            Color accent = (isActive || isSelected) ? (isUnlocked ? Teal : Color.red)
                          : isUnlocked ? DimTeal
                          : LockedColor;
+            float accentW = (isActive || isSelected) ? 3f : (isUnlocked ? 2f : 1f);
 
-            DrawPanel(slotRect, fill, border, isSelected ? 2f : 1f);
+            if (isSelected)
+            {
+                float pulseAlpha = Mathf.Sin(Time.unscaledTime * 4f) * 0.15f + 0.15f;
+                Color glowColor = isUnlocked ? new Color(Teal.r, Teal.g, Teal.b, pulseAlpha) : new Color(1f, 0f, 0f, pulseAlpha);
+                Color oldC = GUI.color;
+                GUI.color = glowColor;
+                GUI.DrawTexture(new Rect(slotRect.x - 2, slotRect.y - 2, slotRect.width + 4, slotRect.height + 4), Texture2D.whiteTexture);
+                GUI.color = oldC;
+            }
+
+            DrawModernPanel(slotRect, fill, accent, accentW);
 
             var itemStyle = new GUIStyle(GUI.skin.label)
             {
@@ -209,27 +219,47 @@ public class G1WeaponWheel : MonoBehaviour
             if (isUnlocked)
             {
                 itemStyle.normal.textColor = isSelected ? Color.white : (isActive ? Teal : new Color(0.8f, 0.9f, 0.95f, 0.8f));
-                string text = $"[{i + 1}] {WeaponNames[i]}";
-                GUI.Label(slotRect, text, itemStyle);
+                GUI.Label(new Rect(slotRect.x, slotRect.y - 8f, slotRect.width, slotRect.height), WeaponNames[i], itemStyle);
+
+                var hintStyle = new GUIStyle(itemStyle) { fontSize = 10 };
+                hintStyle.normal.textColor = new Color(0.6f, 0.6f, 0.6f, 0.5f);
+                GUI.Label(new Rect(slotRect.x, slotRect.y + 10f, slotRect.width, slotRect.height), $"[{i + 1}]", hintStyle);
             }
             else
             {
                 itemStyle.normal.textColor = LockedColor;
-                GUI.Label(slotRect, $"[{i + 1}] LOCKED", itemStyle);
+                GUI.Label(new Rect(slotRect.x, slotRect.y - 8f, slotRect.width, slotRect.height), "LOCKED", itemStyle);
+
+                var hintStyle = new GUIStyle(itemStyle) { fontSize = 10 };
+                hintStyle.normal.textColor = new Color(0.6f, 0.6f, 0.6f, 0.3f);
+                GUI.Label(new Rect(slotRect.x, slotRect.y + 10f, slotRect.width, slotRect.height), $"[{i + 1}]", hintStyle);
             }
         }
 
         // Draw Center Circle Title
         Rect centerRect = new Rect(cx - 70f, cy - 35f, 140f, 70f);
-        DrawPanel(centerRect, new Color(0.02f, 0.04f, 0.06f, 0.85f), Teal, 1.5f);
+        DrawModernPanel(centerRect, new Color(0.02f, 0.04f, 0.06f, 0.85f), Teal, 3f);
 
         centerStyle.normal.textColor = Teal;
         if (hoveredSlot >= 0 && sw != null && sw.IsUnlocked(hoveredSlot))
         {
             GUI.Label(new Rect(cx - 70f, cy - 22f, 140f, 25f), WeaponNames[hoveredSlot], centerStyle);
+
+            string subText = "RELEASE TO SELECT";
+            Color subColor = new Color(1f, 0.8f, 0.2f, 0.9f);
+            if (sw.weapons != null && hoveredSlot < sw.weapons.Length && sw.weapons[hoveredSlot] != null)
+            {
+                var wb = sw.weapons[hoveredSlot].GetComponent<WeaponBase>();
+                if (wb != null && wb.HasAmmo)
+                {
+                    subText = $"{wb.Clip} | {wb.Reserve}";
+                    subColor = new Color(0.8f, 0.9f, 0.95f, 0.9f);
+                }
+            }
+
             var subStyle = new GUIStyle(centerStyle) { fontSize = 12 };
-            subStyle.normal.textColor = new Color(1f, 0.8f, 0.2f, 0.9f);
-            GUI.Label(new Rect(cx - 70f, cy + 2f, 140f, 20f), "RELEASE TO SELECT", subStyle);
+            subStyle.normal.textColor = subColor;
+            GUI.Label(new Rect(cx - 70f, cy + 2f, 140f, 20f), subText, subStyle);
         }
         else
         {
@@ -240,7 +270,29 @@ public class G1WeaponWheel : MonoBehaviour
         }
     }
 
-    static void DrawPanel(Rect r, Color fill, Color border, float bw = 1f)
+    static void DrawModernPanel(Rect r, Color fill, Color accent, float accentW = 2f)
+    {
+        Texture2D t = Texture2D.whiteTexture;
+        Color old = GUI.color;
+        // Outer shadow
+        GUI.color = new Color(0f, 0f, 0f, fill.a * 0.35f);
+        GUI.DrawTexture(new Rect(r.x - 1, r.y - 1, r.width + 2, r.height + 2), t);
+        // Main fill
+        GUI.color = fill;
+        GUI.DrawTexture(r, t);
+        // Bottom gradient
+        GUI.color = new Color(fill.r + 0.02f, fill.g + 0.03f, fill.b + 0.04f, fill.a * 0.5f);
+        GUI.DrawTexture(new Rect(r.x, r.yMax - r.height * 0.3f, r.width, r.height * 0.3f), t);
+        // Left accent bar
+        GUI.color = accent;
+        GUI.DrawTexture(new Rect(r.x, r.y, accentW, r.height), t);
+        // Top highlight
+        GUI.color = new Color(1f, 1f, 1f, 0.04f);
+        GUI.DrawTexture(new Rect(r.x + accentW, r.y, r.width - accentW, 1f), t);
+        GUI.color = old;
+    }
+
+    static void DrawPanelLegacy(Rect r, Color fill, Color border, float bw = 1f)
     {
         Texture2D t = Texture2D.whiteTexture;
         Color old = GUI.color;

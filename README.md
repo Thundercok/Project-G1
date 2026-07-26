@@ -94,7 +94,7 @@ is the tool that ends it.
 | V | Toggle 3D Fly Mode (Flight / Noclip) |
 | TAB | Toggle Mob Spawner Toolbox |
 | F3 | Toggle AI telemetry overlay |
-| Esc | Release mouse cursor / Open pause settings menu |
+| Esc | Pause menu (resume, settings, restart, main menu) |
 
 ## Project layout
 

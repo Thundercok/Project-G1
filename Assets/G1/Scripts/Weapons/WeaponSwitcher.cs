@@ -33,7 +33,7 @@ public class WeaponSwitcher : MonoBehaviour
         Select(index);
     }
 
-    public bool wheelOnly = true;
+    public bool wheelOnly = false;
 
     void Update()
     {

@@ -59,6 +59,7 @@ public class G1SoldierAI : MonoBehaviour
     public SquadRole ClaimedRole => _claimedRole;
     public G1CoverPoint ClaimedCover => _claimedCover;
     public Transform PlayerXform => player != null ? player.transform : null;
+    private bool HasValidAnim => anim != null && anim.runtimeAnimatorController != null && anim.layerCount > 0;
     private float _nextPlanTime;
     private const float PlanInterval = 0.4f;
     private bool _recentlyHit;
@@ -137,7 +138,7 @@ public class G1SoldierAI : MonoBehaviour
         
         // Start patrol animation
         bool isWalking = waypoints != null && waypoints.Length > 1;
-        if (anim) anim.CrossFade(isWalking ? "Walk" : "Idle", 0.05f);
+        if (HasValidAnim) anim.CrossFade(isWalking ? "Walk" : "Idle", 0.1f);
     }
 
     void Update()
@@ -206,7 +207,7 @@ public class G1SoldierAI : MonoBehaviour
             // Telegraph Red Laser Sight Line
             StartCoroutine(ShowTelegraphLaser(delay));
 
-            if (anim) anim.CrossFade("Walk", 0.1f);
+            if (HasValidAnim) anim.CrossFade("Walk", 0.1f);
         }
         else if (!playerSpotted && state != SoldierState.Patrol)
         {
@@ -224,7 +225,7 @@ public class G1SoldierAI : MonoBehaviour
         playerSpotted = true;
         state = SoldierState.Alert;
         nextBurstTime = Time.time + 0.4f;
-        if (anim) anim.CrossFade("Walk", 0.1f);
+        if (HasValidAnim) anim.CrossFade("Walk", 0.1f);
         if (barks != null) barks.PlayContactBark();
     }
 
@@ -448,19 +449,19 @@ public class G1SoldierAI : MonoBehaviour
                     {
                         Crouch();
                         agent.ResetPath();
-                        if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                        if (HasValidAnim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
                             anim.CrossFade("Idle", 0.1f);
                     }
                     else
                     {
-                        if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+                        if (HasValidAnim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
                             anim.CrossFade("Walk", 0.1f);
                     }
                 }
                 else
                 {
                     agent.ResetPath();
-                    if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                    if (HasValidAnim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
                         anim.CrossFade("Idle", 0.1f);
                 }
                 break;
@@ -470,13 +471,13 @@ public class G1SoldierAI : MonoBehaviour
                 Vector3 retreatTarget = transform.position + retreatDir * 8f;
                 agent.speed = chaseSpeed;
                 agent.SetDestination(retreatTarget);
-                if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+                if (HasValidAnim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
                     anim.CrossFade("Walk", 0.1f);
                 break;
 
             case CombatAction.Reload:
                 agent.ResetPath();
-                if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                if (HasValidAnim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
                     anim.CrossFade("Idle", 0.1f);
                 break;
 
@@ -491,12 +492,12 @@ public class G1SoldierAI : MonoBehaviour
                     {
                         Crouch();
                         agent.ResetPath();
-                        if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                        if (HasValidAnim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
                             anim.CrossFade("Idle", 0.1f);
                     }
                     else
                     {
-                        if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+                        if (HasValidAnim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
                             anim.CrossFade("Walk", 0.1f);
                     }
                 }
@@ -529,7 +530,7 @@ public class G1SoldierAI : MonoBehaviour
                 }
                 else
                 {
-                    if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+                    if (HasValidAnim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
                         anim.CrossFade("Walk", 0.1f);
                 }
                 break;
@@ -602,7 +603,7 @@ public class G1SoldierAI : MonoBehaviour
         if (agent) agent.ResetPath();
         shotsLeftInBurst = 3;
         nextShotTime = Time.time;
-        if (anim) anim.CrossFade("Idle", 0.05f);
+        if (HasValidAnim) anim.CrossFade("Idle", 0.05f);
     }
 
     void TickBurstFire()

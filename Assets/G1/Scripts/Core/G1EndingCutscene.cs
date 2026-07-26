@@ -81,10 +81,12 @@ public class G1EndingCutscene : MonoBehaviour
     {
         LockPlayer();
 
-        Say("[CHAD'S THOUGHTS]: \"The portal's right there. Step through, get out — just like every instinct is screaming.\"", 6f);
-        yield return new WaitForSeconds(6.5f);
-        Say("[THE AUDITOR]: \"Yes. That's it. Walk through. You always do.\"  (He closes his ledger, satisfied.)", 6f);
-        yield return new WaitForSeconds(6.5f);
+        Say("[CHAD]: The portal's right there. Step through. Get out.", 4f);
+        yield return new WaitForSeconds(4.5f);
+        Say("[CHAD]: ...Just like every instinct is screaming.", 3.5f);
+        yield return new WaitForSeconds(4f);
+        Say("[THE AUDITOR]: Yes. That's it. Walk through. You always do.", 5f);
+        yield return new WaitForSeconds(5.5f);
 
         yield return FadeToBlack();
         yield return new WaitForSeconds(8.0f);
@@ -97,10 +99,12 @@ public class G1EndingCutscene : MonoBehaviour
         LockPlayer();
         G1Audio.Play2D("explosion", 0.9f, 0.6f);
 
-        Say("[CHAD'S THOUGHTS]: \"Not through it. Break it. The crowbar was the answer the whole time.\"", 6f);
-        yield return new WaitForSeconds(6.5f);
-        Say("[THE AUDITOR]: \"...No. You are the Anchor. If the ring goes, so do — \"  (For the first time, he looks afraid.)", 6.5f);
-        yield return new WaitForSeconds(7.0f);
+        Say("[CHAD]: Not through it. Break it.", 3f);
+        yield return new WaitForSeconds(3.5f);
+        Say("[CHAD]: The crowbar was the answer the whole time.", 4f);
+        yield return new WaitForSeconds(4.5f);
+        Say("[THE AUDITOR]: ...No. You are the Anchor. If the ring goes, so do—", 5f);
+        yield return new WaitForSeconds(5.5f);
 
         yield return FadeToBlack();
         yield return new WaitForSeconds(8.0f);

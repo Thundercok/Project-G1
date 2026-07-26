@@ -24,6 +24,9 @@ public sealed class NPCLocomotionSync : MonoBehaviour
 
     void Update()
     {
+        if (anim == null || anim.runtimeAnimatorController == null || !anim.isActiveAndEnabled || anim.layerCount == 0)
+            return;
+
         float speed;
         if (agent && agent.enabled && agent.isOnNavMesh)
         {

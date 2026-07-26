@@ -96,7 +96,7 @@ public class G1ZombieAI : MonoBehaviour
                     agent.SetDestination(player.transform.position + GetSeparationOffset());
                 }
 
-                if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+                if (anim && anim.runtimeAnimatorController != null && anim.layerCount > 0 && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
                     anim.CrossFade("Walk", 0.1f);
             }
             else
@@ -104,7 +104,7 @@ public class G1ZombieAI : MonoBehaviour
                 // Stand and attack player
                 if (agent && agent.enabled) agent.ResetPath();
 
-                if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                if (anim && anim.runtimeAnimatorController != null && anim.layerCount > 0 && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
                     anim.CrossFade("Idle", 0.15f);
 
                 if (Time.time >= nextAttack)
@@ -204,7 +204,7 @@ public class G1ZombieAI : MonoBehaviour
         G1Audio.Play("enemy_attack", transform.position, 0.5f, 0.55f, 0.1f);
         if (G1CutsceneManager.Instance != null)
             G1CutsceneManager.Instance.ShowSubtitle(
-                "[TAKEN]: \"" + G1LoreText.NextTakenWord() + "\"", 3f);
+                "[TAKEN]: " + G1LoreText.NextTakenWord(), 3f);
     }
 
     private Vector3 GetSeparationOffset()

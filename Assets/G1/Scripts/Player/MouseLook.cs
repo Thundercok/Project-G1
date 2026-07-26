@@ -19,7 +19,13 @@ public class MouseLook : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        // Gameplay pause owns Escape whenever it is present on the player.
+        // Keep the legacy cursor-release behavior for scenes without a player.
+        var pauseMenu = GetComponentInParent<G1PauseMenu>();
+        if (pauseMenu != null && pauseMenu.IsOpen)
+            return;
+
+        if (pauseMenu == null && Input.GetKeyDown(KeyCode.Escape))
         {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;

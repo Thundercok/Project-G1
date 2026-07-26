@@ -16,7 +16,8 @@ public class NPCController : MonoBehaviour
     {
         anim = GetComponent<Animator>();
         walking = waypoints != null && waypoints.Length > 1;
-        anim.CrossFade(walking ? "Walk" : "Idle", 0f);
+        if (anim != null && anim.runtimeAnimatorController != null)
+            anim.CrossFade(walking ? "Walk" : "Idle", 0f);
     }
 
     void Update()

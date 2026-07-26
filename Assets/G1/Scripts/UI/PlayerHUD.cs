@@ -18,7 +18,7 @@ public class PlayerHUD : MonoBehaviour
     public float crosshairThickness = 2f;
 
     // Weapon slot display names
-    static readonly string[] SlotLabels = { "CR", "PT", "SG", "SM", "MG", "GR" };
+    static readonly string[] SlotLabels = { "CR", "PT", "SM", "SG", "MG", "GR" };
 
     // Damage direction state
     float _dmgDirLeft, _dmgDirRight, _dmgDirTop, _dmgDirBottom;
@@ -95,6 +95,33 @@ public class PlayerHUD : MonoBehaviour
     }
 
     // --- Panel & Line drawing helpers ---
+    static void DrawModernPanel(Rect r, Color fill, Color accent, float accentWidth = 2f)
+    {
+        Texture2D t = Texture2D.whiteTexture;
+        Color old = GUI.color;
+
+        // Outer glow/shadow (subtle dark border extending outward)
+        GUI.color = new Color(0f, 0f, 0f, fill.a * 0.3f);
+        GUI.DrawTexture(new Rect(r.x - 1, r.y - 1, r.width + 2, r.height + 2), t);
+
+        // Main fill with slight vertical gradient effect (darker at top, lighter at bottom)
+        GUI.color = fill;
+        GUI.DrawTexture(r, t);
+        // Subtle lighter strip at bottom edge for depth
+        GUI.color = new Color(fill.r + 0.03f, fill.g + 0.04f, fill.b + 0.05f, fill.a * 0.6f);
+        GUI.DrawTexture(new Rect(r.x, r.yMax - r.height * 0.3f, r.width, r.height * 0.3f), t);
+
+        // Left accent bar (signature colored edge)
+        GUI.color = accent;
+        GUI.DrawTexture(new Rect(r.x, r.y, accentWidth, r.height), t);
+
+        // Top highlight line (very subtle)
+        GUI.color = new Color(1f, 1f, 1f, 0.04f);
+        GUI.DrawTexture(new Rect(r.x + accentWidth, r.y, r.width - accentWidth, 1f), t);
+
+        GUI.color = old;
+    }
+
     static void DrawPanel(Rect r, Color fill, Color border, float bw = 1f)
     {
         Texture2D t = Texture2D.whiteTexture;
@@ -247,7 +274,7 @@ public class PlayerHUD : MonoBehaviour
         string display = $"[!] OBJECTIVE: {text.ToUpper()}";
 
         // Panel background
-        DrawPanel(new Rect(24, 20, 520, 36), PanelFill, PanelBorder);
+        DrawModernPanel(new Rect(24, 20, 520, 36), PanelFill, new Color(Teal.r, Teal.g, Teal.b, 0.7f), 3f);
 
         // Shadow
         style.normal.textColor = new Color(0f, 0f, 0f, 0.7f);
@@ -267,10 +294,21 @@ public class PlayerHUD : MonoBehaviour
         Color old = GUI.color;
         GUI.color = crosshairColor;
 
-        // Horizontal line
-        GUI.DrawTexture(new Rect(x - crosshairSize / 2f, y - crosshairThickness / 2f, crosshairSize, crosshairThickness), tex);
-        // Vertical line
-        GUI.DrawTexture(new Rect(x - crosshairThickness / 2f, y - crosshairSize / 2f, crosshairThickness, crosshairSize), tex);
+        float len = 14f;
+        float gap = 4f;
+        float thick = crosshairThickness;
+
+        // Center dot
+        GUI.DrawTexture(new Rect(x - 1f, y - 1f, 2f, 2f), tex);
+
+        // Top
+        GUI.DrawTexture(new Rect(x - thick / 2f, y - gap - len, thick, len), tex);
+        // Bottom
+        GUI.DrawTexture(new Rect(x - thick / 2f, y + gap, thick, len), tex);
+        // Left
+        GUI.DrawTexture(new Rect(x - gap - len, y - thick / 2f, len, thick), tex);
+        // Right
+        GUI.DrawTexture(new Rect(x + gap, y - thick / 2f, len, thick), tex);
 
         GUI.color = old;
     }
@@ -280,6 +318,7 @@ public class PlayerHUD : MonoBehaviour
         if (playerHealth == null) return;
         int hp = Mathf.CeilToInt(playerHealth.CurrentHealth);
         if (hp < 0) hp = 0;
+        float maxHp = playerHealth.maxHealth;
         string hpText = playerHealth.godMode 
             ? (playerMovement != null && playerMovement.IsFlying ? "+  GOD (FLY)" : "+  GOD") 
             : $"+  {hp}";
@@ -321,8 +360,22 @@ public class PlayerHUD : MonoBehaviour
         style.normal.textColor = hpColor;
         GUI.Label(new Rect(40, Screen.height - 80, 250, 60), hpText, style);
 
+        // Health Bar
+        float hpRatio = maxHp > 0 ? Mathf.Clamp01(hp / maxHp) : 0f;
+        float hpBarWidth = hpRatio * 200f;
+        Color hpBarColor = hpRatio > 0.5f ? Color.green : (hpRatio > 0.25f ? Color.yellow : Color.red);
+        hpBarColor.a = 0.8f;
+
+        Color old = GUI.color;
+        GUI.color = new Color(0, 0, 0, 0.5f);
+        GUI.DrawTexture(new Rect(40, Screen.height - 30, 200, 3), Texture2D.whiteTexture);
+        GUI.color = hpBarColor;
+        GUI.DrawTexture(new Rect(40, Screen.height - 30, hpBarWidth, 3), Texture2D.whiteTexture);
+        GUI.color = old;
+
         // Draw HEV armor (AP) meter to the right of health
         int ap = Mathf.CeilToInt(playerHealth.Armor);
+        float maxAp = playerHealth.maxArmor;
         string apText = $"[|]  {ap}";
         var apStyle = new GUIStyle(style) { alignment = TextAnchor.LowerLeft };
         apStyle.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
@@ -330,6 +383,17 @@ public class PlayerHUD : MonoBehaviour
         apStyle.normal.textColor = ap > 0
             ? new Color(0.3f, 0.7f, 1f, 0.9f) : new Color(0.4f, 0.5f, 0.6f, 0.5f);
         GUI.Label(new Rect(340, Screen.height - 80, 250, 60), apText, apStyle);
+
+        // Armor Bar
+        float apRatio = maxAp > 0 ? Mathf.Clamp01(ap / maxAp) : 0f;
+        float apBarWidth = apRatio * 200f;
+        Color apBarColor = new Color(0.3f, 0.7f, 1f, 0.8f);
+
+        GUI.color = new Color(0, 0, 0, 0.5f);
+        GUI.DrawTexture(new Rect(340, Screen.height - 30, 200, 3), Texture2D.whiteTexture);
+        GUI.color = apBarColor;
+        GUI.DrawTexture(new Rect(340, Screen.height - 30, apBarWidth, 3), Texture2D.whiteTexture);
+        GUI.color = old;
 
         // Draw Flashlight indicator if available
         if (flashlight != null)
@@ -370,6 +434,7 @@ public class PlayerHUD : MonoBehaviour
         if (active == null || !active.HasAmmo) return;
 
         string ammoText = active.IsReloading ? "RELOAD" : $"{active.Clip} | {active.Reserve}";
+        string wpnNameText = active.GetType().Name.Replace("G1", "").ToUpper();
 
         // Red when low ammo
         Color ammoColor = (active.Clip <= 2 && !active.IsReloading)
@@ -383,6 +448,18 @@ public class PlayerHUD : MonoBehaviour
             alignment = TextAnchor.LowerRight,
             font = _hudFont
         };
+
+        var nameStyle = new GUIStyle(style)
+        {
+            fontSize = 16,
+            alignment = TextAnchor.LowerRight
+        };
+
+        // Draw weapon name
+        nameStyle.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
+        GUI.Label(new Rect(Screen.width - 298, Screen.height - 103, 250, 30), wpnNameText, nameStyle);
+        nameStyle.normal.textColor = new Color(hudColor.r, hudColor.g, hudColor.b, 0.6f);
+        GUI.Label(new Rect(Screen.width - 300, Screen.height - 105, 250, 30), wpnNameText, nameStyle);
 
         style.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
         GUI.Label(new Rect(Screen.width - 298, Screen.height - 78, 250, 60), ammoText, style);
@@ -398,13 +475,19 @@ public class PlayerHUD : MonoBehaviour
         float leftH = 72f;
         float leftX = 24f;
         float leftY = Screen.height - leftH - 14f;
-        DrawPanel(new Rect(leftX, leftY, leftW, leftH), PanelFill, PanelBorder);
-        // Thin teal separator between health and armor
-        DrawHLine(leftX + 290f, leftY + 8f, 1f, new Color(Teal.r, Teal.g, Teal.b, 0.2f));
-        // Vertical separator between health and armor
+        Color tealAccent = new Color(0.16f, 0.75f, 0.75f, 0.7f);
+        DrawModernPanel(new Rect(leftX, leftY, leftW, leftH), PanelFill, tealAccent, 3f);
+
+        // Vertical separator between health and armor (subtle gradient fade)
         Color old = GUI.color;
-        GUI.color = new Color(Teal.r, Teal.g, Teal.b, 0.2f);
-        GUI.DrawTexture(new Rect(leftX + 310f, leftY + 8f, 1f, leftH - 16f), Texture2D.whiteTexture);
+        float sepX = leftX + 310f;
+        float sepH = leftH - 16f;
+        for (int i = 0; i < sepH; i++)
+        {
+            float alpha = Mathf.Sin((i / sepH) * Mathf.PI) * 0.15f;
+            GUI.color = new Color(1f, 1f, 1f, alpha);
+            GUI.DrawTexture(new Rect(sepX, leftY + 8f + i, 1f, 1f), Texture2D.whiteTexture);
+        }
         GUI.color = old;
 
         // Bottom-right ammo panel
@@ -412,7 +495,7 @@ public class PlayerHUD : MonoBehaviour
         float rightH = 72f;
         float rightX = Screen.width - rightW - 24f;
         float rightY = Screen.height - rightH - 14f;
-        DrawPanel(new Rect(rightX, rightY, rightW, rightH), PanelFill, PanelBorder);
+        DrawModernPanel(new Rect(rightX, rightY, rightW, rightH), PanelFill, tealAccent, 3f);
     }
 
     // --- Weapon Slot Bar ---
@@ -518,6 +601,12 @@ public class PlayerHUD : MonoBehaviour
             font = _hudFont
         };
 
+        // Dark panel
+        Color old = GUI.color;
+        GUI.color = new Color(0f, 0f, 0f, 0.5f * alpha);
+        GUI.DrawTexture(new Rect(Screen.width/2f - 160, Screen.height/2f + 50, 320, 40), Texture2D.whiteTexture);
+        GUI.color = old;
+
         style.normal.textColor = new Color(0f, 0f, 0f, 0.6f * alpha);
         GUI.Label(new Rect(Screen.width/2f - 149, Screen.height/2f + 51, 300, 40),
                   $"PICKED UP {_pickupWeaponName}", style);
@@ -609,6 +698,11 @@ public class PlayerHUD : MonoBehaviour
             wordWrap = true
         };
 
+        // Dark panel background
+        Color fill = new Color(0.02f, 0.04f, 0.04f, 0.7f * alpha);
+        Color accent = new Color(0.2f, 0.9f, 0.6f, alpha);
+        DrawModernPanel(new Rect(Screen.width/2f - 310, Screen.height - 180, 620, 80), fill, accent, 4f);
+
         // Draw shadow
         style.normal.textColor = new Color(0f, 0f, 0f, 0.7f * alpha);
         GUI.Label(new Rect(Screen.width/2f - 300 + 1, Screen.height - 180 + 1, 600, 80), _displayedTerminalLog, style);
@@ -699,6 +793,12 @@ public class PlayerHUD : MonoBehaviour
             alignment = TextAnchor.MiddleCenter,
             font = _hudFont
         };
+
+        // Dark panel
+        Color old = GUI.color;
+        GUI.color = new Color(0f, 0f, 0f, 0.6f * alpha);
+        GUI.DrawTexture(new Rect(Screen.width / 2f - 250, Screen.height / 2f - 80, 500, 40), Texture2D.whiteTexture);
+        GUI.color = old;
 
         // Shadow
         style.normal.textColor = new Color(0f, 0f, 0f, 0.7f * alpha);

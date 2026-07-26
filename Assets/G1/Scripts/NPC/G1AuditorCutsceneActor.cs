@@ -49,7 +49,7 @@ public class G1AuditorCutsceneActor : MonoBehaviour
             hasTriggeredLine = true;
             if (G1CutsceneManager.Instance != null && !string.IsNullOrEmpty(dialogLine))
             {
-                G1CutsceneManager.Instance.ShowSubtitle($"[CHAD'S THOUGHTS]: \"{dialogLine}\"", 5.0f);
+                G1CutsceneManager.Instance.ShowSubtitle($"[CHAD]: {dialogLine}", 5.0f);
             }
         }
 

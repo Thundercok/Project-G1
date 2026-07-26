@@ -59,7 +59,7 @@ public sealed class G1SoldierBarks : MonoBehaviour
         {
             nextTextTime = Time.time + 7f;
             G1CutsceneManager.Instance.ShowSubtitle(
-                "[SWEEPER RADIO]: \"" + G1LoreText.NextBark(tier) + "\"", 4.5f);
+                "[HECU RADIO]: " + G1LoreText.NextBark(tier), 4.5f);
         }
     }
 

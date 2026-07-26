@@ -93,7 +93,7 @@ public class G1AlienAI : MonoBehaviour
                     agent.SetDestination(player.transform.position + GetSeparationOffset());
                 }
 
-                if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
+                if (anim && anim.runtimeAnimatorController != null && anim.layerCount > 0 && !anim.GetCurrentAnimatorStateInfo(0).IsName("Walk"))
                     anim.CrossFade("Walk", 0.1f);
             }
             else
@@ -101,7 +101,7 @@ public class G1AlienAI : MonoBehaviour
                 // Stand and attack player
                 if (agent && agent.enabled) agent.ResetPath();
 
-                if (anim && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+                if (anim && anim.runtimeAnimatorController != null && anim.layerCount > 0 && !anim.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
                     anim.CrossFade("Idle", 0.15f);
 
                 if (Time.time >= nextAttack)
