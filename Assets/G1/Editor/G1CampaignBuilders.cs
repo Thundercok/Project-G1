@@ -304,16 +304,21 @@ public static class G1CampaignBuilders
         // Setup Level 2 Objectives
         var objGo = new GameObject("ObjectiveManager");
         var objMgr = objGo.AddComponent<G1ObjectiveManager>();
-        objMgr.AddObjective("hecu_patrol", "Eliminate Surface HECU Sweeper Patrols", mandatory: true, requiredCount: 3);
+        // Two confirmed patrol kills are sufficient. One patrol can occasionally
+        // despawn after falling outside the NavMesh, so requiring all three can
+        // make the level impossible to finish.
+        objMgr.AddObjective("hecu_patrol", "Eliminate Surface HECU Sweeper Patrols", mandatory: true, requiredCount: 2);
         objMgr.AddObjective("evac_shaft", "Locate Maintenance Access Shaft to Undercroft", mandatory: false);
 
         foreach (var soldier in new[] { s1, s2, s3 })
         {
             if (soldier != null)
             {
-                var hp = soldier.GetComponent<HealthSystem>();
-                if (hp != null)
-                    hp.OnDeath += (pos, nrm) => { if (G1ObjectiveManager.Instance != null) G1ObjectiveManager.Instance.IncrementProgress("hecu_patrol"); };
+                // Scene construction happens in the editor, so event listeners
+                // registered here would not be serialized into the saved scene.
+                // Attach a runtime listener instead.
+                var objectiveOnDeath = soldier.AddComponent<G1ObjectiveOnDeath>();
+                objectiveOnDeath.objectiveId = "hecu_patrol";
             }
         }
 
