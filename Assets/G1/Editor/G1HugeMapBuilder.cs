@@ -74,30 +74,58 @@ public static class G1HugeMapBuilder
         var sun = new GameObject("Sun").AddComponent<Light>();
         sun.type = LightType.Directional;
         sun.transform.rotation = Quaternion.Euler(14f, -52f, 0f);   // low, raking
-        sun.intensity = 0.78f;
-        sun.color = new Color(1f, 0.72f, 0.44f);                    // late amber
+        sun.intensity = 1.05f;
+        sun.color = new Color(1f, 0.66f, 0.36f);                    // late amber
         sun.shadows = LightShadows.Soft;
 
+        // fallback ambient, overridden below when a captured sky is available
         RenderSettings.ambientMode = AmbientMode.Trilight;
         RenderSettings.ambientSkyColor = new Color(0.20f, 0.21f, 0.27f);
         RenderSettings.ambientEquatorColor = new Color(0.15f, 0.14f, 0.14f);
         RenderSettings.ambientGroundColor = new Color(0.09f, 0.08f, 0.07f);
 
-        // a dusty sky rather than Unity's clear blue default
-        var sky = new Material(Shader.Find("Skybox/Procedural"));
-        sky.SetFloat("_SunSize", 0.05f);
-        sky.SetFloat("_AtmosphereThickness", 2.2f);   // thick air holds the dust
-        sky.SetColor("_SkyTint", new Color(0.40f, 0.33f, 0.27f));
-        sky.SetColor("_GroundColor", new Color(0.13f, 0.11f, 0.09f));
-        sky.SetFloat("_Exposure", 0.62f);
-        RenderSettings.skybox = sky;
+        // A captured sky if one is present, the procedural haze if not.
+        //
+        // This is worth the one downloaded file in an otherwise generated
+        // repo: a real HDRI does not just look better behind the geometry, it
+        // *lights* the scene. Ambient comes from the sky itself, so a surface
+        // facing the sunset picks up its orange and one facing away picks up
+        // the cold half of the sky — which is the warm/cool split the flat
+        // ambient below was faking by hand.
+        var hdri = AssetDatabase.LoadAssetAtPath<Cubemap>(
+            "Assets/G1/Textures/freight_station_2k.hdr");
+        if (hdri != null)
+        {
+            var sky = new Material(Shader.Find("Skybox/Cubemap"));
+            sky.SetTexture("_Tex", hdri);
+            sky.SetFloat("_Exposure", 0.48f);        // dim it toward dusk
+            sky.SetColor("_Tint", new Color(0.46f, 0.41f, 0.35f));
+            RenderSettings.skybox = sky;
+            RenderSettings.ambientMode = AmbientMode.Skybox;
+            // low: the sun makes the shape, the sky only fills the shadows
+            RenderSettings.ambientIntensity = 0.38f;
+            RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
+            DynamicGI.UpdateEnvironment();
+        }
+        else
+        {
+            Debug.LogWarning("G1: no sky HDRI at Assets/G1/Textures/ — " +
+                             "falling back to the procedural haze.");
+            var sky = new Material(Shader.Find("Skybox/Procedural"));
+            sky.SetFloat("_SunSize", 0.05f);
+            sky.SetFloat("_AtmosphereThickness", 2.2f);
+            sky.SetColor("_SkyTint", new Color(0.40f, 0.33f, 0.27f));
+            sky.SetColor("_GroundColor", new Color(0.13f, 0.11f, 0.09f));
+            sky.SetFloat("_Exposure", 0.62f);
+            RenderSettings.skybox = sky;
+        }
 
         // fog carries the dust: browner, and close enough that distance reads
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 60f;
+        RenderSettings.fogStartDistance = 90f;
         RenderSettings.fogEndDistance = 470f;
-        RenderSettings.fogColor = new Color(0.29f, 0.25f, 0.20f);
+        RenderSettings.fogColor = new Color(0.20f, 0.17f, 0.14f);
 
         int enemyLayer = EnsureLayer("Enemy");
 

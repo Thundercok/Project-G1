@@ -77,8 +77,8 @@ def cover(x, y, z=0.0):
 # creation keeps the districts telling each other apart — the hues stay in
 # their relative places — while pulling the saturation down to something that
 # looks like it has weathered rather than like it was just unwrapped.
-DUST = (0.34, 0.30, 0.24)
-DUSTINESS = 0.34
+DUST = (0.26, 0.23, 0.18)
+DUSTINESS = 0.20
 
 
 def M(name, color, rough=0.85, metal=0.0, emit=None, estr=0.0):
