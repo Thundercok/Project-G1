@@ -21,8 +21,25 @@ public sealed class G1PauseMenu : MonoBehaviour
     Font font;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void Bootstrap()
+    {
+        // Attach now for the first scene
+        AttachToPlayer();
+        // Re-attach after every scene load (Level 2, Level 3, HugeMap, etc.)
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        AttachToPlayer();
+    }
+
     static void AttachToPlayer()
     {
+        // Skip menu scene — it has its own UI
+        if (SceneManager.GetActiveScene().name == "MenuScene")
+            return;
         var player = GameObject.FindGameObjectWithTag("Player");
         if (player != null && player.GetComponent<G1PauseMenu>() == null)
             player.AddComponent<G1PauseMenu>();

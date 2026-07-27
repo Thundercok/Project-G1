@@ -19,6 +19,18 @@ public class G1MobSpawnerToolbox : MonoBehaviour
 {
     // ── Auto-bootstrap ────────────────────────────────────────────────────────
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void Bootstrap()
+    {
+        AutoBootstrap();
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        AutoBootstrap();
+    }
+
     static void AutoBootstrap()
     {
         string sceneName = SceneManager.GetActiveScene().name;
