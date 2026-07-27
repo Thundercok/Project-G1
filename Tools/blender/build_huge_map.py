@@ -441,7 +441,21 @@ MATS.update({
     "metal": M("map_metal", (0.32, 0.34, 0.37), rough=0.5, metal=0.7),
     "rust": M("map_rust", (0.42, 0.24, 0.14), rough=0.9, metal=0.3),
     "hazard": M("map_hazard", (0.80, 0.42, 0.06)),
-    "allied": M("map_allied", (0.20, 0.34, 0.55)),
+    "allied": M("map_allied", (0.16, 0.36, 0.62)),
+    # A colour per district, so you can tell where you are from across the map
+    # rather than only by the shape of the nearest building. Muted enough to
+    # stay inside a 1998 palette, separated enough to read through fog.
+    "lab_teal": M("map_lab_teal", (0.14, 0.42, 0.44)),
+    "med_white": M("map_med_white", (0.78, 0.80, 0.80), rough=0.7),
+    "med_red": M("map_med_red", (0.62, 0.13, 0.12)),
+    "depot_yellow": M("map_depot_yellow", (0.72, 0.55, 0.09)),
+    "air_grey": M("map_air_grey", (0.40, 0.44, 0.50)),
+    "quarter_brick": M("map_quarter_brick", (0.44, 0.26, 0.20)),
+    "warn_stripe": M("map_warn_stripe", (0.86, 0.72, 0.06)),
+    "signal_green": M("map_signal_green", (0.10, 0.55, 0.26),
+                      emit=(0.06, 0.5, 0.24), estr=1.4),
+    "signal_red": M("map_signal_red", (0.60, 0.08, 0.08),
+                    emit=(0.7, 0.06, 0.06), estr=1.6),
     "lab": M("map_lab", (0.72, 0.75, 0.78)),
     "alien": M("map_alien", (0.10, 0.55, 0.55), emit=(0.06, 0.5, 0.5), estr=1.2),
     "wood": M("map_wood", (0.38, 0.26, 0.14)),
@@ -539,6 +553,7 @@ box("CmdT3", (0, 0, 20), (18, 18, 8), "concrete")
 box("CmdT4", (0, 0, 28), (12, 12, 8), "metal")
 box("CmdTop", (0, 0, 35), (8, 8, 6), "concrete")
 box("CmdAntenna", (0, 0, 44), (1.4, 1.4, 12), "metal")
+box("CmdBeacon", (0, 0, 50.4), (2.2, 2.2, 1.6), "signal_red")
 for a in range(4):
     ang = a * math.pi / 2
     box(f"CmdWin_{a}", (math.cos(ang) * 12.1, math.sin(ang) * 12.1, 12),
@@ -564,16 +579,22 @@ sandbags("AlliedBags", bx + 22, by, 54, axis="y")
 hesco_run("AlliedHesco", bx + 30, by + 26, 30, axis="x")
 box("AlliedFlag", (bx - 12, by, 9), (0.5, 0.5, 18), "metal")
 box("AlliedBanner", (bx - 10, by, 15), (4, 0.3, 5), "allied")
-room("AlliedOps", bx - 4, by + 52, 22, 16, 5.0, "allied", doors="S",
+room("AlliedOps", bx - 4, by + 52, 22, 16, 5.0, "med_white", doors="S",
      floor="concrete", door_w=3.4)
 window_band("AlliedOps", bx - 4, by + 52, 22, 16, 5.0, "glass", sides="SEW", z=2.4)
+for _mi in range(2):
+    decal_side = 1 if _mi else -1
+    box(f"MedCross_v{_mi}", (bx - 4 + decal_side * 11.2, by + 52, 3.4),
+        (0.2, 1.0, 3.0), "med_red")
+    box(f"MedCross_h{_mi}", (bx - 4 + decal_side * 11.2, by + 52, 3.4),
+        (0.2, 3.0, 1.0), "med_red")
 
 # =============================== LAB COMPLEX (north) — two storeys
 lx, ly = 0, 165
 for i, ox in enumerate((-26, 26)):
-    room(f"LabBlock{i}", ox, ly, 28, 26, 5.0, "lab", doors="S",
+    room(f"LabBlock{i}", ox, ly, 28, 26, 5.0, "lab_teal", doors="S",
          floor="concrete", door_w=4.0)
-    room(f"LabUpper{i}", ox, ly, 28, 26, 4.6, "lab", doors="S",
+    room(f"LabUpper{i}", ox, ly, 28, 26, 4.6, "lab_teal", doors="S",
          floor="concrete", door_w=4.0, z0=5.3)
     window_band(f"LabBlock{i}", ox, ly, 28, 26, 5.0, "glass", sides="NSEW", z=2.2)
     window_band(f"LabUpper{i}", ox, ly, 28, 26, 4.6, "glass", sides="NSEW", z=7.4)
@@ -582,6 +603,9 @@ catwalk("LabBridge", -14, ly, 14, ly, 5.6, "lab")
 catwalk("LabBridgeHi", -14, ly, 14, ly, 10.4, "metal")
 cyl("LabDome", (0, ly + 20, 7), 14, 14, "glass", verts=22)
 box("LabHazard", (0, ly - 16, 2), (64, 1.4, 4), "hazard")
+for _c in range(12):
+    box(f"LabChevron_{_c}", (-30 + _c * 5.4, ly - 16.8, 2.0),
+        (2.6, 0.2, 3.4), "warn_stripe", rot=(0, 0, 0.5))
 for i in range(5):
     cyl(f"LabTank_{i}", (-36 + i * 18, ly + 20, 5), 2.6, 10, "metal", verts=10)
 twall_run("LabScreen", -46, ly - 26, 46, ly - 26)
@@ -632,11 +656,11 @@ qx, qy = -150, 150
 for i in range(3):
     for j in range(2):
         cx, cy = qx + i * 22, qy + j * 22
-        room(f"Quarters_{i}_{j}", cx, cy, 16, 16, 4.4, "concrete",
+        room(f"Quarters_{i}_{j}", cx, cy, 16, 16, 4.4, "quarter_brick",
              doors="S" if j == 0 else "N", floor="concrete")
         window_band(f"Quarters_{i}_{j}", cx, cy, 16, 16, 4.4, "glass",
                     sides="EW", z=2.0)
-        box(f"QUpper_{i}_{j}", (cx, cy, 9.6), (16, 16, 9.6), "concrete")
+        box(f"QUpper_{i}_{j}", (cx, cy, 9.6), (16, 16, 9.6), "quarter_brick")
         box(f"QRoof_{i}_{j}", (cx, cy, 14.6), (17, 17, 0.6), "metal")
 sandbags("QuartersBags", qx + 11, qy - 12, 46, axis="x")
 
@@ -659,22 +683,22 @@ cyl("DishBase", (ax, ay, 6), 3, 12, "metal", verts=12)
 cyl("Dish", (ax, ay + 5, 14), 10, 2, "lab", verts=20, rot=(math.radians(60), 0, 0))
 for i in range(4):
     box(f"Mast_{i}", (ax - 24 + i * 16, ay - 20, 12), (1.2, 1.2, 24), "metal")
-    box(f"MastLight_{i}", (ax - 24 + i * 16, ay - 20, 24.4), (2, 2, 0.8), "hazard")
-room("CommsHut", ax - 22, ay + 12, 14, 12, 4.0, "concrete", doors="E",
+    box(f"MastLight_{i}", (ax - 24 + i * 16, ay - 20, 24.4), (2, 2, 0.8), "signal_red")
+room("CommsHut", ax - 22, ay + 12, 14, 12, 4.0, "signal_green", doors="E",
      floor="concrete")
 
 # =============================== FUEL DEPOT (SW)
 fx, fy = -155, -150
 for i in range(3):
     for j in range(2):
-        cyl(f"FuelTank_{i}_{j}", (fx + i * 20, fy + j * 20, 7), 8, 14, "hazard", verts=16)
+        cyl(f"FuelTank_{i}_{j}", (fx + i * 20, fy + j * 20, 7), 8, 14, "depot_yellow", verts=16)
 # containment berm around the tank farm — a real depot has one, and it doubles
 # as a waist-high firing line
 for side, (dx, dy, w_, d_) in {
         "N": (20, 34, 76, 2.4), "S": (20, -14, 76, 2.4),
         "E": (58, 10, 2.4, 50), "W": (-18, 10, 2.4, 50)}.items():
     box(f"FuelBerm_{side}", (fx + dx, fy + dy, 1.1), (w_, d_, 2.2), "earth")
-room("PumpHouse", fx - 34, fy, 14, 14, 4.2, "concrete", doors="E",
+room("PumpHouse", fx - 34, fy, 14, 14, 4.2, "depot_yellow", doors="E",
      floor="concrete")
 box("PipeRun", (fx, fy - 24, 1.5), (60, 1.4, 1.4), "metal")
 box("PipeRun2", (fx + 30, fy - 24, 1.5), (1.4, 52, 1.4), "metal")
@@ -694,15 +718,15 @@ for i, ty in enumerate((-90, -30, 30, 90)):
     box(f"Jet_{i}_body", (rx - 52, ty, 2.2), (4, 16, 3), "olive")
     box(f"Jet_{i}_wing", (rx - 52, ty - 1, 2.2), (18, 4, 0.8), "olive")
 # control tower — enterable, three levels, and visible from the plaza
-room("ATCBase", rx - 78, 108, 16, 16, 5.0, "concrete", doors="W",
+room("ATCBase", rx - 78, 108, 16, 16, 5.0, "air_grey", doors="W",
      floor="concrete", door_w=3.4)
-room("ATCMid", rx - 78, 108, 14, 14, 4.6, "concrete", doors="S", floor="concrete",
+room("ATCMid", rx - 78, 108, 14, 14, 4.6, "air_grey", doors="S", floor="concrete",
      z0=5.3, light=True)
 box("ATCCab", (rx - 78, 108, 12.6), (18, 18, 4.0), "glass")
 box("ATCRoof", (rx - 78, 108, 14.8), (20, 20, 0.5), "metal")
 ramp_to("ATCRamp", rx - 78, 100, 14, 3.2, 5.3, "concrete", axis="y", side=-1)
 for i, hy_ in enumerate((-60, -114)):
-    room(f"AirHangar_{i}", rx - 86, hy_, 34, 30, 9.0, "metal", doors="E",
+    room(f"AirHangar_{i}", rx - 86, hy_, 34, 30, 9.0, "air_grey", doors="E",
          floor="concrete", door_w=10.0, door_h=7.5)
 box("Windsock", (rx + 30, 60, 5), (0.4, 0.4, 10), "metal")
 box("WindsockFlag", (rx + 32, 60, 9.5), (4, 1.2, 1.2), "hazard")

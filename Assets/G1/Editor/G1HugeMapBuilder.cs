@@ -163,6 +163,10 @@ public static class G1HugeMapBuilder
         // buys seven seconds of it. Parked where the player already stands.
         int trucks = G1VehicleBuilder.Build();
 
+        // lifts to the high ground the map already has — including the command
+        // tower, whose roof has held the Auditor and no way up since day one
+        int lifts = G1ElevatorBuilder.Build();
+
         // extraction teleport gate on the plaza's south approach, gated on ALL
         // mandatory objectives (rescues + the engineer's quest).
         BuildExtractionGate(new Vector3(0f, 0f, -40f));
@@ -287,7 +291,7 @@ public static class G1HugeMapBuilder
                   $"{(manifest != null ? manifest.rooms.Length : 0)} interiors, " +
                   $"{lampCount} lights, {stocked} caches, " +
                   $"{coverCount - prunedCover} cover points ({prunedCover} pruned), " +
-                  $"{interiorCount} acoustic spaces, {trucks} trucks.");
+                  $"{interiorCount} acoustic spaces, {trucks} trucks, {lifts} lifts.");
     }
 
     // ------------------------------------------------------------- helpers

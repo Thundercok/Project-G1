@@ -28,6 +28,7 @@ public sealed class G1GodModeAmmo : MonoBehaviour
     G1Magnum magnum;
     G1Grenade grenade;
     HealthSystem health;
+    WeaponSwitcher switcher;
     bool wasActive;
 
     /// Read by the HUD, which shows an infinity glyph instead of a count.
@@ -43,6 +44,7 @@ public sealed class G1GodModeAmmo : MonoBehaviour
         magnum = GetComponentInChildren<G1Magnum>(true);
         grenade = GetComponentInChildren<G1Grenade>(true);
         health = GetComponent<HealthSystem>();
+        switcher = GetComponentInChildren<WeaponSwitcher>(true);
     }
 
     void OnDisable() { Unlimited = false; }
@@ -59,6 +61,13 @@ public sealed class G1GodModeAmmo : MonoBehaviour
             Debug.Log($"[GOD MODE] Ammunition {(active ? "UNLIMITED" : "back to normal")}.");
         }
         if (!active) return;
+
+        // Topping up ammo for a weapon you cannot select is not "infinite ammo
+        // for every weapon" — it is infinite ammo for the two you happen to
+        // have found. God mode hands over the whole rack.
+        if (switcher != null && switcher.unlocked != null)
+            for (int i = 0; i < switcher.unlocked.Length; i++)
+                switcher.unlocked[i] = true;
 
         if (pistol) { pistol.clip = pistol.clipSize; pistol.reserve = pistolReserve; }
         if (smg) { smg.clip = smg.clipSize; smg.reserve = smgReserve; }
