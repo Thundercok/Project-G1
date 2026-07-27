@@ -219,6 +219,9 @@ public static class G1HugeMapBuilder
         // tower, whose roof has held the Auditor and no way up since day one
         int lifts = G1ElevatorBuilder.Build();
 
+        // three helicopters, on the three pads worth leaving from
+        int helis = G1HelicopterBuilder.Build();
+
         // extraction teleport gate on the plaza's south approach, gated on ALL
         // mandatory objectives (rescues + the engineer's quest).
         BuildExtractionGate(new Vector3(0f, 0f, -40f));
@@ -343,7 +346,7 @@ public static class G1HugeMapBuilder
                   $"{(manifest != null ? manifest.rooms.Length : 0)} interiors, " +
                   $"{lampCount} lights, {stocked} caches, " +
                   $"{coverCount - prunedCover} cover points ({prunedCover} pruned), " +
-                  $"{interiorCount} acoustic spaces, {trucks} trucks, {lifts} lifts.");
+                  $"{interiorCount} acoustic spaces, {trucks} trucks, {lifts} lifts, {helis} helicopters.");
     }
 
     // ------------------------------------------------------------- helpers
