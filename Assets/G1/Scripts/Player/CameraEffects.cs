@@ -14,6 +14,12 @@ public class CameraEffects : MonoBehaviour
     public float speedForMaxFOV = 12f;    // m/s to reach max boost
     public float fovSmoothing = 6f;
 
+    [Header("Aim down sights")]
+    public float adsFOVScale = 0.62f;     // 75 -> ~46 degrees
+    /// 0..1, written by whichever weapon is active. Lives here because FOV has
+    /// one owner and the sprint boost has to lose to the sight picture.
+    [HideInInspector] public float adsBlend;
+
     Camera cam;
     PlayerMovement movement;
 
@@ -73,7 +79,9 @@ public class CameraEffects : MonoBehaviour
             float speed = hv.magnitude;
             float targetBoost = Mathf.Clamp01(speed / speedForMaxFOV) * maxFOVBoost;
             currentFOVBoost = Mathf.Lerp(currentFOVBoost, targetBoost, fovSmoothing * dt);
-            cam.fieldOfView = baseFOV + currentFOVBoost;
+            cam.fieldOfView = Mathf.Lerp(baseFOV + currentFOVBoost,
+                                         baseFOV * adsFOVScale,
+                                         Mathf.Clamp01(adsBlend));
         }
 
         // --- Apply camera shake (relative to base camera local position)

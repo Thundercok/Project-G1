@@ -24,6 +24,15 @@ public static class G1AutoRun
             EditorApplication.delayCall += Run;    // retry once play mode ends
             return;
         }
+        if (File.Exists("Temp/g1_hugemap"))
+        {
+            File.Delete("Temp/g1_hugemap");
+            if (File.Exists(Flag)) File.Delete(Flag);
+            G1HugeMapBuilder.BuildHugeMap();
+            UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/HugeMap.unity");
+            EditorApplication.EnterPlaymode();
+            return;
+        }
         if (!File.Exists(Flag))
             return;
         File.Delete(Flag);

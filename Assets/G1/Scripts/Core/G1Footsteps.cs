@@ -28,9 +28,16 @@ public sealed class G1Footsteps : MonoBehaviour
             return;
         nextStep = Time.time + baseInterval / Mathf.Max(0.3f, speed / move.maxSpeed);
 
-        bool sprint = speed > 6f;
+        // 6 m/s was below the 8.1 walk speed, so every step already sounded
+        // like a run. Ask the mover instead of guessing from velocity.
+        bool sprint = move.IsSprinting || speed > move.maxSpeed * 1.15f;
         float vol = move.IsCrouching ? 0.2f : (sprint ? 0.42f : 0.32f);
         float pitch = sprint ? 1.2f : 1f;
+
+        // a boot on a concrete floor indoors is louder and duller than the same
+        // boot on open ground — the listener's reverb does the tail, this does
+        // the strike
+        if (G1InteriorSpace.PlayerIsIndoors) { vol *= 1.25f; pitch *= 0.92f; }
         variant = (variant + 1) % 4;
         G1Audio.Play2D("step_concrete_" + variant, vol, pitch, 0.05f);
     }

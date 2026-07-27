@@ -23,6 +23,15 @@ public sealed class G1FactionFighter : MonoBehaviour
     public float damage = 12f;
     public float projectileSpeed = 45f;
 
+    [Header("Cover")]
+    // The sprawl is full of trenches, pillboxes, sandbag lines and parapets
+    // that were, to this AI, scenery — everyone walked to their engage range
+    // and stood in the open trading damage. Ranged fighters now close first and
+    // dig in second, which is the difference between a firefight and a queue.
+    public bool useCover = true;
+    public float coverSearchRange = 22f;
+    public float coverThinkInterval = 2.2f;
+
     static readonly List<G1FactionFighter> Registry = new List<G1FactionFighter>(128);
     static Transform playerT;
     static HealthSystem playerHp;
@@ -34,8 +43,17 @@ public sealed class G1FactionFighter : MonoBehaviour
     float nextScan, nextFire;
     Color tracer;
 
+    G1CoverPoint cover;
+    float nextCoverThink;
+
     void OnEnable() { Registry.Add(this); }
-    void OnDisable() { Registry.Remove(this); }
+    void OnDisable() { Registry.Remove(this); ReleaseCover(); }
+
+    void ReleaseCover()
+    {
+        if (cover != null) cover.Claimed = false;
+        cover = null;
+    }
 
     void Start()
     {
@@ -65,6 +83,7 @@ public sealed class G1FactionFighter : MonoBehaviour
         }
         if (target == null)
         {
+            ReleaseCover();
             agent.SetDestination(transform.position);
             Animate(false);
             return;
@@ -75,8 +94,17 @@ public sealed class G1FactionFighter : MonoBehaviour
 
         if (kind == Kind.Ranged)
         {
-            if (dist > engageRange) { agent.SetDestination(target.position); Animate(true); }
+            if (useCover) ThinkCover(dist);
+
+            if (cover != null)
+            {
+                agent.SetDestination(cover.transform.position);
+                bool arrived = (transform.position - cover.transform.position).sqrMagnitude < 2.6f;
+                Animate(!arrived);
+            }
+            else if (dist > engageRange) { agent.SetDestination(target.position); Animate(true); }
             else { agent.SetDestination(transform.position); Animate(false); }
+
             if (dist <= detectRange && Time.time >= nextFire && HasLoS(target))
                 FireRanged(target);
         }
@@ -85,6 +113,35 @@ public sealed class G1FactionFighter : MonoBehaviour
             if (dist > engageRange) { agent.SetDestination(target.position); Animate(true); }
             else { agent.SetDestination(transform.position); Animate(false);
                    if (Time.time >= nextFire) Melee(target); }
+        }
+    }
+
+    /// Close the distance first, then find something to fight from behind.
+    /// Seeking cover from 60m away would have everyone sprinting to the nearest
+    /// sandbag and shooting at nothing.
+    void ThinkCover(float dist)
+    {
+        if (Time.time < nextCoverThink) return;
+        nextCoverThink = Time.time + coverThinkInterval;
+
+        if (dist > engageRange * 1.5f)
+        {
+            ReleaseCover();          // still advancing — cover comes later
+            return;
+        }
+
+        // a spot that hid us from where the target *was* is a place to die once
+        // they have flanked, so re-test what we're holding before keeping it
+        if (cover != null && cover.IsValidAgainst(target.position))
+            return;
+        ReleaseCover();
+
+        var found = G1CoverPoint.FindNearestValid(transform.position, target.position,
+                                                  coverSearchRange);
+        if (found != null)
+        {
+            found.Claimed = true;
+            cover = found;
         }
     }
 

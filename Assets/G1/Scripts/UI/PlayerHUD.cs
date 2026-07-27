@@ -8,20 +8,11 @@ public class PlayerHUD : MonoBehaviour
     [Header("Colors")]
     public Color hudColor = new Color(1f, 0.62f, 0.1f, 0.85f); // Translucent GoldSrc amber
     public Color crosshairColor = new Color(0.15f, 0.85f, 0.20f, 0.9f); // Translucent retro green
-    static readonly Color PanelFill = new Color(0.02f, 0.04f, 0.06f, 0.6f);
-    static readonly Color PanelBorder = new Color(0.16f, 0.75f, 0.75f, 0.3f);
-    static readonly Color Teal = new Color(0.16f, 0.75f, 0.75f);
 
     [Header("Crosshair")]
     public bool drawCrosshair = true;
     public float crosshairSize = 12f;
     public float crosshairThickness = 2f;
-
-    // Weapon slot display names
-    static readonly string[] SlotLabels = { "CR", "PT", "SM", "SG", "MG", "GR" };
-
-    // Damage direction state
-    float _dmgDirLeft, _dmgDirRight, _dmgDirTop, _dmgDirBottom;
 
     HealthSystem playerHealth;
     PlayerMovement playerMovement;
@@ -40,10 +31,11 @@ public class PlayerHUD : MonoBehaviour
     int _charIndex;
 
     G1Flashlight flashlight;
+    G1SuitPower suitPower;
+    Texture2D _barTex;
     float _radFlashTime;
 
     float _objFlashTime;
-    G1WeaponWheel _weaponWheel;
 
     void Start()
     {
@@ -53,95 +45,25 @@ public class PlayerHUD : MonoBehaviour
         camFX = GetComponentInChildren<CameraEffects>();
         vignetteTex = MakeVignette();
         flashlight = GetComponentInChildren<G1Flashlight>();
+        suitPower = GetComponent<G1SuitPower>();
+        _barTex = Texture2D.whiteTexture;
 
-        // Ensure PlayerInventoryRestorer, G1TutorialSystem, and G1HEVSystem are present
+        // Ensure PlayerInventoryRestorer and G1TutorialSystem are present
         if (GetComponent<G1PlayerInventoryRestorer>() == null)
             gameObject.AddComponent<G1PlayerInventoryRestorer>();
         if (GetComponent<G1TutorialSystem>() == null)
             gameObject.AddComponent<G1TutorialSystem>();
-        if (GetComponent<G1HEVSystem>() == null)
-            gameObject.AddComponent<G1HEVSystem>();
-
-        _weaponWheel = GetComponent<G1WeaponWheel>();
-        if (_weaponWheel == null)
-            _weaponWheel = gameObject.AddComponent<G1WeaponWheel>();
 
         // Load Share Tech Mono
         var fontAsset = Resources.Load<Font>("Fonts/ShareTechMono-Regular");
         if (fontAsset != null) _hudFont = fontAsset;
 
         G1ObjectiveManager.OnObjectiveUpdated += HandleObjectiveUpdated;
-
-        if (playerHealth != null)
-            playerHealth.OnDamaged += HandleDamageDirection;
     }
 
     void OnDestroy()
     {
         G1ObjectiveManager.OnObjectiveUpdated -= HandleObjectiveUpdated;
-        if (playerHealth != null)
-            playerHealth.OnDamaged -= HandleDamageDirection;
-    }
-
-    void HandleDamageDirection(Vector3 sourcePos)
-    {
-        if (sourcePos == Vector3.zero) { _dmgDirLeft = _dmgDirRight = _dmgDirTop = _dmgDirBottom = Time.time + 0.5f; return; }
-        Vector3 dir = (sourcePos - transform.position).normalized;
-        Vector3 localDir = transform.InverseTransformDirection(dir);
-        if (localDir.x < -0.3f) _dmgDirLeft = Time.time + 0.5f;
-        if (localDir.x > 0.3f) _dmgDirRight = Time.time + 0.5f;
-        if (localDir.z > 0.3f) _dmgDirTop = Time.time + 0.5f;
-        if (localDir.z < -0.3f) _dmgDirBottom = Time.time + 0.5f;
-    }
-
-    // --- Panel & Line drawing helpers ---
-    static void DrawModernPanel(Rect r, Color fill, Color accent, float accentWidth = 2f)
-    {
-        Texture2D t = Texture2D.whiteTexture;
-        Color old = GUI.color;
-
-        // Outer glow/shadow (subtle dark border extending outward)
-        GUI.color = new Color(0f, 0f, 0f, fill.a * 0.3f);
-        GUI.DrawTexture(new Rect(r.x - 1, r.y - 1, r.width + 2, r.height + 2), t);
-
-        // Main fill with slight vertical gradient effect (darker at top, lighter at bottom)
-        GUI.color = fill;
-        GUI.DrawTexture(r, t);
-        // Subtle lighter strip at bottom edge for depth
-        GUI.color = new Color(fill.r + 0.03f, fill.g + 0.04f, fill.b + 0.05f, fill.a * 0.6f);
-        GUI.DrawTexture(new Rect(r.x, r.yMax - r.height * 0.3f, r.width, r.height * 0.3f), t);
-
-        // Left accent bar (signature colored edge)
-        GUI.color = accent;
-        GUI.DrawTexture(new Rect(r.x, r.y, accentWidth, r.height), t);
-
-        // Top highlight line (very subtle)
-        GUI.color = new Color(1f, 1f, 1f, 0.04f);
-        GUI.DrawTexture(new Rect(r.x + accentWidth, r.y, r.width - accentWidth, 1f), t);
-
-        GUI.color = old;
-    }
-
-    static void DrawPanel(Rect r, Color fill, Color border, float bw = 1f)
-    {
-        Texture2D t = Texture2D.whiteTexture;
-        Color old = GUI.color;
-        GUI.color = fill;
-        GUI.DrawTexture(r, t);
-        GUI.color = border;
-        GUI.DrawTexture(new Rect(r.x, r.y, r.width, bw), t);
-        GUI.DrawTexture(new Rect(r.x, r.yMax - bw, r.width, bw), t);
-        GUI.DrawTexture(new Rect(r.x, r.y, bw, r.height), t);
-        GUI.DrawTexture(new Rect(r.xMax - bw, r.y, bw, r.height), t);
-        GUI.color = old;
-    }
-
-    static void DrawHLine(float x, float y, float w, Color c)
-    {
-        Color old = GUI.color;
-        GUI.color = c;
-        GUI.DrawTexture(new Rect(x, y, w, 1f), Texture2D.whiteTexture);
-        GUI.color = old;
     }
 
     void HandleObjectiveUpdated(G1ObjectiveManager.Objective activeObj, bool isNewCompletion)
@@ -225,9 +147,6 @@ public class PlayerHUD : MonoBehaviour
             DrawCrosshair();
         }
 
-        // Draw HUD panel backgrounds first (behind text)
-        DrawHUDPanels();
-
         // Draw HUD elements with drop shadows for legibility
         DrawObjectiveHUD();
         DrawWaypointMarker();
@@ -236,7 +155,6 @@ public class PlayerHUD : MonoBehaviour
         DrawWeaponPickup();
         DrawTerminalLog();
         DrawCritFeedback();
-        DrawDamageDirection();
 
         // Hit marker
         if (camFX && camFX.HitMarkerActive)
@@ -245,10 +163,6 @@ public class PlayerHUD : MonoBehaviour
         // Damage vignette
         if (camFX && camFX.DamageFlashAlpha > 0.01f)
             DrawDamageVignette(camFX.DamageFlashAlpha);
-
-        // Weapon Radial Wheel (over all HUD elements when open)
-        if (_weaponWheel != null)
-            _weaponWheel.DrawWheel();
     }
 
     void DrawObjectiveHUD()
@@ -271,10 +185,16 @@ public class PlayerHUD : MonoBehaviour
             ? Color.Lerp(hudColor, new Color(0.2f, 1f, 0.8f), Mathf.PingPong(Time.time * 6f, 1f)) 
             : new Color(hudColor.r, hudColor.g, hudColor.b, 0.8f);
 
+        // Distance turns "go to the comms array" into a decision about whether
+        // to walk it or find a truck. Without it the objective is a noun.
         string display = $"[!] OBJECTIVE: {text.ToUpper()}";
-
-        // Panel background
-        DrawModernPanel(new Rect(24, 20, 520, 36), PanelFill, new Color(Teal.r, Teal.g, Teal.b, 0.7f), 3f);
+        var wp = G1ObjectiveManager.Instance.GetActiveWaypoint();
+        if (wp != null)
+        {
+            int m = Mathf.RoundToInt(
+                Vector3.Distance(transform.position, wp.GetWorldPosition()));
+            display += $"   ({m}m)";
+        }
 
         // Shadow
         style.normal.textColor = new Color(0f, 0f, 0f, 0.7f);
@@ -294,21 +214,10 @@ public class PlayerHUD : MonoBehaviour
         Color old = GUI.color;
         GUI.color = crosshairColor;
 
-        float len = 14f;
-        float gap = 4f;
-        float thick = crosshairThickness;
-
-        // Center dot
-        GUI.DrawTexture(new Rect(x - 1f, y - 1f, 2f, 2f), tex);
-
-        // Top
-        GUI.DrawTexture(new Rect(x - thick / 2f, y - gap - len, thick, len), tex);
-        // Bottom
-        GUI.DrawTexture(new Rect(x - thick / 2f, y + gap, thick, len), tex);
-        // Left
-        GUI.DrawTexture(new Rect(x - gap - len, y - thick / 2f, len, thick), tex);
-        // Right
-        GUI.DrawTexture(new Rect(x + gap, y - thick / 2f, len, thick), tex);
+        // Horizontal line
+        GUI.DrawTexture(new Rect(x - crosshairSize / 2f, y - crosshairThickness / 2f, crosshairSize, crosshairThickness), tex);
+        // Vertical line
+        GUI.DrawTexture(new Rect(x - crosshairThickness / 2f, y - crosshairSize / 2f, crosshairThickness, crosshairSize), tex);
 
         GUI.color = old;
     }
@@ -318,7 +227,6 @@ public class PlayerHUD : MonoBehaviour
         if (playerHealth == null) return;
         int hp = Mathf.CeilToInt(playerHealth.CurrentHealth);
         if (hp < 0) hp = 0;
-        float maxHp = playerHealth.maxHealth;
         string hpText = playerHealth.godMode 
             ? (playerMovement != null && playerMovement.IsFlying ? "+  GOD (FLY)" : "+  GOD") 
             : $"+  {hp}";
@@ -360,22 +268,8 @@ public class PlayerHUD : MonoBehaviour
         style.normal.textColor = hpColor;
         GUI.Label(new Rect(40, Screen.height - 80, 250, 60), hpText, style);
 
-        // Health Bar
-        float hpRatio = maxHp > 0 ? Mathf.Clamp01(hp / maxHp) : 0f;
-        float hpBarWidth = hpRatio * 200f;
-        Color hpBarColor = hpRatio > 0.5f ? Color.green : (hpRatio > 0.25f ? Color.yellow : Color.red);
-        hpBarColor.a = 0.8f;
-
-        Color old = GUI.color;
-        GUI.color = new Color(0, 0, 0, 0.5f);
-        GUI.DrawTexture(new Rect(40, Screen.height - 30, 200, 3), Texture2D.whiteTexture);
-        GUI.color = hpBarColor;
-        GUI.DrawTexture(new Rect(40, Screen.height - 30, hpBarWidth, 3), Texture2D.whiteTexture);
-        GUI.color = old;
-
         // Draw HEV armor (AP) meter to the right of health
         int ap = Mathf.CeilToInt(playerHealth.Armor);
-        float maxAp = playerHealth.maxArmor;
         string apText = $"[|]  {ap}";
         var apStyle = new GUIStyle(style) { alignment = TextAnchor.LowerLeft };
         apStyle.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
@@ -384,16 +278,47 @@ public class PlayerHUD : MonoBehaviour
             ? new Color(0.3f, 0.7f, 1f, 0.9f) : new Color(0.4f, 0.5f, 0.6f, 0.5f);
         GUI.Label(new Rect(340, Screen.height - 80, 250, 60), apText, apStyle);
 
-        // Armor Bar
-        float apRatio = maxAp > 0 ? Mathf.Clamp01(ap / maxAp) : 0f;
-        float apBarWidth = apRatio * 200f;
-        Color apBarColor = new Color(0.3f, 0.7f, 1f, 0.8f);
+        // Draw the HEV aux cell — the sprint budget. Sits right of the AP
+        // readout as a bar rather than a number, because what you need to know
+        // mid-firefight is "can I still run", not the exact figure.
+        if (suitPower != null)
+        {
+            const float bx = 520f, bw = 130f, bh = 9f;
+            float by = Screen.height - 52f;
 
-        GUI.color = new Color(0, 0, 0, 0.5f);
-        GUI.DrawTexture(new Rect(340, Screen.height - 30, 200, 3), Texture2D.whiteTexture);
-        GUI.color = apBarColor;
-        GUI.DrawTexture(new Rect(340, Screen.height - 30, apBarWidth, 3), Texture2D.whiteTexture);
-        GUI.color = old;
+            var auxStyle = new GUIStyle(style) { fontSize = 15, alignment = TextAnchor.LowerLeft };
+            auxStyle.normal.textColor = new Color(0f, 0f, 0f, 0.5f);
+            GUI.Label(new Rect(bx + 2, by - 30f, 80, 30), "AUX", auxStyle);
+            auxStyle.normal.textColor = new Color(hudColor.r, hudColor.g, hudColor.b, 0.7f);
+            GUI.Label(new Rect(bx, by - 32f, 80, 30), "AUX", auxStyle);
+
+            Color prev = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.45f);
+            GUI.DrawTexture(new Rect(bx - 1f, by - 1f, bw + 2f, bh + 2f), _barTex);
+
+            // amber while spending, blue at rest, red pulse while locked out
+            GUI.color = suitPower.Depleted
+                ? Color.Lerp(new Color(0.8f, 0.15f, 0.1f, 0.9f), new Color(0.4f, 0.1f, 0.1f, 0.6f),
+                             Mathf.PingPong(Time.time * 4f, 1f))
+                : suitPower.Draining
+                    ? new Color(1f, 0.62f, 0.1f, 0.9f)
+                    : new Color(0.3f, 0.7f, 1f, 0.75f);
+            GUI.DrawTexture(new Rect(bx, by, bw * suitPower.Fraction, bh), _barTex);
+            GUI.color = prev;
+        }
+
+        // "[E] DRIVE" when a truck is within reach — the prompt is what makes
+        // the vehicles discoverable at all
+        foreach (var v in G1Vehicle.All)
+        {
+            if (v == null || !v.InRange) continue;
+            var ps = new GUIStyle(style) { fontSize = 22, alignment = TextAnchor.MiddleCenter };
+            ps.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
+            GUI.Label(new Rect(2, Screen.height / 2f + 62, Screen.width, 34), "[E]  DRIVE", ps);
+            ps.normal.textColor = new Color(0.55f, 0.95f, 0.55f, 0.95f);
+            GUI.Label(new Rect(0, Screen.height / 2f + 60, Screen.width, 34), "[E]  DRIVE", ps);
+            break;
+        }
 
         // Draw Flashlight indicator if available
         if (flashlight != null)
@@ -433,13 +358,19 @@ public class PlayerHUD : MonoBehaviour
         }
         if (active == null || !active.HasAmmo) return;
 
-        string ammoText = active.IsReloading ? "RELOAD" : $"{active.Clip} | {active.Reserve}";
-        string wpnNameText = active.GetType().Name.Replace("G1", "").ToUpper();
+        // an infinity glyph where the reserve count goes, so "god mode is also
+        // paying for the bullets" is visible rather than something you infer
+        // after not running out for a while
+        string ammoText = active.IsReloading ? "RELOAD"
+            : G1GodModeAmmo.Unlimited ? $"{active.Clip} | ∞"
+            : $"{active.Clip} | {active.Reserve}";
 
         // Red when low ammo
-        Color ammoColor = (active.Clip <= 2 && !active.IsReloading)
-            ? new Color(1f, 0.15f, 0.15f, 0.9f)
-            : hudColor;
+        Color ammoColor = G1GodModeAmmo.Unlimited
+            ? new Color(0.4f, 0.95f, 0.5f, 0.9f)
+            : (active.Clip <= 2 && !active.IsReloading)
+                ? new Color(1f, 0.15f, 0.15f, 0.9f)
+                : hudColor;
 
         var style = new GUIStyle(GUI.skin.label)
         {
@@ -449,141 +380,10 @@ public class PlayerHUD : MonoBehaviour
             font = _hudFont
         };
 
-        var nameStyle = new GUIStyle(style)
-        {
-            fontSize = 16,
-            alignment = TextAnchor.LowerRight
-        };
-
-        // Draw weapon name
-        nameStyle.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
-        GUI.Label(new Rect(Screen.width - 298, Screen.height - 103, 250, 30), wpnNameText, nameStyle);
-        nameStyle.normal.textColor = new Color(hudColor.r, hudColor.g, hudColor.b, 0.6f);
-        GUI.Label(new Rect(Screen.width - 300, Screen.height - 105, 250, 30), wpnNameText, nameStyle);
-
         style.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
         GUI.Label(new Rect(Screen.width - 298, Screen.height - 78, 250, 60), ammoText, style);
         style.normal.textColor = ammoColor;
         GUI.Label(new Rect(Screen.width - 300, Screen.height - 80, 250, 60), ammoText, style);
-    }
-
-    // --- Professional HUD Panel Backgrounds ---
-    void DrawHUDPanels()
-    {
-        // Bottom-left health/armor/flashlight panel
-        float leftW = 520f;
-        float leftH = 72f;
-        float leftX = 24f;
-        float leftY = Screen.height - leftH - 14f;
-        Color tealAccent = new Color(0.16f, 0.75f, 0.75f, 0.7f);
-        DrawModernPanel(new Rect(leftX, leftY, leftW, leftH), PanelFill, tealAccent, 3f);
-
-        // Vertical separator between health and armor (subtle gradient fade)
-        Color old = GUI.color;
-        float sepX = leftX + 310f;
-        float sepH = leftH - 16f;
-        for (int i = 0; i < sepH; i++)
-        {
-            float alpha = Mathf.Sin((i / sepH) * Mathf.PI) * 0.15f;
-            GUI.color = new Color(1f, 1f, 1f, alpha);
-            GUI.DrawTexture(new Rect(sepX, leftY + 8f + i, 1f, 1f), Texture2D.whiteTexture);
-        }
-        GUI.color = old;
-
-        // Bottom-right ammo panel
-        float rightW = 280f;
-        float rightH = 72f;
-        float rightX = Screen.width - rightW - 24f;
-        float rightY = Screen.height - rightH - 14f;
-        DrawModernPanel(new Rect(rightX, rightY, rightW, rightH), PanelFill, tealAccent, 3f);
-    }
-
-    // --- Weapon Slot Bar ---
-    void DrawWeaponSlotBar()
-    {
-        if (switcher == null || switcher.weapons == null) return;
-        int count = Mathf.Min(switcher.weapons.Length, SlotLabels.Length);
-        float slotW = 44f;
-        float slotH = 28f;
-        float gap = 4f;
-        float totalW = count * slotW + (count - 1) * gap;
-        float startX = Screen.width / 2f - totalW / 2f;
-        float startY = Screen.height - slotH - 18f;
-
-        int activeIdx = -1;
-        for (int i = 0; i < count; i++)
-        {
-            if (switcher.weapons[i] != null && switcher.weapons[i].activeSelf)
-                activeIdx = i;
-        }
-
-        var labelStyle = new GUIStyle(GUI.skin.label)
-        {
-            fontSize = 13,
-            fontStyle = FontStyle.Bold,
-            alignment = TextAnchor.MiddleCenter,
-            font = _hudFont
-        };
-
-        for (int i = 0; i < count; i++)
-        {
-            float sx = startX + i * (slotW + gap);
-            Rect slotRect = new Rect(sx, startY, slotW, slotH);
-            bool isActive = (i == activeIdx);
-            bool isUnlocked = switcher.IsUnlocked(i);
-
-            if (isActive)
-            {
-                // Active weapon slot: bright teal fill
-                DrawPanel(slotRect, new Color(Teal.r, Teal.g, Teal.b, 0.35f),
-                          new Color(Teal.r, Teal.g, Teal.b, 0.8f));
-                labelStyle.normal.textColor = Color.white;
-            }
-            else if (isUnlocked)
-            {
-                // Unlocked but inactive: dim border
-                DrawPanel(slotRect, new Color(0.02f, 0.04f, 0.06f, 0.5f),
-                          new Color(Teal.r, Teal.g, Teal.b, 0.2f));
-                labelStyle.normal.textColor = new Color(Teal.r, Teal.g, Teal.b, 0.6f);
-            }
-            else
-            {
-                // Locked slot: very dim
-                DrawPanel(slotRect, new Color(0.02f, 0.03f, 0.04f, 0.35f),
-                          new Color(0.2f, 0.2f, 0.2f, 0.15f));
-                labelStyle.normal.textColor = new Color(0.3f, 0.3f, 0.3f, 0.3f);
-            }
-
-            // Slot number + abbreviation
-            string slotText = isUnlocked ? $"{i + 1} {SlotLabels[i]}" : $"{i + 1}";
-            GUI.Label(slotRect, slotText, labelStyle);
-        }
-    }
-
-    // --- Damage Direction Indicator ---
-    void DrawDamageDirection()
-    {
-        Texture2D t = Texture2D.whiteTexture;
-        float sw = Screen.width;
-        float sh = Screen.height;
-        float thickness = 6f;
-        float edgeLen = sh * 0.25f;
-
-        DrawDmgEdge(_dmgDirLeft, new Rect(0, sh / 2f - edgeLen / 2f, thickness, edgeLen));
-        DrawDmgEdge(_dmgDirRight, new Rect(sw - thickness, sh / 2f - edgeLen / 2f, thickness, edgeLen));
-        DrawDmgEdge(_dmgDirTop, new Rect(sw / 2f - edgeLen / 2f, 0, edgeLen, thickness));
-        DrawDmgEdge(_dmgDirBottom, new Rect(sw / 2f - edgeLen / 2f, sh - thickness, edgeLen, thickness));
-    }
-
-    void DrawDmgEdge(float until, Rect r)
-    {
-        float remaining = until - Time.time;
-        if (remaining <= 0f) return;
-        float alpha = Mathf.Clamp01(remaining / 0.5f) * 0.65f;
-        Color old = GUI.color;
-        GUI.color = new Color(0.9f, 0.1f, 0.05f, alpha);
-        GUI.DrawTexture(r, Texture2D.whiteTexture);
-        GUI.color = old;
     }
 
     void DrawWeaponPickup()
@@ -600,12 +400,6 @@ public class PlayerHUD : MonoBehaviour
             alignment = TextAnchor.MiddleCenter,
             font = _hudFont
         };
-
-        // Dark panel
-        Color old = GUI.color;
-        GUI.color = new Color(0f, 0f, 0f, 0.5f * alpha);
-        GUI.DrawTexture(new Rect(Screen.width/2f - 160, Screen.height/2f + 50, 320, 40), Texture2D.whiteTexture);
-        GUI.color = old;
 
         style.normal.textColor = new Color(0f, 0f, 0f, 0.6f * alpha);
         GUI.Label(new Rect(Screen.width/2f - 149, Screen.height/2f + 51, 300, 40),
@@ -698,11 +492,6 @@ public class PlayerHUD : MonoBehaviour
             wordWrap = true
         };
 
-        // Dark panel background
-        Color fill = new Color(0.02f, 0.04f, 0.04f, 0.7f * alpha);
-        Color accent = new Color(0.2f, 0.9f, 0.6f, alpha);
-        DrawModernPanel(new Rect(Screen.width/2f - 310, Screen.height - 180, 620, 80), fill, accent, 4f);
-
         // Draw shadow
         style.normal.textColor = new Color(0f, 0f, 0f, 0.7f * alpha);
         GUI.Label(new Rect(Screen.width/2f - 300 + 1, Screen.height - 180 + 1, 600, 80), _displayedTerminalLog, style);
@@ -793,12 +582,6 @@ public class PlayerHUD : MonoBehaviour
             alignment = TextAnchor.MiddleCenter,
             font = _hudFont
         };
-
-        // Dark panel
-        Color old = GUI.color;
-        GUI.color = new Color(0f, 0f, 0f, 0.6f * alpha);
-        GUI.DrawTexture(new Rect(Screen.width / 2f - 250, Screen.height / 2f - 80, 500, 40), Texture2D.whiteTexture);
-        GUI.color = old;
 
         // Shadow
         style.normal.textColor = new Color(0f, 0f, 0f, 0.7f * alpha);

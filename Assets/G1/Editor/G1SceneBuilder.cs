@@ -1088,6 +1088,8 @@ public static class G1SceneBuilder
 
         var health = player.AddComponent<HealthSystem>();
         health.maxHealth = 100f;
+        player.AddComponent<G1SuitPower>();     // the cell Shift-sprint spends
+        player.AddComponent<G1GodModeAmmo>();   // god mode drops the ammo economy too
         player.AddComponent<PlayerHUD>();
         player.AddComponent<ArenaDebugHUD>();
         player.AddComponent<G1PlayerDeath>();

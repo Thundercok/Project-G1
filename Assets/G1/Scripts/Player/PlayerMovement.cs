@@ -9,7 +9,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Speeds (m/s; HL1 units * 0.0254)")]
     public float maxSpeed = 8.1f;        // ~320 ups
     public float stopSpeed = 2.5f;       // ~100 ups
-    public float jumpSpeed = 7.2f;       // ~45 HU jump apex
+    public float jumpSpeed = 6.8f;       // ~45 HU jump apex
 
     [Header("Acceleration")]
     public float accelerate = 10f;       // sv_accelerate
@@ -34,21 +34,31 @@ public class PlayerMovement : MonoBehaviour
     public float crouchSpeedMult = 0.5f;
     public float crouchCameraY = 0.85f;
 
+    [Header("Sprint")]
+    // 8.1 * 1.55 = 12.5 m/s, which lands right on CameraEffects.speedForMaxFOV
+    // so a full sprint is exactly where the FOV stretch tops out.
+    public float sprintMult = 1.55f;
+    public KeyCode sprintKey = KeyCode.LeftShift;
+    /// Written by the active weapon while aiming down sights. 1 = free.
+    [HideInInspector] public float aimSlow = 1f;
+
     [Header("God Mode / Fly")]
     public bool isFlying = false;
     public float flySpeedMult = 1.6f;
     public float flySprintMult = 2.0f;
 
-    [HideInInspector] public float speedModifier = 1.0f;
     private float defaultHeight = 1.8f;
     private Vector3 defaultCameraLocalPos = new Vector3(0f, 1.62f, 0f);
     private bool isCrouching = false;
+    private bool isSprinting = false;
     private Transform cameraTransform;
     private HealthSystem health;
+    private G1SuitPower suit;
 
     public Vector3 Velocity => velocity;
     public bool Grounded => wasGrounded;
     public bool IsCrouching => isCrouching;
+    public bool IsSprinting => isSprinting;
     public bool IsFlying => isFlying;
 
     void Awake()
@@ -59,6 +69,7 @@ public class PlayerMovement : MonoBehaviour
     void Start()
     {
         health = GetComponent<HealthSystem>();
+        suit = GetComponent<G1SuitPower>();
         cameraTransform = GetComponentInChildren<Camera>()?.transform;
         defaultHeight = cc.height;
         if (cameraTransform != null)
@@ -146,12 +157,6 @@ public class PlayerMovement : MonoBehaviour
             cameraTransform.localPosition = camPos;
         }
 
-        float currentMaxSpeed = maxSpeed * speedModifier;
-        if (isCrouching)
-        {
-            currentMaxSpeed *= crouchSpeedMult;
-        }
-
         Vector3 wish = transform.right * Input.GetAxisRaw("Horizontal")
                      + transform.forward * Input.GetAxisRaw("Vertical");
         wish.y = 0f;
@@ -159,6 +164,24 @@ public class PlayerMovement : MonoBehaviour
 
         bool grounded = cc.isGrounded;
         wasGrounded = grounded;
+
+        // Sprint: forward only, standing, and only while the suit cell can pay
+        // for it. Backwards sprinting would just be a free disengage from every
+        // firefight, and sprint-crouching reads as a bug.
+        bool wishSprint = Input.GetKey(sprintKey)
+                          && !isCrouching
+                          && Input.GetAxisRaw("Vertical") > 0.1f
+                          && wish.sqrMagnitude > 0.01f;
+        // airborne frames coast on the speed you already built rather than
+        // billing the cell for a sprint you can't steer anyway
+        isSprinting = wishSprint && grounded && (suit == null || suit.TryDrain(dt));
+
+        float currentMaxSpeed = maxSpeed;
+        if (isCrouching)
+            currentMaxSpeed *= crouchSpeedMult;
+        else if (isSprinting)
+            currentMaxSpeed *= sprintMult;
+        currentMaxSpeed *= Mathf.Clamp(aimSlow, 0.2f, 1f);
 
         if (grounded)
             coyoteTimer = CoyoteWindow;
@@ -185,25 +208,9 @@ public class PlayerMovement : MonoBehaviour
             velocity.y -= gravity * dt;
         }
 
-        float prevY = velocity.y;
         cc.Move(velocity * dt);
         if ((cc.collisionFlags & CollisionFlags.Above) != 0 && velocity.y > 0f)
             velocity.y = 0f;
-
-        // Hard landing detection for falling damage & HEV warning
-        if (cc.isGrounded && !wasGrounded && prevY < -11.5f)
-        {
-            float dmg = (Mathf.Abs(prevY) - 11.5f) * 4.5f;
-            if (dmg > 0f && health != null)
-            {
-                health.TakeDamage(dmg, transform.position, Vector3.up);
-                var hev = GetComponent<G1HEVSystem>();
-                if (hev != null)
-                {
-                    hev.TriggerFracture();
-                }
-            }
-        }
     }
 
     void ApplyFriction(float dt)

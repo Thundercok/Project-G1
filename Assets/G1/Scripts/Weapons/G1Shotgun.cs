@@ -51,7 +51,7 @@ public class G1Shotgun : WeaponBase
         }
 
         // RMB: double-barrel — both shells at once, double pellets and recoil
-        if (Input.GetButtonDown("Fire2") && Time.time >= nextFire && clip >= 2)
+        if (SecondaryPressed && Time.time >= nextFire && clip >= 2)
         {
             FireDoubleBarrel();
             return;
@@ -89,7 +89,7 @@ public class G1Shotgun : WeaponBase
         bool hitAnyEnemy = false;
         for (int i = 0; i < pellets * 2; i++)
         {
-            if (RayHitSpread(range, spreadAngle * 1.3f, out RaycastHit hit))
+            if (RayHitSpread(range, spreadAngle * 1.3f * SpreadScale, out RaycastHit hit))
             {
                 if (ApplyHit(hit, damage, hitForce)) hitAnyEnemy = true;
                 if (weaponFX)
@@ -124,7 +124,7 @@ public class G1Shotgun : WeaponBase
         bool hitAnyEnemy = false;
         for (int i = 0; i < pellets; i++)
         {
-            if (RayHitSpread(range, spreadAngle, out RaycastHit hit))
+            if (RayHitSpread(range, spreadAngle * SpreadScale, out RaycastHit hit))
             {
                 bool hitEnemy = ApplyHit(hit, damage, hitForce);
                 if (hitEnemy) hitAnyEnemy = true;

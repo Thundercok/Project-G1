@@ -17,11 +17,38 @@ public abstract class WeaponBase : MonoBehaviour
     public float springStiffness = 220f;
     public float springDamping = 18f;
 
+    [Header("Aim down sights (hold RMB)")]
+    public bool canAim = true;
+    /// Where the viewmodel sits when aimed: centred under the crosshair and
+    /// pulled back toward the eye.
+    public Vector3 aimPos = new Vector3(0f, -0.045f, 0.12f);
+    public float aimInSpeed = 9f;
+    public float aimSensitivityScale = 0.45f;
+    public float aimMoveScale = 0.55f;
+    /// Multiplier weapons apply to their own spread while aimed.
+    public float aimSpreadScale = 0.35f;
+
     protected Vector3 restPos;
     protected Vector3 springOffset;
     protected Vector3 springVelocity;
     float bobT;
     bool wasGrounded;
+
+    float aimBlend;                    // 0 = hip, 1 = sighted
+    MouseLook look;
+
+    /// 0..1 — weapons read this to tighten spread and suppress alt-fire.
+    public float AimBlend => aimBlend;
+    public bool IsAiming => aimBlend > 0.5f;
+
+    /// What a spread cone should be multiplied by right now. Aiming is only
+    /// worth the movement penalty if it actually buys accuracy.
+    protected float SpreadScale => Mathf.Lerp(1f, aimSpreadScale, aimBlend);
+
+    /// RMB is aim-down-sights now, so secondary fire moved off it. Middle
+    /// mouse is the primary binding; B is there for mice that don't have one.
+    protected static bool SecondaryPressed =>
+        Input.GetKeyDown(KeyCode.Mouse2) || Input.GetKeyDown(KeyCode.B);
 
     protected bool InputLocked => Cursor.lockState != CursorLockMode.Locked
                                 || G1MobSpawnerToolbox.IsOpen;
@@ -41,8 +68,37 @@ public abstract class WeaponBase : MonoBehaviour
     {
         if (!InputLocked)
             HandleInput();
+        UpdateAim();
         UpdateSpringPhysics();
         ApplyBobAndSway();
+    }
+
+    /// Holding RMB brings the weapon up to the eye. Everything that follows
+    /// from that — the narrowed FOV, the slower turn, the slower walk — is
+    /// applied here rather than in each weapon, so the four firearms and the
+    /// crowbar cannot drift apart.
+    void UpdateAim()
+    {
+        bool want = canAim && !InputLocked && Input.GetButton("Fire2")
+                    && !IsReloading
+                    && !(movement != null && movement.IsSprinting);
+        aimBlend = Mathf.MoveTowards(aimBlend, want ? 1f : 0f, aimInSpeed * Time.deltaTime);
+
+        if (camFX != null) camFX.adsBlend = aimBlend;
+        if (look == null && viewCamera != null) look = viewCamera.GetComponent<MouseLook>();
+        if (look != null) look.sensitivityScale = Mathf.Lerp(1f, aimSensitivityScale, aimBlend);
+        if (movement != null) movement.aimSlow = Mathf.Lerp(1f, aimMoveScale, aimBlend);
+    }
+
+    /// A holstered weapon stops receiving Update, so it has to hand back
+    /// everything it was scaling or the player is left zoomed in with a
+    /// quarter of their mouse sensitivity.
+    protected virtual void OnDisable()
+    {
+        aimBlend = 0f;
+        if (camFX != null) camFX.adsBlend = 0f;
+        if (look != null) look.sensitivityScale = 1f;
+        if (movement != null) movement.aimSlow = 1f;
     }
 
     /// Add snappy recoil or impact impulse to the viewmodel spring
@@ -85,8 +141,12 @@ public abstract class WeaponBase : MonoBehaviour
         float mouseY = InputLocked ? 0f : Input.GetAxis("Mouse Y") * swayAmount;
         Vector3 swayTarget = new Vector3(-mouseX, -mouseY, 0f);
 
+        // bob and sway are what a weapon held at the hip does; a sighted weapon
+        // is braced, so they fade out as it comes up
+        float hip = 1f - aimBlend;
         Vector3 bobPos = new Vector3(Mathf.Cos(bobT) * amp, Mathf.Abs(Mathf.Sin(bobT)) * amp, 0f);
-        transform.localPosition = restPos + bobPos + swayTarget + springOffset;
+        Vector3 held = Vector3.Lerp(restPos, aimPos, aimBlend);
+        transform.localPosition = held + (bobPos + swayTarget) * hip + springOffset;
     }
 
     protected bool RayHit(float range, out RaycastHit hit)

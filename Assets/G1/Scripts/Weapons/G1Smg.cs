@@ -40,7 +40,7 @@ public class G1Smg : WeaponBase
         if (reloading)
             return;
         // RMB: 40mm explosive grenade, drawn from the grenade reserve
-        if (Input.GetButtonDown("Fire2") && Time.time >= nextLaunch)
+        if (SecondaryPressed && Time.time >= nextLaunch)
         {
             var g = Grenades;
             if (g != null && g.count > 0)

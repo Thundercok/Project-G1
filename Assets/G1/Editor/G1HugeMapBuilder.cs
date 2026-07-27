@@ -24,7 +24,7 @@ public static class G1HugeMapBuilder
         return m;
     }
 
-    static int EnsureLayer(string name)
+    public static int EnsureLayer(string name)
     {
         var tm = new SerializedObject(
             AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
@@ -55,6 +55,9 @@ public static class G1HugeMapBuilder
             return;
         }
 
+        // must happen before anything instantiates the character models
+        G1Rig.EnsureAvatars($"{Models}/Protagonist.fbx", $"{Models}/Villain.fbx");
+
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         // --- lighting: overcast battlefield
@@ -68,8 +71,8 @@ public static class G1HugeMapBuilder
         RenderSettings.ambientLight = new Color(0.34f, 0.36f, 0.4f);
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 120f;
-        RenderSettings.fogEndDistance = 520f;
+        RenderSettings.fogStartDistance = 150f;
+        RenderSettings.fogEndDistance = 700f;   // 800m map: 520 fogged out the far wall
         RenderSettings.fogColor = new Color(0.4f, 0.43f, 0.48f);
 
         int enemyLayer = EnsureLayer("Enemy");
@@ -90,20 +93,32 @@ public static class G1HugeMapBuilder
             if (mc == null) mc = mf.gameObject.AddComponent<MeshCollider>();
             mc.sharedMesh = mf.sharedMesh;
         }
+        // Placement probes everything below by raycast, and in edit mode the
+        // physics engine does not see a collider's transform until it is told.
+        // Skip this and every probe runs against the map as it was at the
+        // origin the instant it was instantiated.
+        Physics.SyncTransforms();
 
-        // GUARANTEED floor: a flat box collider spanning the whole 600m map at
+        // GUARANTEED floor: a flat box collider spanning the whole 800m map at
         // ground level, so the player always has something to stand on even if
         // the FBX ground mesh ever imports at an unexpected scale.
         var floor = new GameObject("GroundCollider");
         floor.transform.position = new Vector3(0f, -0.25f, 0f);
         var floorCol = floor.AddComponent<BoxCollider>();
-        floorCol.size = new Vector3(620f, 0.5f, 620f);   // top surface at y=0
+        floorCol.size = new Vector3(820f, 0.5f, 820f);   // top surface at y=0
 
-        // --- player (spawns at the south gate, facing the sprawl)
+        // interiors, floodlights and the caches that make them worth entering,
+        // all read from the manifest the Blender generator writes
+        var manifest = G1MapManifest.Load(MapFbx);
+        int lampCount = G1MapManifest.ApplyLighting(manifest);
+        int stocked = G1MapManifest.StockInteriors(manifest);
+        int coverCount = G1MapManifest.ApplyCover(manifest);
+
+        // --- player (spawns outside the south gate, facing the sprawl)
         var player = G1SceneBuilder.BuildStandardPlayer();
         var cc = player.GetComponent<CharacterController>();
         if (cc) cc.enabled = false;
-        player.transform.position = new Vector3(0f, 0.3f, -278f);
+        player.transform.position = new Vector3(0f, 0.3f, -378f);
         player.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
         if (cc) cc.enabled = true;
         var card = player.GetComponent<G1StoryCard>();
@@ -111,6 +126,8 @@ public static class G1HugeMapBuilder
         var switcher = player.GetComponentInChildren<WeaponSwitcher>(true);
         if (switcher != null) switcher.unlocked = new[] { true, true, true, true, true, true };
         player.AddComponent<G1MissionAssistant>();
+        // needs the player, so it can't ride along with the lighting pass above
+        int interiorCount = G1MapManifest.ApplyInteriorSpaces(manifest);
 
         // ---------------- MISSION ----------------
         var mgr = new GameObject("MissionManager");
@@ -122,28 +139,29 @@ public static class G1HugeMapBuilder
             new G1MissionSetup.Def { id = "gunship", description = "Destroy the HECU gunship", mandatory = false, count = 1 },
         };
 
-        // three survivors stranded across the districts. The northern one is an
-        // engineer who, once freed, HANDS YOU A FOLLOW-UP QUEST: restore the
-        // signal at the comms array (SE). Rescuing all three + doing his quest
-        // are what unlock the extraction gate.
+        // three survivors stranded across the districts — the mandatory spine
+        // that unlocks the extraction gate.
         SpawnRescuable(new Vector3(-150f, 0.1f, 20f));    // allied base (west)
         SpawnRescuable(new Vector3(150f, 0.1f, -10f));    // hangar (east)
+        SpawnRescuable(new Vector3(-88f, 0.1f, -142f));   // southern ruins
 
-        Vector3 commsArray = new Vector3(155f, 0f, -150f);
-        SpawnQuestGiver(new Vector3(10f, 0.1f, 150f),     // lab complex (north)
-            "ENGINEER OKAFOR",
-            "You made it! The Sweepers cut our comms — the array's still intact " +
-            "at the southeast dish. Reach it and restore the signal, or nobody " +
-            "topside knows we're alive. Go!",
-            "restore-comms", "Restore the signal at the comms array", commsArray);
+        // the contact network: seven quest-givers spread wider than one scan
+        // can reach, so finding them (Q) is its own piece of play.
+        G1QuestNpcBuilder.PopulateSprawl();
 
-        // the quest's destination: a zone at the comms array that completes it
-        var zoneGo = new GameObject("QuestZone_Comms");
-        zoneGo.transform.position = commsArray + Vector3.up * 2f;
-        var zc = zoneGo.AddComponent<BoxCollider>();
-        zc.isTrigger = true;
-        zc.size = new Vector3(10f, 6f, 10f);
-        zoneGo.AddComponent<G1QuestZone>().objectiveId = "restore-comms";
+        // architecture + the opening beat: sealed south gate, SGT. KANE's
+        // briefing, the picket that wakes when he opens it, bunkers, compounds.
+        // Must run before the NavMesh bake below.
+        G1DoorKitBuilder.Build();
+
+        // the main storyline: chapter cards and voiced narration hung off the
+        // objectives the contacts hand out, plus the Threshold ring it ends at.
+        // After the contacts exist, so the chapters have something to watch.
+        G1StoryBuilder.Build();
+
+        // drivable trucks — an 800m map is a lot of walking and sprint only
+        // buys seven seconds of it. Parked where the player already stands.
+        int trucks = G1VehicleBuilder.Build();
 
         // extraction teleport gate on the plaza's south approach, gated on ALL
         // mandatory objectives (rescues + the engineer's quest).
@@ -210,6 +228,37 @@ public static class G1HugeMapBuilder
             }
         }
 
+        // ---------------- THE OUTER RING (the new ground) ----------------
+        // The extra 200m of map has to be worth crossing, so each new district
+        // gets a garrison sized to its role rather than a uniform sprinkle.
+
+        // Airstrip (far east): HECU hold it, dug in among the revetments.
+        foreach (var p in new Vector3[] { new(258, 0, -90), new(258, 0, 30),
+            new(250, 0, 96), new(232, 0, 108), new(224, 0, -60) })
+            SpawnEnemy("Assets/G1/Prefabs/HECUSoldier.prefab", p, enemyLayer, 270f);
+
+        // Ammo bunker field (far north): a small guard detail, plus survivors
+        // who went to ground in the igloos when the line broke.
+        foreach (var p in new Vector3[] { new(-96, 0, 306), new(32, 0, 306), new(160, 0, 306) })
+            SpawnEnemy("Assets/G1/Prefabs/HECUSoldier.prefab", p, enemyLayer, 180f);
+        SpawnAlly(new Vector3(-160f, 0f, 306f), false, new Color(0.85f, 0.42f, 0.06f), "Scientist");
+
+        // Tank park (far west): allied ground — mechanics working, riflemen
+        // covering the approach.
+        foreach (var p in new Vector3[] { new(-296, 0, -96), new(-296, 0, 32), new(-290, 0, 96) })
+            SpawnAlly(p, true, new Color(0.22f, 0.4f, 0.7f), "Security");
+        foreach (var p in new Vector3[] { new(-352, 0, 8), new(-346, 0, -12) })
+            SpawnAlly(p, false, new Color(0.85f, 0.42f, 0.06f), "Scientist");
+
+        // The Taken have overrun the training ground in the SW corner.
+        for (int i = 0; i < 8; i++)
+        {
+            float a = i / 8f * Mathf.PI * 2f;
+            SpawnEnemy("Assets/G1/Prefabs/Zombie.prefab",
+                new Vector3(-300f + Mathf.Cos(a) * 22f, 0f, -300f + Mathf.Sin(a) * 18f),
+                enemyLayer);
+        }
+
         // Gunship boss — patrols the airspace over the central plaza.
         BuildGunship(new Vector3(0f, 22f, 0f), enemyLayer);
 
@@ -224,35 +273,33 @@ public static class G1HugeMapBuilder
         surface.useGeometry = UnityEngine.AI.NavMeshCollectGeometry.RenderMeshes;
         surface.BuildNavMesh();
 
+        // only meaningful once the navmesh exists
+        Physics.SyncTransforms();
+        int prunedCover = G1MapManifest.PruneCover();
+
         EnsureFolder("Assets/Scenes");
         AssetDatabase.DeleteAsset("Assets/Scenes/HugeMapNavMesh.asset");
         AssetDatabase.CreateAsset(surface.navMeshData, "Assets/Scenes/HugeMapNavMesh.asset");
         EditorSceneManager.SaveScene(scene, ScenePath);
         RegisterScene();
         AssetDatabase.SaveAssets();
-        Debug.Log("G1 HUGE MAP BUILD OK — Corvus Sprawl assembled with allies + enemies.");
+        Debug.Log($"G1 HUGE MAP BUILD OK — Corvus Sprawl 800x800m, " +
+                  $"{(manifest != null ? manifest.rooms.Length : 0)} interiors, " +
+                  $"{lampCount} lights, {stocked} caches, " +
+                  $"{coverCount - prunedCover} cover points ({prunedCover} pruned), " +
+                  $"{interiorCount} acoustic spaces, {trucks} trucks.");
     }
 
     // ------------------------------------------------------------- helpers
-    static GameObject SpawnAlly(Vector3 pos, bool combat, Color tint, string name)
+    public static GameObject SpawnAlly(Vector3 pos, bool combat, Color tint, string name)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{Models}/Protagonist.fbx");
-        var ctrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
-            "Assets/G1/Anim/Protagonist.controller");
         if (prefab == null) return null;
         var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
         go.name = name;
         go.transform.position = pos;
-        var anim = go.GetComponent<Animator>();
-        if (!anim) anim = go.AddComponent<Animator>();
-        if (ctrl) anim.runtimeAnimatorController = ctrl;
-        int idx = 0;
-        foreach (var r in go.GetComponentsInChildren<Renderer>())
-        {
-            var m = new Material(Shader.Find("Standard"));
-            m.color = idx++ == 0 ? tint : tint * 0.6f;
-            r.sharedMaterial = m;
-        }
+        G1Rig.Setup(go, $"{Models}/Protagonist.fbx", "Assets/G1/Anim/Protagonist.controller");
+        G1CharacterSkin.Apply(go, "Protagonist", tint, tint * 0.55f);
         var col = go.AddComponent<CapsuleCollider>();
         col.height = 1.8f; col.radius = 0.35f; col.center = new Vector3(0, 0.9f, 0);
         var agent = go.AddComponent<UnityEngine.AI.NavMeshAgent>();
@@ -275,7 +322,7 @@ public static class G1HugeMapBuilder
         return go;
     }
 
-    static GameObject SpawnEnemy(string path, Vector3 pos, int enemyLayer, float yaw = 0f)
+    public static GameObject SpawnEnemy(string path, Vector3 pos, int enemyLayer, float yaw = 0f)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
         if (prefab == null)
@@ -333,53 +380,14 @@ public static class G1HugeMapBuilder
     static void SpawnRescuable(Vector3 pos)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{Models}/Protagonist.fbx");
-        var ctrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
-            "Assets/G1/Anim/Protagonist.controller");
         if (prefab == null) return;
         var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
         go.name = "Survivor";
-        go.transform.position = pos;
-        var anim = go.GetComponent<Animator>();
-        if (!anim) anim = go.AddComponent<Animator>();
-        if (ctrl) anim.runtimeAnimatorController = ctrl;
-        int idx = 0;
-        foreach (var r in go.GetComponentsInChildren<Renderer>())
-        {
-            var m = new Material(Shader.Find("Standard"));
-            m.color = idx++ == 0 ? new Color(0.9f, 0.85f, 0.3f) : new Color(0.5f, 0.47f, 0.18f);
-            r.sharedMaterial = m;
-        }
+        go.transform.position = G1Placement.FindStandingSpot(pos, "Survivor");
+        G1Rig.Setup(go, $"{Models}/Protagonist.fbx", "Assets/G1/Anim/Protagonist.controller");
+        G1CharacterSkin.Apply(go, "Protagonist",
+                              new Color(0.9f, 0.85f, 0.3f), new Color(0.5f, 0.47f, 0.18f));
         go.AddComponent<G1Rescuable>().objectiveId = "rescue";
-    }
-
-    static void SpawnQuestGiver(Vector3 pos, string name, string dialogue,
-                                string questId, string questDesc, Vector3 questTarget)
-    {
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{Models}/Protagonist.fbx");
-        var ctrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
-            "Assets/G1/Anim/Protagonist.controller");
-        if (prefab == null) return;
-        var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-        go.name = "QuestGiver";
-        go.transform.position = pos;
-        var anim = go.GetComponent<Animator>();
-        if (!anim) anim = go.AddComponent<Animator>();
-        if (ctrl) anim.runtimeAnimatorController = ctrl;
-        int idx = 0;
-        foreach (var r in go.GetComponentsInChildren<Renderer>())
-        {
-            var m = new Material(Shader.Find("Standard"));
-            m.color = idx++ == 0 ? new Color(0.95f, 0.8f, 0.2f) : new Color(0.55f, 0.45f, 0.12f);
-            r.sharedMaterial = m;
-        }
-        var qg = go.AddComponent<G1QuestGiver>();
-        qg.npcName = name;
-        qg.dialogue = dialogue;
-        qg.rescueObjectiveId = "rescue";
-        qg.questId = questId;
-        qg.questDescription = questDesc;
-        qg.questMandatory = true;
-        qg.questTarget = questTarget;
     }
 
     static void BuildExtractionGate(Vector3 pos)
@@ -416,16 +424,15 @@ public static class G1HugeMapBuilder
     static void Cameo(Vector3 pos, float yaw)
     {
         var fbx = AssetDatabase.LoadAssetAtPath<GameObject>($"{Models}/Villain.fbx");
-        var ctrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
-            "Assets/G1/Anim/Villain.controller");
         if (fbx == null) return;
         var go = (GameObject)PrefabUtility.InstantiatePrefab(fbx);
         go.name = "TheAuditor";
         go.transform.position = pos;
         go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-        var anim = go.GetComponent<Animator>();
-        if (!anim) anim = go.AddComponent<Animator>();
-        if (ctrl) anim.runtimeAnimatorController = ctrl;
+        G1Rig.Setup(go, $"{Models}/Villain.fbx", "Assets/G1/Anim/Villain.controller");
+        // he keeps his own colours; the tint arguments are the material's own
+        // so nothing is re-coloured, and his dirt map is near-white by design
+        G1CharacterSkin.Apply(go, "Villain", Color.white, Color.white);
         go.AddComponent<G1GManCameo>();
     }
 

@@ -204,6 +204,73 @@ def radio_bark(name, tone_a, tone_b):
 radio_bark("radio_bark_a", 620, 480)
 radio_bark("radio_bark_b", 540, 700)
 
+# --------------------------------------------------------------- NPC voices
+# A vowel is a buzzing glottis shaped by two or three resonances. Synthesize
+# exactly that: a sawtooth at the pitch of the voice, run through resonators
+# tuned to real formant frequencies. The result is recognisably speech-shaped
+# without being any language — which is the point. This game has no recorded
+# dialogue and shouldn't: everything else in it is generated from code, and a
+# bank of blips the runtime re-pitches per character gives every survivor a
+# voice for 40KB instead of a studio session.
+def resonator(samples, freq, bw):
+    """Two-pole bandpass — one formant."""
+    r = math.exp(-math.pi * bw / SR)
+    theta = 2 * math.pi * freq / SR
+    a1 = -2 * r * math.cos(theta)
+    a2 = r * r
+    gain = (1 - r) * math.sqrt(max(1e-9, 1 - 2 * r * math.cos(2 * theta) + r * r))
+    out, y1, y2 = [], 0.0, 0.0
+    for x in samples:
+        y = gain * x - a1 * y1 - a2 * y2
+        out.append(y)
+        y2, y1 = y1, y
+    return out
+
+
+def glottis(n, f0, drift=0.06):
+    """Sawtooth pulse train with a little pitch drift, so a held syllable
+    doesn't sit dead flat like a test tone."""
+    out, phase = [], 0.0
+    for i in range(n):
+        f = f0 * (1.0 + drift * math.sin(2 * math.pi * 3.1 * i / SR))
+        phase += f / SR
+        phase -= int(phase)
+        out.append(2.0 * phase - 1.0)
+    return out
+
+
+# F1/F2/F3 for a neutral male tract, in Hz
+VOWELS = {
+    "a": (730, 1090, 2440),
+    "e": (530, 1840, 2480),
+    "i": (270, 2290, 3010),
+    "o": (570, 840, 2410),
+    "u": (300, 870, 2240),
+    "m": (280, 1100, 2200),      # nasal-ish, for a closed mouth sound
+}
+
+for vi, (vname, (f1, f2, f3)) in enumerate(VOWELS.items()):
+    n = int(SR * 0.11)
+    src = glottis(n, 118)
+    body = [a + 0.55 * b + 0.18 * c for a, b, c in
+            zip(resonator(src, f1, 80), resonator(src, f2, 100),
+                resonator(src, f3, 140))]
+    # a soft attack and a quick release reads as a syllable rather than a beep
+    env = []
+    atk, rel = int(SR * 0.012), int(SR * 0.045)
+    for i in range(n):
+        if i < atk:
+            env.append(i / atk)
+        elif i > n - rel:
+            env.append(max(0.0, (n - i) / rel))
+        else:
+            env.append(1.0)
+    # tiny breath in front of the voiced part gives it a consonant edge
+    pre = [s * e for s, e in zip(lowpass(noise(int(SR * 0.012)), 0.5),
+                                 env_exp(int(SR * 0.012), 220))]
+    write_wav(f"voice_{vname}",
+              [p * 0.25 for p in pre] + [body[i] * env[i] for i in range(n)])
+
 ambient("ambient_hum", [(60, 0.7, 0.25, 0.15), (120, 0.15, 0.125, 0.3)])
 ambient("ambient_lab", [(60, 0.6, 0.25, 0.1), (120, 0.2, 0.5, 0.4),
                         (240, 0.06, 0.125, 0.5)])
