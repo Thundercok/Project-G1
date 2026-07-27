@@ -70,6 +70,8 @@ public sealed class G1MainMenu : MonoBehaviour
             currentMenuItems.Add("[ LEVEL 1: SUB-SURFACE ]");
             if (data.maxUnlockedLevelIndex >= 2) currentMenuItems.Add("[ LEVEL 2: QUARANTINE ]");
             if (data.maxUnlockedLevelIndex >= 3) currentMenuItems.Add("[ LEVEL 3: THRESHOLD ]");
+            if (data.maxUnlockedLevelIndex >= 4) currentMenuItems.Add("[ LEVEL 4: BATTLEFIELD ]");
+            currentMenuItems.Add("[ WEAPON RANGE ]");
             currentMenuItems.Add("[ BACK ]");
         }
         else
@@ -124,6 +126,8 @@ public sealed class G1MainMenu : MonoBehaviour
             if (chosen.Contains("LEVEL 1")) SceneManager.LoadScene("TestScene");
             else if (chosen.Contains("LEVEL 2")) SceneManager.LoadScene("Level2");
             else if (chosen.Contains("LEVEL 3")) SceneManager.LoadScene("Level3");
+            else if (chosen.Contains("LEVEL 4")) SceneManager.LoadScene("HugeMap");
+            else if (chosen.Contains("WEAPON RANGE")) SceneManager.LoadScene("TestScene");
             return;
         }
 

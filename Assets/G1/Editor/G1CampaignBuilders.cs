@@ -200,10 +200,20 @@ public static class G1CampaignBuilders
         var wood = Mat(new Color(0.6f, 0.5f, 0.3f), 0f, "tex_steel_panel", 1f, 1f, 0.05f, 0.15f);
 
         Slab("Yard", new Vector3(0, -0.25f, 0), new Vector3(60, 0.5f, 40), asphalt);
-        Slab("WallN", new Vector3(0, 2f, 20), new Vector3(60.5f, 4, 0.6f), concrete);
-        Slab("WallS", new Vector3(0, 2f, -20), new Vector3(60.5f, 4, 0.6f), concrete);
-        Slab("WallW", new Vector3(-30, 2f, 0), new Vector3(0.6f, 4, 40.5f), concrete);
-        Slab("WallE", new Vector3(30, 2f, 0), new Vector3(0.6f, 4, 40.5f), concrete);
+        Slab("WallN", new Vector3(0, 6f, 20), new Vector3(60.5f, 12, 0.6f), concrete);
+        Slab("WallS", new Vector3(0, 6f, -20), new Vector3(60.5f, 12, 0.6f), concrete);
+        Slab("WallW", new Vector3(-30, 6f, 0), new Vector3(0.6f, 12, 40.5f), concrete);
+        Slab("WallE", new Vector3(30, 6f, 0), new Vector3(0.6f, 12, 40.5f), concrete);
+
+        // Hangar roof perimeter overhang rim and steel cross beams
+        Slab("RoofRimN", new Vector3(0, 11.75f, 18f), new Vector3(60.5f, 0.5f, 4f), concrete);
+        Slab("RoofRimS", new Vector3(0, 11.75f, -18f), new Vector3(60.5f, 0.5f, 4f), concrete);
+        Slab("RoofRimW", new Vector3(-28f, 11.75f, 0f), new Vector3(4f, 0.5f, 40.5f), concrete);
+        Slab("RoofRimE", new Vector3(28f, 11.75f, 0f), new Vector3(4f, 0.5f, 40.5f), concrete);
+        for (float x = -20f; x <= 20f; x += 10f)
+        {
+            Slab("RoofBeam_" + x, new Vector3(x, 11.8f, 0f), new Vector3(0.6f, 0.4f, 40f), green);
+        }
 
         // Spawn perimeter structural pillars to break up the flat concrete yard walls
         for (float x = -24f; x <= 24f; x += 8f)
@@ -424,6 +434,7 @@ public static class G1CampaignBuilders
         var teal = new Color(0.16f, 0.75f, 0.75f);
 
         Slab("Floor", new Vector3(0, -0.25f, 20), new Vector3(30, 0.5f, 56), rock);
+        Slab("CavernCeiling", new Vector3(0, 8.25f, 20), new Vector3(30.5f, 0.5f, 56.5f), rock);
         Slab("WallW", new Vector3(-15, 4f, 20), new Vector3(0.6f, 8, 56.5f), rock);
         Slab("WallE", new Vector3(15, 4f, 20), new Vector3(0.6f, 8, 56.5f), rock);
         Slab("WallS", new Vector3(0, 4f, -8), new Vector3(30.5f, 8, 0.6f), rock);

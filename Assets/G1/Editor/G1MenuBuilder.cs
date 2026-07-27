@@ -41,6 +41,9 @@ public static class G1MenuBuilder
         // 5. Build Level 3 (Threshold)
         G1CampaignBuilders.BuildLevel3();
 
+        // 5.5. Build Chapter 4 (HugeMap Battlefield)
+        G1HugeMapBuilder.BuildHugeMap();
+
         // 6. Register all scenes in EditorBuildSettings
         RegisterScenes();
 

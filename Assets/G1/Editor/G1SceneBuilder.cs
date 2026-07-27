@@ -606,6 +606,7 @@ public static class G1SceneBuilder
     {
         // 1. LOCKER ROOM (START)
         Slab("LockerRoomFloor", new Vector3(0, -0.25f, -8f), new Vector3(12, 0.5f, 10), floorMat);
+        Slab("LockerRoomCeiling", new Vector3(0, 3.25f, -8f), new Vector3(12, 0.5f, 10), concrete);
         if (!cfg.CampaignHub)
             Slab("LockerRoomWallS", new Vector3(0, 1.5f, -13f), new Vector3(12, 3, 0.5f), concrete);
         Slab("LockerRoomWallW", new Vector3(-6f, 1.5f, -8f), new Vector3(0.5f, 3, 10), concrete);
@@ -644,6 +645,7 @@ public static class G1SceneBuilder
     {
         // 2. LAB CORRIDOR
         Slab("CorridorFloor", new Vector3(0, -0.25f, 6.5f), new Vector3(4, 0.5f, 19), floorMat);
+        Slab("CorridorCeiling", new Vector3(0, 3.25f, 6.5f), new Vector3(4, 0.5f, 19), concrete);
         Slab("CorridorWallW", new Vector3(-2f, 1.5f, 6.5f), new Vector3(0.5f, 3, 19), concrete);
         Slab("CorridorWallE", new Vector3(2f, 1.5f, 6.5f), new Vector3(0.5f, 3, 19), concrete);
         
@@ -679,6 +681,7 @@ public static class G1SceneBuilder
     {
         // 3. CONTROL ROOM
         Slab("ControlRoomFloor", new Vector3(6f, -0.25f, 22f), new Vector3(16, 0.5f, 12), floorMat);
+        Slab("ControlRoomCeiling", new Vector3(6f, 3.25f, 22f), new Vector3(16, 0.5f, 12), concrete);
         Slab("ControlRoomWallS_R", new Vector3(8f, 1.5f, 16f), new Vector3(12, 3, 0.5f), concrete);
         Slab("ControlRoomWallW", new Vector3(-2f, 1.5f, 22f), new Vector3(0.5f, 3, 12), concrete);
         Slab("ControlRoomWallE", new Vector3(14f, 1.5f, 22f), new Vector3(0.5f, 3, 12), concrete);
@@ -748,6 +751,7 @@ public static class G1SceneBuilder
     {
         // 4. INDUSTRIAL HALL (Ambush Faction Arena)
         Slab("IndustrialFloor", new Vector3(12f, -0.25f, 42f), new Vector3(32, 0.5f, 28), floorMat);
+        Slab("IndustrialCeiling", new Vector3(12f, 3.25f, 42f), new Vector3(32, 0.5f, 28), concrete);
         Slab("IndustrialWallS_L", new Vector3(-3f, 1.5f, 28f), new Vector3(2, 3, 0.5f), concrete);
         Slab("IndustrialWallS_R", new Vector3(21f, 1.5f, 28f), new Vector3(14, 3, 0.5f), concrete);
         Slab("IndustrialWallW", new Vector3(-4f, 1.5f, 42f), new Vector3(0.5f, 3, 28), concrete);
