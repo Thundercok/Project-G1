@@ -149,20 +149,20 @@ public class G1EndingCutscene : MonoBehaviour
         if (chosen == Ending.Stabilize)
         {
             GUI.color = new Color(1f, 0.25f, 0.2f, 1f);
-            GUI.Label(new Rect(0, y, Screen.width, 45), "STATUS: EXPERIMENT FAILED — FACILITY OVERRIDDEN", alertStyle);
+            GUI.Label(new Rect(0, y, Screen.width, 45), "STATUS: THE CORVEX EXPERIMENT — FACILITY OVERRIDDEN", alertStyle);
             GUI.color = new Color(1f, 0.85f, 0.1f, 1f);
             GUI.Label(new Rect(0, y + 48, Screen.width, 35), "GOVERNMENT ORDER: TERMINATE ALL WITNESSES", alertStyle);
             GUI.color = new Color(0.2f, 0.9f, 0.4f, 1f);
             GUI.Label(new Rect(0, y + 95, Screen.width, 45), "SUBJECT: CHAD THUNDERCOCK", titleStyle);
             GUI.color = new Color(0.85f, 0.87f, 0.88f, 1f);
-            GUI.Label(new Rect(0, y + 145, Screen.width, 35), "DISPOSITION: SURVIVED — RE-ANCHORED", bodyStyle);
+            GUI.Label(new Rect(0, y + 145, Screen.width, 35), "DISPOSITION: SURVIVED — RE-ANCHORED TO THE CORVEX", bodyStyle);
             GUI.Label(new Rect(0, y + 178, Screen.width, 35), "ITERATION ##8   ·   AUDIT YIELD: NOMINAL", bodyStyle);
             GUI.Label(new Rect(0, y + 214, Screen.width, 35), "Somewhere, a locker-room floor is cold again.", bodyStyle);
         }
         else
         {
             GUI.color = new Color(0.16f, 0.85f, 0.85f, 1f);
-            GUI.Label(new Rect(0, y, Screen.width, 45), "STATUS: THRESHOLD COLLAPSED — CYCLE RESOLVED", alertStyle);
+            GUI.Label(new Rect(0, y, Screen.width, 45), "STATUS: THE CORVEX COLLAPSED — CYCLE RESOLVED", alertStyle);
             GUI.color = new Color(1f, 0.55f, 0.15f, 1f);
             GUI.Label(new Rect(0, y + 48, Screen.width, 35), "CONCORDANCE AUDIT: TERMINATED — ASSET LOST", alertStyle);
             GUI.color = new Color(0.2f, 0.9f, 0.4f, 1f);
