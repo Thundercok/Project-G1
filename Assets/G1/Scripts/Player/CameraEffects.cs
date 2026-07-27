@@ -53,6 +53,8 @@ public class CameraEffects : MonoBehaviour
         defaultCameraLocalPos = transform.localPosition;
     }
 
+    float currentRoll;
+
     void LateUpdate()
     {
         float dt = Time.deltaTime;
@@ -67,9 +69,18 @@ public class CameraEffects : MonoBehaviour
             punchAngle = 0f;
         }
 
-        // --- Apply combined pitch (mouse look + recoil punch)
+        // --- Calculate strafe roll tilt (classic GoldSrc / HL1 movement feel)
+        float targetRoll = 0f;
+        if (movement != null)
+        {
+            float sideVel = Vector3.Dot(movement.Velocity, transform.right);
+            targetRoll = -Mathf.Clamp(sideVel / Mathf.Max(0.1f, movement.maxSpeed), -1f, 1f) * 1.8f;
+        }
+        currentRoll = Mathf.Lerp(currentRoll, targetRoll, 10f * dt);
+
+        // --- Apply combined pitch & roll (mouse look + recoil punch + strafe tilt)
         float pitch = mouseLook ? mouseLook.Pitch : 0f;
-        transform.localRotation = Quaternion.Euler(pitch + punchAngle, 0f, 0f);
+        transform.localRotation = Quaternion.Euler(pitch + punchAngle, 0f, currentRoll);
 
         // --- Speed FOV
         if (cam && movement)
@@ -123,6 +134,7 @@ public class CameraEffects : MonoBehaviour
     public void ShowHitMarker()
     {
         hitMarkerTimer = 0.15f;
+        G1Audio.Play2D("pickup", 0.35f, 2.2f);
     }
 
     /// Called by HealthSystem or damage receiver when the player takes damage.

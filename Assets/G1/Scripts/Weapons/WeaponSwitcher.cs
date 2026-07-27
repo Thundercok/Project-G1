@@ -72,6 +72,8 @@ public class WeaponSwitcher : MonoBehaviour
     {
         EnsureUnlockedArray();
         if (i < 0 || i >= weapons.Length) return;
+        if (index != i)
+            G1Audio.Play2D("door_servo", 0.35f, 2.0f);
         index = i;
         for (int j = 0; j < weapons.Length; j++)
             weapons[j].SetActive(j == i);

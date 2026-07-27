@@ -180,9 +180,26 @@ public class PlayerHUD : MonoBehaviour
         if (camFX && camFX.HitMarkerActive)
             DrawHitMarker();
 
-        // Damage vignette
+        // Damage vignette & Low Health warning
         if (camFX && camFX.DamageFlashAlpha > 0.01f)
             DrawDamageVignette(camFX.DamageFlashAlpha);
+        DrawLowHealthWarning();
+    }
+
+    void DrawLowHealthWarning()
+    {
+        if (playerHealth == null || playerHealth.IsDead || playerHealth.CurrentHealth > 25f)
+            return;
+
+        float alpha = (0.15f + 0.25f * Mathf.PingPong(Time.time * 4f, 1f)) * (1f - playerHealth.CurrentHealth / 25f);
+        Color oldColor = GUI.color;
+        GUI.color = new Color(0.85f, 0.05f, 0.05f, alpha);
+        // Top & bottom hazard border strips
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, 18), _barTex);
+        GUI.DrawTexture(new Rect(0, Screen.height - 18, Screen.width, 18), _barTex);
+        GUI.DrawTexture(new Rect(0, 0, 18, Screen.height), _barTex);
+        GUI.DrawTexture(new Rect(Screen.width - 18, 0, 18, Screen.height), _barTex);
+        GUI.color = oldColor;
     }
 
     void DrawKillCounter()
