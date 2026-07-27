@@ -33,7 +33,12 @@ public static class G1SceneBuilder
         /// test arenas (below) stay compact so testing spawns near the action.
         public bool CampaignHub = true;
 
-        public static ArenaConfig Standard() => new ArenaConfig();
+        public static ArenaConfig Standard() => new ArenaConfig
+        {
+            Seed = 1337, Soldiers = 0, Zombies = 0, Aliens = 0,
+            Crates = 6, CoverBlocks = 8, MaxActiveSoldiers = 2,
+            RelaxDuration = 10f, CampaignHub = true,
+        };
         public static ArenaConfig SoloHecu() => new ArenaConfig
         {
             Seed = 101, Soldiers = 1, Zombies = 0, Aliens = 0,
@@ -802,14 +807,11 @@ public static class G1SceneBuilder
         Slab("Catwalk", new Vector3(4f, 3f, 49f), new Vector3(4f, 0.2f, 3f), metalMat);
         Slab("CatwalkRailing", new Vector3(4f, 3.6f, 47.5f), new Vector3(4f, 0.4f, 0.1f), metalMat);
 
-        // Spawn Magnum pickup in Industrial Hall near generator
-        SpawnWeaponPickup("Magnum", G1WeaponPickup.WeaponType.Magnum, new Vector3(18f, 0.4f, 40f), Quaternion.identity, hazard);
+        // Pickups & tactical rewards inside Industrial Hall
+        G1HealthPack.Create(new Vector3(8f, 0.5f, 38f));   // Entrance area recovery
+        G1ArmorPack.Create(new Vector3(20f, 0.5f, 53f), 50f); // Reward for pushing past the ambush
 
-        // Spawn Industrial Hall point lights
-        SpawnLight("Industrial_Light1", new Vector3(4f, 5f, 35f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
-        SpawnLight("Industrial_Light2", new Vector3(20f, 5f, 35f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
-        SpawnLight("Industrial_Light3", new Vector3(4f, 5f, 49f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
-        SpawnLight("Industrial_Light4", new Vector3(20f, 5f, 49f), new Color(1f, 0.85f, 0.65f), 16f, 1.8f);
+        SpawnHubGraffiti(new Vector3(12f, 2.4f, 55.6f), 0f, 1, "WATCH THE CATWALK — CHECK YOUR FLANKS");
 
         // Cinematic Encounter Trigger at Industrial Hall entrance (Z=29)
         var triggerGo = new GameObject("EncounterTrigger_IndustrialHall");
@@ -1484,7 +1486,8 @@ public static class G1SceneBuilder
         GameObject zombiePrefab = PrefabUtility.SaveAsPrefabAsset(zombie, "Assets/G1/Prefabs/Zombie.prefab");
         GameObject alienPrefab = PrefabUtility.SaveAsPrefabAsset(alien, "Assets/G1/Prefabs/Alien.prefab");
 
-        // === INDUSTRIAL HALL — 3 HECU SOLDIERS AMBUSH ===
+        // === INDUSTRIAL HALL — 2 HECU SOLDIERS AMBUSH ===
+        // (Teaches elevation awareness + flank defense without unfair 3v1 crossfire)
         if (soldierPrefab != null)
         {
             // Suppress — catwalk position (elevated)
@@ -1497,11 +1500,6 @@ public static class G1SceneBuilder
             flankL.name = "HECU_FlankLeft";
             flankL.AddComponent<AgentNavMeshWarp>();
 
-            // FlankRight — enter from right
-            var flankR = (GameObject)Object.Instantiate(soldierPrefab, new Vector3(27f, 0f, 42f), Quaternion.Euler(0f, -90f, 0f));
-            flankR.name = "HECU_FlankRight";
-            flankR.AddComponent<AgentNavMeshWarp>();
-
             // Wire HECU Encounter Trigger
             var triggerGo = GameObject.Find("EncounterTrigger_IndustrialHall");
             if (triggerGo != null)
@@ -1511,11 +1509,9 @@ public static class G1SceneBuilder
                 {
                     var s1 = suppress.GetComponent<G1SoldierAI>();
                     var s2 = flankL.GetComponent<G1SoldierAI>();
-                    var s3 = flankR.GetComponent<G1SoldierAI>();
-                    encTrigger.soldiers = new G1SoldierAI[] { s1, s2, s3 };
+                    encTrigger.soldiers = new G1SoldierAI[] { s1, s2 };
                     if (s1) s1.encounterFrozen = true;
                     if (s2) s2.encounterFrozen = true;
-                    if (s3) s3.encounterFrozen = true;
                 }
             }
         }

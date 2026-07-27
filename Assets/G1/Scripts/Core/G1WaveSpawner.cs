@@ -60,29 +60,22 @@ public class G1WaveSpawner : MonoBehaviour
         StartCoroutine(StartWave1());
     }
 
-    // ------------------------------------------------------------------ Wave 1: 2 aliens far away
+    // ------------------------------------------------------------------ Wave 1: 1 alien far away
     private IEnumerator StartWave1()
     {
         _wave = 1;
         yield return new WaitForSeconds(0.6f); // brief pause — player hears the audio before enemies appear
 
-        for (int i = 0; i < 2; i++)
-        {
-            Vector3 offset = new Vector3((i == 0 ? -1.2f : 1.2f), 0f, 0f);
-            SpawnAlien(spawnFarCenter + offset, _wave1, isElite: false);
-            yield return new WaitForSeconds(spawnStagger);
-        }
+        SpawnAlien(spawnFarCenter, _wave1, isElite: false);
     }
 
-    // ------------------------------------------------------------------ Wave 2: 2 aliens flanking from walls
+    // ------------------------------------------------------------------ Wave 2: 1 alien flanking from wall
     private IEnumerator StartWave2()
     {
         _wave = 2;
         yield return new WaitForSeconds(0.3f);
 
-        SpawnAlien(spawnFlankLeft,  _wave2, isElite: false);
-        yield return new WaitForSeconds(spawnStagger);
-        SpawnAlien(spawnFlankRight, _wave2, isElite: false);
+        SpawnAlien(spawnFlankLeft, _wave2, isElite: false);
     }
 
     // ------------------------------------------------------------------ Wave 3: 1 elite
