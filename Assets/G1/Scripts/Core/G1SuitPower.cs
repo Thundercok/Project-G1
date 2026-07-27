@@ -11,9 +11,9 @@ public sealed class G1SuitPower : MonoBehaviour
 {
     [Header("Reserve")]
     public float maxPower = 100f;
-    public float drainPerSecond = 14f;      // ~7.1s of continuous sprint
-    public float regenPerSecond = 20f;      // ~5s back to full
-    public float regenDelay = 0.6f;         // beat before the cell recovers
+    public float drainPerSecond = 9f;       // ~11s of continuous sprint
+    public float regenPerSecond = 28f;      // ~3.6s back to full
+    public float regenDelay = 0.45f;        // beat before the cell recovers
 
     /// Tapping Shift on an empty cell would grant one frame of sprint per
     /// press, strobing the FOV and the footstep pitch. So a run has to *start*

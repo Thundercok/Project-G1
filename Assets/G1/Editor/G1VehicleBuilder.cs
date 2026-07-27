@@ -29,15 +29,41 @@ public static class G1VehicleBuilder
 
     public static int Build(float gateZ = -352f)
     {
-        var spots = new (Vector3 at, float yaw, string name)[]
+        // Six trucks on 640,000 square metres meant most journeys started with
+        // a walk to find one. These are laid on the two ring roads and at every
+        // district, so from anywhere on the map there is one within about 80m —
+        // close enough that "drive there" is a real option rather than a lucky
+        // find.
+        var spots = new List<(Vector3 at, float yaw, string name)>
         {
-            (new Vector3(-9f, 0f, gateZ - 16f), 0f,    "Truck_Staging"),
-            (new Vector3(-40f, 0f, -62f),       25f,   "Truck_MotorPool"),
-            (new Vector3(-150f, 0f, 34f),       90f,   "Truck_AlliedBase"),
-            (new Vector3(150f, 0f, -30f),      -90f,   "Truck_Hangar"),
-            (new Vector3(20f, 0f, 150f),        180f,  "Truck_Ruins"),
-            (new Vector3(-286f, 0f, 20f),       90f,   "Truck_TankPark"),
+            // the ones you meet first
+            (new Vector3(-9f, 0f, gateZ - 16f),  0f,   "Truck_Staging"),
+            (new Vector3(11f, 0f, gateZ - 20f),  0f,   "Truck_Staging2"),
+            (new Vector3(-6f, 0f, gateZ + 46f),  0f,   "Truck_PastGate"),
+            // districts
+            (new Vector3(-40f, 0f, -62f),        25f,  "Truck_MotorPool"),
+            (new Vector3(-150f, 0f, 34f),        90f,  "Truck_AlliedBase"),
+            (new Vector3(-176f, 0f, -30f),       90f,  "Truck_AlliedBase2"),
+            (new Vector3(150f, 0f, -30f),       -90f,  "Truck_Hangar"),
+            (new Vector3(176f, 0f, 26f),        -90f,  "Truck_Hangar2"),
+            (new Vector3(20f, 0f, 150f),         180f, "Truck_Ruins"),
+            (new Vector3(-30f, 0f, -150f),       0f,   "Truck_Labs"),
+            (new Vector3(140f, 0f, 130f),        180f, "Truck_Comms"),
+            (new Vector3(150f, 0f, -150f),       0f,   "Truck_Warehouse"),
+            (new Vector3(-140f, 0f, -140f),      45f,  "Truck_Quarters"),
+            (new Vector3(-286f, 0f, 20f),        90f,  "Truck_TankPark"),
+            (new Vector3(250f, 0f, -40f),       -90f,  "Truck_Airstrip"),
+            (new Vector3(-40f, 0f, 296f),        90f,  "Truck_AmmoField"),
         };
+        // and one at each quarter of both ring roads, so the long hauls always
+        // have something parked on the way
+        foreach (int r in new[] { 200, 330 })
+            for (int i = 0; i < 4; i++)
+            {
+                float a = i * Mathf.PI * 0.5f + Mathf.PI * 0.25f;
+                spots.Add((new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r),
+                           -a * Mathf.Rad2Deg, $"Truck_Ring{r}_{i}"));
+            }
 
         int made = 0;
         foreach (var s in spots)

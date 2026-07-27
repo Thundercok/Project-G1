@@ -48,8 +48,8 @@ public sealed class G1QuestNpc : MonoBehaviour, IUsable
     public string introducesContact = "";          // auto-discovered on turn-in
 
     [Header("Discovery")]
-    public float autoDiscoverRange = 22f;          // walking past is enough
-    public float talkRange = 3.2f;                 // matches PlayerUse's cone sweep
+    public float autoDiscoverRange = 34f;          // walking past is enough
+    public float talkRange = 4.0f;                 // matches PlayerUse's cone sweep
 
     [Header("On accept — the mission kicks the level off")]
     public GameObject[] activateOnAccept;          // dormant squads, spawners, hazards

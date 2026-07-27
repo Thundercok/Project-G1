@@ -185,7 +185,16 @@ public class PlayerHUD : MonoBehaviour
             ? Color.Lerp(hudColor, new Color(0.2f, 1f, 0.8f), Mathf.PingPong(Time.time * 6f, 1f)) 
             : new Color(hudColor.r, hudColor.g, hudColor.b, 0.8f);
 
+        // Distance turns "go to the comms array" into a decision about whether
+        // to walk it or find a truck. Without it the objective is a noun.
         string display = $"[!] OBJECTIVE: {text.ToUpper()}";
+        var wp = G1ObjectiveManager.Instance.GetActiveWaypoint();
+        if (wp != null)
+        {
+            int m = Mathf.RoundToInt(
+                Vector3.Distance(transform.position, wp.GetWorldPosition()));
+            display += $"   ({m}m)";
+        }
 
         // Shadow
         style.normal.textColor = new Color(0f, 0f, 0f, 0.7f);
@@ -296,6 +305,19 @@ public class PlayerHUD : MonoBehaviour
                     : new Color(0.3f, 0.7f, 1f, 0.75f);
             GUI.DrawTexture(new Rect(bx, by, bw * suitPower.Fraction, bh), _barTex);
             GUI.color = prev;
+        }
+
+        // "[E] DRIVE" when a truck is within reach — the prompt is what makes
+        // the vehicles discoverable at all
+        foreach (var v in G1Vehicle.All)
+        {
+            if (v == null || !v.InRange) continue;
+            var ps = new GUIStyle(style) { fontSize = 22, alignment = TextAnchor.MiddleCenter };
+            ps.normal.textColor = new Color(0f, 0f, 0f, 0.6f);
+            GUI.Label(new Rect(2, Screen.height / 2f + 62, Screen.width, 34), "[E]  DRIVE", ps);
+            ps.normal.textColor = new Color(0.55f, 0.95f, 0.55f, 0.95f);
+            GUI.Label(new Rect(0, Screen.height / 2f + 60, Screen.width, 34), "[E]  DRIVE", ps);
+            break;
         }
 
         // Draw Flashlight indicator if available

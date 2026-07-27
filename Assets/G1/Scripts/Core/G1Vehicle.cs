@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// A drivable truck. Press E to get in, WASD to drive, E to get out.
@@ -26,10 +27,15 @@ public sealed class G1Vehicle : MonoBehaviour, IUsable
     [Header("Seat")]
     public Transform seat;
     public float exitOffset = 2.4f;
+    [Tooltip("Walk this close and E gets you in, without having to aim at it.")]
+    public float mountRange = 5f;
 
     [Header("Feel")]
     public Light[] headlights;
     public float engineVolume = 0.35f;
+
+    /// Every truck in the scene, so the HUD can point at the nearest one.
+    public static readonly List<G1Vehicle> All = new List<G1Vehicle>();
 
     Rigidbody rb;
     AudioSource engine;
@@ -40,6 +46,41 @@ public sealed class G1Vehicle : MonoBehaviour, IUsable
     bool grounded;
 
     public bool Occupied => driver != null;
+
+    void OnEnable() { All.Add(this); }
+    void OnDisable() { All.Remove(this); }
+
+    // ------------------------------------------------------------- getting in
+    // Aiming at a five-metre truck to press E is needless precision, so
+    // proximity is enough — but only when the player is not already aiming at
+    // something else, or standing by a truck would steal every E press meant
+    // for the person next to it.
+    static Transform playerT;
+    static PlayerUse playerUse;
+
+    void FindPlayer()
+    {
+        if (playerT != null) return;
+        var p = GameObject.FindWithTag("Player");
+        if (p == null) return;
+        playerT = p.transform;
+        playerUse = p.GetComponentInChildren<PlayerUse>(true);
+    }
+
+    void LateUpdate()
+    {
+        if (driver != null) return;
+        FindPlayer();
+        if (playerT == null || !InRange) return;
+        if (!Input.GetKeyDown(KeyCode.E)) return;
+
+        var aimed = playerUse != null && playerUse.enabled ? playerUse.FindUsable() : null;
+        if (aimed != null && !ReferenceEquals(aimed, this)) return;   // they meant that
+        Mount(playerT.gameObject);
+    }
+
+    public bool InRange => playerT != null && !Occupied &&
+        (playerT.position - transform.position).sqrMagnitude < mountRange * mountRange;
 
     void Awake()
     {

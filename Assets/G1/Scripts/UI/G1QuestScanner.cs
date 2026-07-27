@@ -215,7 +215,19 @@ public sealed class G1QuestScanner : MonoBehaviour
     {
         Vector3 to = worldPos - transform.position; to.y = 0f;
         float angle = Vector3.SignedAngle(fwd, to, Vector3.up);
-        if (Mathf.Abs(angle) > compassSpan / 2f) return;
+
+        // Outside the compass the old code drew nothing, so an objective behind
+        // you looked identical to no objective at all — you had to spin on the
+        // spot to find out which. Pin an arrow to the edge instead.
+        if (Mathf.Abs(angle) > compassSpan / 2f)
+        {
+            float ex = cx + Mathf.Sign(angle) * (compassWidth / 2f + 16f);
+            var edge = new GUIStyle(tick);
+            edge.normal.textColor = new Color(col.r, col.g, col.b, 0.9f);
+            GUI.Label(new Rect(ex - 20f, top, 40f, 24f),
+                      angle > 0 ? "\u25b6" : "\u25c0", edge);
+            return;
+        }
 
         float x = cx + angle / (compassSpan / 2f) * (compassWidth / 2f);
         tick.normal.textColor = col;
@@ -228,6 +240,22 @@ public sealed class G1QuestScanner : MonoBehaviour
             name.normal.textColor = new Color(col.r, col.g, col.b, 0.85f);
             int d = Mathf.RoundToInt(Vector3.Distance(transform.position, worldPos));
             GUI.Label(new Rect(x - 110f, top + 28f, 220f, 20f), $"{label} · {d}m", name);
+        }
+    }
+
+    /// The nearest few trucks. A vehicle you cannot find is a vehicle that does
+    /// not exist, and on 800m of ground you will not stumble over one.
+    void DrawVehicleMarkers(GUIStyle style)
+    {
+        var col = new Color(0.55f, 0.85f, 0.55f, 0.9f);
+        int shown = 0;
+        foreach (var v in G1Vehicle.All)
+        {
+            if (v == null || v.Occupied) continue;
+            float d = Vector3.Distance(transform.position, v.transform.position);
+            if (d > 160f || shown >= 3) continue;
+            shown++;
+            DrawMarker(v.transform.position + Vector3.up * 2.6f, "\u25b2", "TRUCK", col, style);
         }
     }
 
@@ -249,6 +277,7 @@ public sealed class G1QuestScanner : MonoBehaviour
             DrawMarker(npc.transform.position + Vector3.up * 2.5f, npc.MarkerGlyph(),
                        npc.npcName, npc.MarkerColor(), style);
         }
+        DrawVehicleMarkers(style);
     }
 
     /// One screen-clamped world marker: glyph, and a name/distance caption once

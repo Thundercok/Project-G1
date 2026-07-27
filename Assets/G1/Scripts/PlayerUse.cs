@@ -10,9 +10,9 @@ using UnityEngine;
 public class PlayerUse : MonoBehaviour
 {
     public Camera viewCamera;
-    public float reach = 3f;
+    public float reach = 3.6f;
     public float castRadius = 0.4f;      // fat-ray forgiveness
-    public float coneAngle = 55f;        // half-angle of the fallback sweep
+    public float coneAngle = 62f;        // half-angle of the fallback sweep
 
     // OverlapSphereNonAlloc stops once the buffer is full and gives no warning
     // that it truncated. At 32 it filled with map chunks, barrier panels and
