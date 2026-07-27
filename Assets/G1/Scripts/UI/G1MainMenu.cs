@@ -242,7 +242,7 @@ public sealed class G1MainMenu : MonoBehaviour
         title.normal.textColor = Teal;
 
         // typewriter reveal, 40 ms per character
-        const string full = "PROJECT G1";
+        const string full = "THE CORVEX";
         int chars = Mathf.Min(full.Length, (int)((Time.time - startTime) / 0.04f));
         GUI.Label(new Rect(cx - 300, Screen.height * 0.18f, 600, 60),
                   full.Substring(0, chars), title);
@@ -253,7 +253,7 @@ public sealed class G1MainMenu : MonoBehaviour
         };
         if (font) subTag.font = font;
         subTag.normal.textColor = new Color(0.16f, 0.75f, 0.75f, 0.8f);
-        GUI.Label(new Rect(cx - 300, Screen.height * 0.18f + 52f, 600, 24), "A RETRO FPS  ·  ITERATION ##8", subTag);
+        GUI.Label(new Rect(cx - 300, Screen.height * 0.18f + 52f, 600, 24), "THE CORVUS EXPERIMENT  ·  DEMO EDITION", subTag);
 
         DrawHLine(cx - 200, Screen.height * 0.18f + 80f, 400, new Color(0.16f, 0.75f, 0.75f, 0.4f));
 
@@ -295,6 +295,6 @@ public sealed class G1MainMenu : MonoBehaviour
         if (font) verStyle.font = font;
         verStyle.normal.textColor = new Color(0.3f, 0.75f, 0.75f, 0.85f);
         GUI.Label(new Rect(Screen.width - 340, Screen.height - 40, 330, 30),
-                  "v1.0.0 — PRESENTATION BUILD", verStyle);
+                  "v1.0.0 — THE CORVEX DEMO", verStyle);
     }
 }

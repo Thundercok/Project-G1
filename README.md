@@ -1,4 +1,4 @@
-# Project G1
+# THE CORVEX (The Corvus Experiment)
 
 A retro FPS in the spirit of 1998 — original story, original world, built in Unity
 with a fully scripted Blender asset pipeline. Hazard suits, humming laboratories,

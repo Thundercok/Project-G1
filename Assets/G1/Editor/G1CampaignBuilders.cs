@@ -277,7 +277,7 @@ public static class G1CampaignBuilders
         bossRotor.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.1f, 0.1f, 0.12f));
         bossRotor.AddComponent<G1WeaponSpinner>();   // spins for the rotor look
         var bossHealth = boss.AddComponent<HealthSystem>();
-        bossHealth.maxHealth = 400f;
+        bossHealth.maxHealth = 280f;
         boss.AddComponent<G1HelicopterBoss>();
         var bossBar = boss.AddComponent<WorldSpaceHealthBar>();
         bossBar.heightOffset = 2.4f;
@@ -324,10 +324,14 @@ public static class G1CampaignBuilders
 
         G1HealthPack.Create(new Vector3(-28f, 0.5f, 10.0f)); // Safe inside starter room
         G1HealthPack.Create(new Vector3(-20f, 0.5f, -8f));
+        G1HealthPack.Create(new Vector3(4f, 0.5f, 12f));   // Courtyard refill
+        G1HealthPack.Create(new Vector3(-4f, 0.5f, -10f));
         G1AmmoPack.Create(new Vector3(-28f, 0.5f, 8.5f));   // Safe inside starter room
         G1AmmoPack.Create(new Vector3(-14f, 0.5f, 10f));
         G1AmmoPack.Create(new Vector3(18f, 0.5f, 12f));
+        G1AmmoPack.Create(new Vector3(0f, 0.5f, -14f));
         G1ArmorPack.Create(new Vector3(-28f, 0.5f, 11.5f), 50f); // Safe inside starter room
+        G1ArmorPack.Create(new Vector3(8f, 0.5f, 2f), 50f);     // Courtyard armor
         G1WallCharger.Create(new Vector3(-29.6f, 1.1f, 10f)); // Safe inside starter room back wall
 
         Checkpoint("Checkpoint_Yard", new Vector3(0f, 0f, 0f));
@@ -564,7 +568,7 @@ public static class G1CampaignBuilders
             var oldAi = boss.GetComponent<G1AlienAI>(); if (oldAi) Object.DestroyImmediate(oldAi);
             var elite = boss.GetComponent<G1EliteAlien>(); if (elite) Object.DestroyImmediate(elite);
             boss.transform.localScale = Vector3.one * 1.9f;
-            var bh = boss.GetComponent<HealthSystem>(); if (bh) bh.maxHealth = 600f;
+            var bh = boss.GetComponent<HealthSystem>(); if (bh) bh.maxHealth = 320f;
             var bar = boss.GetComponent<WorldSpaceHealthBar>() ?? boss.AddComponent<WorldSpaceHealthBar>();
             bar.heightOffset = 3.2f;
             foreach (var r in boss.GetComponentsInChildren<Renderer>())

@@ -14,8 +14,8 @@ public class G1EvasiveBoss : MonoBehaviour
     public float fleeRadius = 22f;       // how far it tries to stay from the player
     public float panicRadius = 10f;      // inside this it sprints and jukes harder
     public float repathInterval = 0.6f;
-    public float baseSpeed = 7.5f;
-    public float panicSpeed = 11f;
+    public float baseSpeed = 6.5f;
+    public float panicSpeed = 8.5f;
 
     [Header("Win")]
     public string winScene = "MenuScene";
@@ -87,7 +87,7 @@ public class G1EvasiveBoss : MonoBehaviour
             ?.ShowTerminalLog("THE PROXY IS DOWN. THE LOOP IS YOURS TO END.");
 
         // Prefer the scripted collapse ending if this scene has one.
-        var ending = FindFirstObjectByType<G1EndingCutscene>();
+        var ending = Object.FindObjectOfType<G1EndingCutscene>();
         if (ending != null)
             G1EndingCutscene.TriggerCollapse(transform.position);
         else
