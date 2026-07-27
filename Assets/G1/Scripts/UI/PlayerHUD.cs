@@ -37,6 +37,8 @@ public class PlayerHUD : MonoBehaviour
 
     float _objFlashTime;
 
+    int _killCount = 0;
+
     void Start()
     {
         playerHealth = GetComponent<HealthSystem>();
@@ -59,11 +61,27 @@ public class PlayerHUD : MonoBehaviour
         if (fontAsset != null) _hudFont = fontAsset;
 
         G1ObjectiveManager.OnObjectiveUpdated += HandleObjectiveUpdated;
+        HealthSystem.OnAnyEnemyKilled += HandleEnemyKilled;
     }
 
     void OnDestroy()
     {
         G1ObjectiveManager.OnObjectiveUpdated -= HandleObjectiveUpdated;
+        HealthSystem.OnAnyEnemyKilled -= HandleEnemyKilled;
+    }
+
+    void HandleEnemyKilled(GameObject enemy)
+    {
+        _killCount++;
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.F5))
+        {
+            UnityEngine.SceneManagement.SceneManager.LoadScene(
+                UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        }
     }
 
     void HandleObjectiveUpdated(G1ObjectiveManager.Objective activeObj, bool isNewCompletion)
@@ -149,6 +167,7 @@ public class PlayerHUD : MonoBehaviour
 
         // Draw HUD elements with drop shadows for legibility
         DrawObjectiveHUD();
+        DrawKillCounter();
         DrawWaypointMarker();
         DrawHealthHUD();
         DrawAmmoHUD();
@@ -163,6 +182,25 @@ public class PlayerHUD : MonoBehaviour
         // Damage vignette
         if (camFX && camFX.DamageFlashAlpha > 0.01f)
             DrawDamageVignette(camFX.DamageFlashAlpha);
+    }
+
+    void DrawKillCounter()
+    {
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 17,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.UpperRight,
+            font = _hudFont
+        };
+
+        // Shadow
+        style.normal.textColor = new Color(0f, 0f, 0f, 0.7f);
+        GUI.Label(new Rect(Screen.width - 240, 22, 220, 30), $"KILLS: {_killCount}", style);
+
+        // Main Amber Text
+        style.normal.textColor = new Color(hudColor.r, hudColor.g, hudColor.b, 0.9f);
+        GUI.Label(new Rect(Screen.width - 242, 20, 220, 30), $"KILLS: {_killCount}", style);
     }
 
     void DrawObjectiveHUD()

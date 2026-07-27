@@ -89,7 +89,7 @@ public class G1EndingCutscene : MonoBehaviour
         yield return new WaitForSeconds(5.5f);
 
         yield return FadeToBlack();
-        yield return new WaitForSeconds(8.0f);
+        yield return WaitForEndOrInput(6.0f);
         SceneManager.LoadScene("MenuScene");
     }
 
@@ -107,8 +107,20 @@ public class G1EndingCutscene : MonoBehaviour
         yield return new WaitForSeconds(5.5f);
 
         yield return FadeToBlack();
-        yield return new WaitForSeconds(8.0f);
+        yield return WaitForEndOrInput(6.0f);
         SceneManager.LoadScene("MenuScene");
+    }
+
+    private IEnumerator WaitForEndOrInput(float seconds)
+    {
+        float t = 0f;
+        while (t < seconds)
+        {
+            t += Time.deltaTime;
+            if (Input.anyKeyDown)
+                yield break;
+            yield return null;
+        }
     }
 
     private IEnumerator FadeToBlack()
@@ -160,6 +172,11 @@ public class G1EndingCutscene : MonoBehaviour
             GUI.Label(new Rect(0, y + 178, Screen.width, 35), "For the first time in ##8 iterations, the floor stays empty.", bodyStyle);
             GUI.Label(new Rect(0, y + 214, Screen.width, 35), "The graffiti is gone. So is the hand that wrote it.", bodyStyle);
         }
+
+        // Return prompt
+        float pulse = 0.5f + 0.5f * Mathf.PingPong(Time.time * 2f, 1f);
+        GUI.color = new Color(0.16f, 0.75f, 0.75f, pulse);
+        GUI.Label(new Rect(0, Screen.height - 60f, Screen.width, 30f), "[ PRESS ANY KEY TO RETURN TO MAIN MENU ]", bodyStyle);
     }
 
     private void InitStyles()

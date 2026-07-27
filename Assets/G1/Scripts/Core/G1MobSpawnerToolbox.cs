@@ -22,7 +22,9 @@ public class G1MobSpawnerToolbox : MonoBehaviour
     static void AutoBootstrap()
     {
         string sceneName = SceneManager.GetActiveScene().name;
-        if (!sceneName.Contains("WeaponTest") && !sceneName.Contains("TestScene"))
+        bool isPlayable = sceneName.Contains("WeaponTest") || sceneName.Contains("TestScene")
+            || sceneName.Contains("Level") || sceneName.Contains("HugeMap");
+        if (!isPlayable)
             return;
 
         // Find the Player and attach if not already present

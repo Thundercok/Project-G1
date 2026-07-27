@@ -157,6 +157,9 @@ public sealed class G1IntroStory : MonoBehaviour
             }
         }
 
+        if (!skipped)
+            yield return new WaitForSeconds(0.4f);
+
         // Hand off to the floor wake-up. It re-asserts its own black eyelid the
         // same frame, so there is no flash of the level between the two.
         if (G1CutsceneManager.Instance != null)

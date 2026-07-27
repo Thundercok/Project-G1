@@ -46,6 +46,9 @@ public class HealthSystem : MonoBehaviour, IDamageable
         OnArmorChanged?.Invoke(Armor, maxArmor);
     }
 
+    /// Static event for kill tracking (enemy killed)
+    public static event Action<GameObject> OnAnyEnemyKilled;
+
     public void TakeDamage(float damage, Vector3 hitPoint, Vector3 hitNormal)
     {
         if (IsDead || (CompareTag("Player") && godMode))
@@ -58,25 +61,19 @@ public class HealthSystem : MonoBehaviour, IDamageable
         {
             float absorbed = damage * armorAbsorb;
             float toHealth = damage * (1f - armorAbsorb);
-            if (absorbed > Armor)
-            {
-                toHealth += absorbed - Armor;
-                absorbed = Armor;
-            }
-            Armor -= absorbed;
+            Armor = Mathf.Max(Armor - absorbed, 0f);
             damage = toHealth;
             OnArmorChanged?.Invoke(Armor, maxArmor);
         }
 
-        CurrentHealth = Mathf.Max(CurrentHealth - damage, 0f);
-        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        CurrentHealth -= damage;
         OnDamaged?.Invoke(hitPoint);
+        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+
         var camFx = GetComponentInChildren<CameraEffects>();
         if (camFx)
-        {
-            camFx.ShowDamageFlash();
-            G1Audio.Play2D("player_hurt", 0.6f);
-        }
+            camFx.TriggerHitVignette();
+
         if (CurrentHealth <= 0f)
         {
             IsDead = true;
@@ -88,6 +85,7 @@ public class HealthSystem : MonoBehaviour, IDamageable
                 // Reward aggression: Siphon Health & Armor directly to player on every kill!
                 if (!CompareTag("Player") && GetComponent<Breakable>() == null)
                 {
+                    OnAnyEnemyKilled?.Invoke(gameObject);
                     var playerObj = GameObject.FindWithTag("Player");
                     if (playerObj != null)
                     {
