@@ -277,17 +277,24 @@ public static class G1CampaignBuilders
         bossRotor.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.1f, 0.1f, 0.12f));
         bossRotor.AddComponent<G1WeaponSpinner>();   // spins for the rotor look
         var bossHealth = boss.AddComponent<HealthSystem>();
-        bossHealth.maxHealth = 280f;
+        bossHealth.maxHealth = 140f;   // Demo: 2 SMG magazines to kill, not 5
         boss.AddComponent<G1HelicopterBoss>();
         var bossBar = boss.AddComponent<WorldSpaceHealthBar>();
         bossBar.heightOffset = 2.4f;
 
-        // scattered cover: crates + barrels
+        // Heavy concrete barricades around the helipad — give the player cover from rockets.
+        // Four L-shaped blast walls at the corners of the pad, each 2m tall.
+        Slab("Barricade_NW", new Vector3(3f,  1f,  8f),  new Vector3(3f, 2f, 0.5f), concrete);
+        Slab("Barricade_NE", new Vector3(21f, 1f,  8f),  new Vector3(3f, 2f, 0.5f), concrete);
+        Slab("Barricade_SW", new Vector3(3f,  1f, -8f),  new Vector3(3f, 2f, 0.5f), concrete);
+        Slab("Barricade_SE", new Vector3(21f, 1f, -8f),  new Vector3(3f, 2f, 0.5f), concrete);
+        // Low crates the player can vault-peek over
         var cratePos = new[]
         {
             new Vector3(-12, 0.4f, 4), new Vector3(-8, 0.4f, -6),
-            new Vector3(0, 0.4f, 10), new Vector3(4, 0.4f, -10),
+            new Vector3(0,  0.4f, 10), new Vector3(4,  0.4f, -10),
             new Vector3(-2, 0.4f, -2), new Vector3(20, 0.4f, 8),
+            new Vector3(8,  0.4f, 6),  new Vector3(16, 0.4f, -6), // extra crates near pad
         };
         foreach (var p in cratePos)
         {
@@ -296,10 +303,11 @@ public static class G1CampaignBuilders
             crate.GetComponent<HealthSystem>().maxHealth = 50f;
         }
 
-        // sweeper patrol (prefabs carry full AI; they hold position and aggro)
-        var s1 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(6f, 0f, 12f), 200f);
-        var s2 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(2f, 0f, -12f), 320f);
-        var s3 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(22f, 0f, -4f), 270f);
+        // Two sweeper soldiers — far enough apart that the player isn't instantly cross-fired.
+        // (Removed the third soldier at z=-4 who flanked the starter room exit.)
+        var s1 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(6f,  0f,  14f), 200f);
+        var s2 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(-4f, 0f, -14f), 320f);
+        var s3 = (GameObject)null; // removed — was too close to the starter room door
 
         // Setup Level 2 Objectives
         var objGo = new GameObject("ObjectiveManager");
@@ -322,17 +330,26 @@ public static class G1CampaignBuilders
             }
         }
 
-        G1HealthPack.Create(new Vector3(-28f, 0.5f, 10.0f)); // Safe inside starter room
-        G1HealthPack.Create(new Vector3(-20f, 0.5f, -8f));
-        G1HealthPack.Create(new Vector3(4f, 0.5f, 12f));   // Courtyard refill
-        G1HealthPack.Create(new Vector3(-4f, 0.5f, -10f));
-        G1AmmoPack.Create(new Vector3(-28f, 0.5f, 8.5f));   // Safe inside starter room
-        G1AmmoPack.Create(new Vector3(-14f, 0.5f, 10f));
-        G1AmmoPack.Create(new Vector3(18f, 0.5f, 12f));
-        G1AmmoPack.Create(new Vector3(0f, 0.5f, -14f));
-        G1ArmorPack.Create(new Vector3(-28f, 0.5f, 11.5f), 50f); // Safe inside starter room
-        G1ArmorPack.Create(new Vector3(8f, 0.5f, 2f), 50f);     // Courtyard armor
-        G1WallCharger.Create(new Vector3(-29.6f, 1.1f, 10f)); // Safe inside starter room back wall
+        // ── Health packs ─────────────────────────────────────────────────────
+        G1HealthPack.Create(new Vector3(-28f, 0.5f, 10.0f)); // Starter room — safe refill
+        G1HealthPack.Create(new Vector3(-20f, 0.5f, -8f));   // Mid-yard
+        G1HealthPack.Create(new Vector3(4f,   0.5f,  12f));  // Courtyard refill
+        G1HealthPack.Create(new Vector3(-4f,  0.5f, -10f));  // South mid
+        G1HealthPack.Create(new Vector3(10f,  0.5f,   4f));  // Behind NW barricade (boss fight)
+        G1HealthPack.Create(new Vector3(18f,  0.5f,  -4f));  // Behind SE barricade (boss fight)
+        // ── Ammo packs ───────────────────────────────────────────────────────
+        G1AmmoPack.Create(new Vector3(-28f, 0.5f,  8.5f));  // Starter room
+        G1AmmoPack.Create(new Vector3(-14f, 0.5f,  10f));   // Mid-yard approach
+        G1AmmoPack.Create(new Vector3(10f,  0.5f,  -4f));   // Near NE barricade
+        G1AmmoPack.Create(new Vector3(20f,  0.5f,  10f));   // Near helipad
+        G1AmmoPack.Create(new Vector3(0f,   0.5f, -14f));   // South corner
+        // ── Armor packs ──────────────────────────────────────────────────────
+        G1ArmorPack.Create(new Vector3(-28f, 0.5f, 11.5f), 50f); // Starter room
+        G1ArmorPack.Create(new Vector3(8f,   0.5f,   2f),  50f); // Courtyard
+        G1ArmorPack.Create(new Vector3(16f,  0.5f,   6f),  35f); // Near boss — reward for pushing up
+        // ── Wall chargers ─────────────────────────────────────────────────────
+        G1WallCharger.Create(new Vector3(-29.6f, 1.1f, 10f));  // Starter room
+        G1WallCharger.Create(new Vector3(28.6f,  1.1f,  0f));  // East wall near boss area
 
         Checkpoint("Checkpoint_Yard", new Vector3(0f, 0f, 0f));
         Cameo(new Vector3(24f, 4.2f, 16f), 210f);   // on the perimeter wall
@@ -467,21 +484,22 @@ public static class G1CampaignBuilders
             li.shadows = LightShadows.Soft;
         }
 
-        // the taken and the strays defend the hall
-        var enemies = new List<GameObject>
+        // Four guardians spread across the full length of the hall.
+        // Fewer enemies + wider spacing means the player fights 1-2 at a time,
+        // not a five-way pile-on in the chokepoint.
+        var enemies = new System.Collections.Generic.List<GameObject>
         {
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-6f, 0f, 12f)),
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3(6f, 0f, 18f)),
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-4f, 0f, 26f)),
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab", new Vector3(8f, 0f, 24f)),
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab", new Vector3(-8f, 0f, 32f)),
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab", new Vector3(4f, 0f, 38f))
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-5f, 0f, 10f)),  // Entrance zone
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3( 5f, 0f, 22f)),  // Mid hall
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab",  new Vector3(-7f, 0f, 30f)),  // Deep hall
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab",  new Vector3( 7f, 0f, 38f)),  // Pre-boss arena
         };
+        // (Removed 2 enemies that were directly stacked in the chokepoint at z=18 and z=24)
 
         // Setup Level 3 Objectives
         var objGo = new GameObject("ObjectiveManager");
         var objMgr = objGo.AddComponent<G1ObjectiveManager>();
-        objMgr.AddObjective("undercroft_guardians", "Neutralize Undercroft Guardians", mandatory: true, requiredCount: 6);
+        objMgr.AddObjective("undercroft_guardians", "Neutralize Undercroft Guardians", mandatory: true, requiredCount: 4);
         objMgr.AddObjective("threshold_portal", "Step through the Threshold — OR break its emitters to end the loop", mandatory: false);
 
         foreach (var enemy in enemies)
@@ -493,10 +511,21 @@ public static class G1CampaignBuilders
             }
         }
 
-        G1HealthPack.Create(new Vector3(-12f, 0.5f, 10f));
-        G1HealthPack.Create(new Vector3(12f, 0.5f, 30f));
-        G1AmmoPack.Create(new Vector3(-12f, 0.5f, 22f));
-        G1AmmoPack.Create(new Vector3(12f, 0.5f, 14f));
+        // ── Health packs ─────────────────────────────────────────────────────
+        G1HealthPack.Create(new Vector3(0f,    0.5f,  2f));   // Right at spawn — no "I died immediately" soft-locks
+        G1HealthPack.Create(new Vector3(-12f,  0.5f, 10f));   // Entrance zone
+        G1HealthPack.Create(new Vector3(12f,   0.5f, 20f));   // Mid hall
+        G1HealthPack.Create(new Vector3(-12f,  0.5f, 30f));   // Deep hall
+        G1HealthPack.Create(new Vector3(12f,   0.5f, 38f));   // Pre-boss arena
+        // ── Ammo packs ───────────────────────────────────────────────────────
+        G1AmmoPack.Create(new Vector3(-12f, 0.5f, 22f));      // Mid hall
+        G1AmmoPack.Create(new Vector3(12f,  0.5f, 14f));      // Entrance zone far side
+        G1AmmoPack.Create(new Vector3(0f,   0.5f, 34f));      // Center deep
+        // ── Armor packs ──────────────────────────────────────────────────────
+        G1ArmorPack.Create(new Vector3(0f, 0.5f, 4f), 50f);   // Spawn area
+        G1ArmorPack.Create(new Vector3(0f, 0.5f, 26f), 35f);  // Mid hall breather
+        // ── Wall charger ─────────────────────────────────────────────────────
+        G1WallCharger.Create(new Vector3(-14.4f, 1.1f, 2f));  // Left wall at start — recharge before the gauntlet
 
         Checkpoint("Checkpoint_Undercroft", new Vector3(0f, 0f, 2f));
 
@@ -568,7 +597,7 @@ public static class G1CampaignBuilders
             var oldAi = boss.GetComponent<G1AlienAI>(); if (oldAi) Object.DestroyImmediate(oldAi);
             var elite = boss.GetComponent<G1EliteAlien>(); if (elite) Object.DestroyImmediate(elite);
             boss.transform.localScale = Vector3.one * 1.9f;
-            var bh = boss.GetComponent<HealthSystem>(); if (bh) bh.maxHealth = 320f;
+            var bh = boss.GetComponent<HealthSystem>(); if (bh) bh.maxHealth = 160f;  // Demo: fun chase, not bullet sponge
             var bar = boss.GetComponent<WorldSpaceHealthBar>() ?? boss.AddComponent<WorldSpaceHealthBar>();
             bar.heightOffset = 3.2f;
             foreach (var r in boss.GetComponentsInChildren<Renderer>())
