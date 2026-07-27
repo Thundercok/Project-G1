@@ -79,6 +79,7 @@ public class PlayerHUD : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.F5))
         {
+            G1Audio.Play2D("pickup", 0.8f, 1.5f);
             UnityEngine.SceneManagement.SceneManager.LoadScene(
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
         }

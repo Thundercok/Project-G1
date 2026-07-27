@@ -138,7 +138,7 @@ public sealed class G1CheckpointRestorer : MonoBehaviour
 
         var health = GetComponent<HealthSystem>();
         if (health)
-            health.Heal(Mathf.Max(25f, d.health));    // never respawn near-dead
+            health.SetState(Mathf.Max(25f, d.health), 0f);    // restore checkpoint health
 
         var switcher = GetComponentInChildren<WeaponSwitcher>(true);
         if (switcher != null && switcher.unlocked != null)

@@ -66,13 +66,16 @@ public class HealthSystem : MonoBehaviour, IDamageable
             OnArmorChanged?.Invoke(Armor, maxArmor);
         }
 
-        CurrentHealth -= damage;
+        CurrentHealth = Mathf.Max(CurrentHealth - damage, 0f);
         OnDamaged?.Invoke(hitPoint);
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
 
         var camFx = GetComponentInChildren<CameraEffects>();
         if (camFx)
-            camFx.TriggerHitVignette();
+        {
+            camFx.ShowDamageFlash();
+            G1Audio.Play2D("player_hurt", 0.6f);
+        }
 
         if (CurrentHealth <= 0f)
         {

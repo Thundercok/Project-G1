@@ -211,8 +211,12 @@ public sealed class G1SaveApplier : MonoBehaviour
                 else if (w.TryGetComponent(out G1Shotgun sh)) { if (d.clips[2] > 0) sh.clip = d.clips[2]; if (d.reserves[2] > 0) sh.reserve = d.reserves[2]; }
                 else if (w.TryGetComponent(out G1Magnum m)) { if (d.clips[3] > 0) m.clip = d.clips[3]; if (d.reserves[3] > 0) m.reserve = d.reserves[3]; }
                 else if (w.TryGetComponent(out G1Grenade g)) { if (d.grenades > 0) g.count = d.grenades; }
-            }
+        if (d.isLevelClearTransition)
+        {
+            d.isLevelClearTransition = false;
+            G1SaveSystem.Save(d);
         }
+
         Debug.Log("Save data applied successfully.");
     }
 }

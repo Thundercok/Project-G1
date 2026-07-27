@@ -484,9 +484,8 @@ public static class G1CampaignBuilders
         {
             if (enemy != null)
             {
-                var hp = enemy.GetComponent<HealthSystem>();
-                if (hp != null)
-                    hp.OnDeath += (pos, nrm) => { if (G1ObjectiveManager.Instance != null) G1ObjectiveManager.Instance.IncrementProgress("undercroft_guardians"); };
+                var objOnDeath = enemy.AddComponent<G1ObjectiveOnDeath>();
+                objOnDeath.objectiveId = "undercroft_guardians";
             }
         }
 
