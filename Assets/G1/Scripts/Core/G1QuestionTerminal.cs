@@ -67,8 +67,8 @@ public class G1QuestionTerminal : MonoBehaviour, IUsable
         }
         user = u;
         panelOpen = true;
-        look = FindFirstObjectByType<MouseLook>();
-        move = FindFirstObjectByType<PlayerMovement>();
+        look = Object.FindObjectOfType<MouseLook>();
+        move = Object.FindObjectOfType<PlayerMovement>();
         if (look) look.enabled = false;
         if (move) move.enabled = false;
         Cursor.lockState = CursorLockMode.None;

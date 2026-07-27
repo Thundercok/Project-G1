@@ -279,6 +279,7 @@ public static class G1CampaignBuilders
         var bossHealth = boss.AddComponent<HealthSystem>();
         bossHealth.maxHealth = 140f;   // Demo: 2 SMG magazines to kill, not 5
         boss.AddComponent<G1HelicopterBoss>();
+        boss.AddComponent<G1ObjectiveOnDeath>().objectiveId = "hecu_patrol";
         var bossBar = boss.AddComponent<WorldSpaceHealthBar>();
         bossBar.heightOffset = 2.4f;
 
@@ -312,10 +313,8 @@ public static class G1CampaignBuilders
         // Setup Level 2 Objectives
         var objGo = new GameObject("ObjectiveManager");
         var objMgr = objGo.AddComponent<G1ObjectiveManager>();
-        // Two confirmed patrol kills are sufficient. One patrol can occasionally
-        // despawn after falling outside the NavMesh, so requiring all three can
-        // make the level impossible to finish.
-        objMgr.AddObjective("hecu_patrol", "Eliminate Surface HECU Sweeper Patrols", mandatory: true, requiredCount: 2);
+        // Defeating the Gunship Boss or any 1 sweeper patrol fulfills the objective!
+        objMgr.AddObjective("hecu_patrol", "Eliminate Surface HECU Sweeper Patrols or Gunship", mandatory: true, requiredCount: 1);
         objMgr.AddObjective("evac_shaft", "Locate Maintenance Access Shaft to Undercroft", mandatory: false);
 
         foreach (var soldier in new[] { s1, s2, s3 })

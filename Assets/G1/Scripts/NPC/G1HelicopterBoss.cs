@@ -128,6 +128,14 @@ public sealed class G1HelicopterBoss : MonoBehaviour
         dead = true;
         G1Audio.Play("explosion", transform.position, 1f);
         G1ExplosionFX.Spawn(transform.position);
+
+        // Unlock elevator shaft exit and advance objective
+        G1LevelExitTrigger.ElevatorUnlocked = true;
+        if (G1ObjectiveManager.Instance != null)
+            G1ObjectiveManager.Instance.CompleteObjective("hecu_patrol");
+        GameObject.FindWithTag("Player")?.GetComponent<PlayerHUD>()
+            ?.ShowTerminalLog("GUNSHIP DOWN! MAINTENANCE SHAFT UNLOCKED.");
+
         Destroy(gameObject, 3f);
     }
 }
