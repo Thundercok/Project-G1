@@ -60,20 +60,44 @@ public static class G1HugeMapBuilder
 
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-        // --- lighting: overcast battlefield
+        // --- lighting: dust and last light
+        //
+        // Flat overcast at midday is the one condition with no shape to it —
+        // every surface gets the same grey and the map reads as a diagram. A
+        // low sun does the opposite: long shadows across 800m of open ground,
+        // one lit face and one dark face on every plate, and a horizon you can
+        // navigate by.
+        //
+        // The warm/cool split is what makes it read as evening rather than as
+        // "the same scene, dimmer": the sun goes amber and the ambient fill
+        // goes blue, so shadow and light differ in hue and not only in value.
         var sun = new GameObject("Sun").AddComponent<Light>();
         sun.type = LightType.Directional;
-        sun.transform.rotation = Quaternion.Euler(52f, -40f, 0f);
-        sun.intensity = 1.15f;
-        sun.color = new Color(1f, 0.96f, 0.9f);
+        sun.transform.rotation = Quaternion.Euler(14f, -52f, 0f);   // low, raking
+        sun.intensity = 0.78f;
+        sun.color = new Color(1f, 0.72f, 0.44f);                    // late amber
         sun.shadows = LightShadows.Soft;
-        RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.34f, 0.36f, 0.4f);
+
+        RenderSettings.ambientMode = AmbientMode.Trilight;
+        RenderSettings.ambientSkyColor = new Color(0.20f, 0.21f, 0.27f);
+        RenderSettings.ambientEquatorColor = new Color(0.15f, 0.14f, 0.14f);
+        RenderSettings.ambientGroundColor = new Color(0.09f, 0.08f, 0.07f);
+
+        // a dusty sky rather than Unity's clear blue default
+        var sky = new Material(Shader.Find("Skybox/Procedural"));
+        sky.SetFloat("_SunSize", 0.05f);
+        sky.SetFloat("_AtmosphereThickness", 2.2f);   // thick air holds the dust
+        sky.SetColor("_SkyTint", new Color(0.40f, 0.33f, 0.27f));
+        sky.SetColor("_GroundColor", new Color(0.13f, 0.11f, 0.09f));
+        sky.SetFloat("_Exposure", 0.62f);
+        RenderSettings.skybox = sky;
+
+        // fog carries the dust: browner, and close enough that distance reads
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 150f;
-        RenderSettings.fogEndDistance = 700f;   // 800m map: 520 fogged out the far wall
-        RenderSettings.fogColor = new Color(0.4f, 0.43f, 0.48f);
+        RenderSettings.fogStartDistance = 60f;
+        RenderSettings.fogEndDistance = 470f;
+        RenderSettings.fogColor = new Color(0.29f, 0.25f, 0.20f);
 
         int enemyLayer = EnsureLayer("Enemy");
 

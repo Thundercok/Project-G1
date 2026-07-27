@@ -72,7 +72,22 @@ def cover(x, y, z=0.0):
     COVER.append({"x": x, "z": y * NS, "y": z})
 
 
+# Everything on this map has been standing in the same dust for two hundred
+# and six iterations. Coating the whole palette by one factor at the point of
+# creation keeps the districts telling each other apart — the hues stay in
+# their relative places — while pulling the saturation down to something that
+# looks like it has weathered rather than like it was just unwrapped.
+DUST = (0.34, 0.30, 0.24)
+DUSTINESS = 0.34
+
+
 def M(name, color, rough=0.85, metal=0.0, emit=None, estr=0.0):
+    # lights, screens and beacons are the things that are *supposed* to cut
+    # through the murk, so they keep their colour
+    if emit is None:
+        color = tuple(c * (1.0 - DUSTINESS) + d * DUSTINESS
+                      for c, d in zip(color, DUST))
+        rough = min(1.0, rough + 0.10)          # dust is never glossy
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     b = m.node_tree.nodes["Principled BSDF"]

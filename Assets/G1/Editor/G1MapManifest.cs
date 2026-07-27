@@ -79,11 +79,11 @@ public static class G1MapManifest
             go.transform.position = new Vector3(r.x, r.y + Mathf.Max(1.4f, r.h - 0.7f), r.z);
             var l = go.AddComponent<Light>();
             l.type = LightType.Point;
-            l.color = new Color(1f, 0.87f, 0.66f);
+            l.color = new Color(1f, 0.83f, 0.58f);   // sodium, not daylight
             // reach the far corner of the room and a little way out of the door,
             // so a doorway reads as lit from outside and is worth walking to
             l.range = Mathf.Max(r.w, r.d) * 0.95f + 3f;
-            l.intensity = 1.9f;
+            l.intensity = 2.6f;   // the world outside got dark
             l.shadows = LightShadows.None;    // dozens of shadowed points would
             n++;                              // cost more than the rooms are worth
         }
