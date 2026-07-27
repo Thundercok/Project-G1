@@ -38,6 +38,9 @@ public sealed class G1Vehicle : MonoBehaviour, IUsable
     public static readonly List<G1Vehicle> All = new List<G1Vehicle>();
 
     Rigidbody rb;
+    BoxCollider box;
+    readonly HashSet<HealthSystem> rammed = new HashSet<HealthSystem>();
+    float rammedClear = 0.7f;
     AudioSource engine;
     GameObject driver;
     PlayerMovement move;
@@ -67,12 +70,18 @@ public sealed class G1Vehicle : MonoBehaviour, IUsable
         playerUse = p.GetComponentInChildren<PlayerUse>(true);
     }
 
+    // Update dismounts on E and LateUpdate mounts on E — in that order, within
+    // the same frame, off the same GetKeyDown. Pressing E while driving used to
+    // drop the player two metres away, still inside mountRange, and put them
+    // straight back in the seat: the truck looked like it had no exit at all.
+    float toggleLockUntil;
+
     void LateUpdate()
     {
         if (driver != null) return;
         FindPlayer();
         if (playerT == null || !InRange) return;
-        if (!Input.GetKeyDown(KeyCode.E)) return;
+        if (!Input.GetKeyDown(KeyCode.E) || Time.time < toggleLockUntil) return;
 
         var aimed = playerUse != null && playerUse.enabled ? playerUse.FindUsable() : null;
         if (aimed != null && !ReferenceEquals(aimed, this)) return;   // they meant that
@@ -85,6 +94,7 @@ public sealed class G1Vehicle : MonoBehaviour, IUsable
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        box = GetComponent<BoxCollider>();
         rb.isKinematic = true;            // driven by hand, not by the solver
         rb.useGravity = false;
 
@@ -107,6 +117,7 @@ public sealed class G1Vehicle : MonoBehaviour, IUsable
 
     void Mount(GameObject user)
     {
+        toggleLockUntil = Time.time + 0.35f;
         driver = user;
         move = user.GetComponent<PlayerMovement>();
         cc = user.GetComponent<CharacterController>();
@@ -127,6 +138,7 @@ public sealed class G1Vehicle : MonoBehaviour, IUsable
 
     void Dismount()
     {
+        toggleLockUntil = Time.time + 0.35f;
         var user = driver;
         driver = null;
 
@@ -154,7 +166,8 @@ public sealed class G1Vehicle : MonoBehaviour, IUsable
     void Update()
     {
         if (driver == null) return;
-        if (Input.GetKeyDown(KeyCode.E)) { Dismount(); return; }
+        if (Input.GetKeyDown(KeyCode.E) && Time.time >= toggleLockUntil)
+        { Dismount(); return; }
 
         float dt = Time.deltaTime;
         float throttle = Input.GetAxisRaw("Vertical");
@@ -204,10 +217,83 @@ public sealed class G1Vehicle : MonoBehaviour, IUsable
         }
         else velocity.y -= gravity * dt;
 
-        transform.position += velocity * dt;
+        Ram(dt);
+        Drive(velocity * dt);
 
         float speed01 = Mathf.Clamp01(flat.magnitude / maxSpeed);
         engine.volume = engineVolume * (0.35f + 0.65f * speed01);
         engine.pitch = 0.7f + 1.1f * speed01;
+    }
+
+    /// Move by `step`, but stop at walls.
+    ///
+    /// A kinematic Rigidbody moved by assigning transform.position does not
+    /// collide with anything — it simply arrives on the other side. So the move
+    /// is swept first, and the component of velocity going into whatever it hits
+    /// is removed so the truck slides along a wall rather than sticking to it.
+    ///
+    /// People are deliberately not in the filter: a soldier should not stop a
+    /// truck dead, they should go under it. Only static geometry blocks.
+    void Drive(Vector3 step)
+    {
+        if (box == null || step.sqrMagnitude < 1e-8f) { transform.position += step; return; }
+
+        const float skin = 0.06f;
+        Vector3 half = Vector3.Scale(box.size, transform.lossyScale) * 0.5f - Vector3.one * skin;
+        Vector3 centre = transform.TransformPoint(box.center);
+        float dist = step.magnitude;
+
+        var hits = Physics.BoxCastAll(centre, half, step / dist, transform.rotation,
+                                      dist + skin, ~0, QueryTriggerInteraction.Ignore);
+        float nearest = float.MaxValue;
+        Vector3 normal = Vector3.zero;
+        foreach (var h in hits)
+        {
+            if (h.collider.transform.IsChildOf(transform)) continue;      // itself
+            if (driver != null && h.collider.transform.IsChildOf(driver.transform)) continue;
+            if (h.collider.GetComponentInParent<HealthSystem>() != null) continue;  // run them over
+            if (h.distance < nearest) { nearest = h.distance; normal = h.normal; }
+        }
+
+        if (nearest < float.MaxValue)
+        {
+            transform.position += step / dist * Mathf.Max(0f, nearest - skin);
+            velocity -= Vector3.Project(velocity, normal);   // slide, don't stick
+            if (velocity.magnitude < 1.5f) velocity = Vector3.zero;
+        }
+        else transform.position += step;
+    }
+
+    /// Anything alive in the truck's footprint takes the hit. Momentum is the
+    /// weapon, so it scales with speed and is lethal at anything like a road
+    /// speed — being run over by three tonnes is not a glancing blow.
+    void Ram(float dt)
+    {
+        rammedClear -= dt;
+        if (rammedClear <= 0f) { rammed.Clear(); rammedClear = 0.7f; }
+
+        Vector3 flatV = Vector3.ProjectOnPlane(velocity, Vector3.up);
+        float speed = flatV.magnitude;
+        if (box == null || speed < 3f) return;
+
+        Vector3 half = Vector3.Scale(box.size, transform.lossyScale) * 0.5f;
+        var hits = Physics.OverlapBox(transform.TransformPoint(box.center), half,
+                                      transform.rotation, ~0,
+                                      QueryTriggerInteraction.Ignore);
+        foreach (var h in hits)
+        {
+            if (h.transform.IsChildOf(transform)) continue;
+            if (driver != null && h.transform.IsChildOf(driver.transform)) continue;
+            var hp = h.GetComponentInParent<HealthSystem>();
+            if (hp == null || hp.IsDead) continue;
+            if (rammed.Contains(hp)) continue;                 // once per pass
+            rammed.Add(hp);
+
+            float dmg = speed >= 9f ? 9999f : 25f + speed * 6f;
+            Vector3 at = h.ClosestPoint(transform.position);
+            hp.TakeDamage(dmg, at, flatV.normalized);
+            G1Audio.Play("hit_thunk", at, 0.9f, 0.6f);
+            velocity *= 0.94f;                                 // it costs a little
+        }
     }
 }
