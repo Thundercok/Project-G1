@@ -100,8 +100,12 @@ public sealed class G1StoryDirector : MonoBehaviour
         nextBeat = Time.time + 1.2f;      // let the card land first
     }
 
+    G1ObjectiveManager om;
+
     void Update()
     {
+        if (om == null) om = G1ObjectiveManager.Instance;
+
         // reveal the current line
         if (charIdx < full.Length && Time.time >= nextChar)
         {
@@ -119,10 +123,32 @@ public sealed class G1StoryDirector : MonoBehaviour
             Say(Name(b.who), b.line);
         }
 
+        // Catch up if play has outrun the narration. A chapter only closes
+        // once every one of its lines has finished speaking, so a player who
+        // clears four assignments in a minute used to leave the spine stuck on
+        // chapter one, delivering cards for events long past. If the world is
+        // further along than the story, skip to where the player actually is
+        // and narrate that.
+        if (om != null && index >= 0 && index < chapters.Length - 1)
+        {
+            int furthest = index;
+            for (int i = index + 1; i < chapters.Length; i++)
+            {
+                var o = string.IsNullOrEmpty(chapters[i].objectiveId) ? null
+                      : om.objectives.Find(x => x.id == chapters[i].objectiveId);
+                if (o != null && o.isCompleted) furthest = i;
+            }
+            if (furthest > index + 1)
+            {
+                closing = false;
+                Open(furthest);
+                return;
+            }
+        }
+
         // has this chapter's objective finished?
         if (index >= 0 && index < chapters.Length && !closing)
         {
-            var om = G1ObjectiveManager.Instance;
             var ch = chapters[index];
             var obj = om != null && !string.IsNullOrEmpty(ch.objectiveId)
                 ? om.objectives.Find(o => o.id == ch.objectiveId) : null;

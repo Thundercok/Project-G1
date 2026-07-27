@@ -11,10 +11,11 @@ using UnityEngine;
 public static class G1PlayTestRunner
 {
     const string Arm = "Temp/g1_playtest_arm";
+    const string Play = "Temp/g1_playthrough_arm";
 
     static G1PlayTestRunner()
     {
-        if (File.Exists(Arm))
+        if (File.Exists(Arm) || File.Exists(Play))
             EditorApplication.delayCall += Go;
     }
 
@@ -26,16 +27,26 @@ public static class G1PlayTestRunner
             EditorApplication.delayCall += Go;
             return;
         }
-        if (!File.Exists(Arm)) return;
+        bool full = File.Exists(Play);
+        string flag = full ? Play : Arm;
+        if (!File.Exists(flag)) return;
 
-        string outDir = File.ReadAllText(Arm).Trim();
-        File.Delete(Arm);
+        string outDir = File.ReadAllText(flag).Trim();
+        File.Delete(flag);
         if (string.IsNullOrEmpty(outDir)) outDir = "Temp";
 
         // Hand off through PlayerPrefs, not a file: entering Play mode wipes
         // Temp/, which silently ate the handoff and left the test inert.
-        PlayerPrefs.SetString(G1SelfTest.OutKey, outDir);
-        PlayerPrefs.SetInt(G1SelfTest.ArmKey, 1);
+        if (full)
+        {
+            PlayerPrefs.SetString(G1Playthrough.OutKey, outDir);
+            PlayerPrefs.SetInt(G1Playthrough.ArmKey, 1);
+        }
+        else
+        {
+            PlayerPrefs.SetString(G1SelfTest.OutKey, outDir);
+            PlayerPrefs.SetInt(G1SelfTest.ArmKey, 1);
+        }
         PlayerPrefs.Save();
 
         Directory.CreateDirectory(outDir);
