@@ -298,4 +298,3 @@ public sealed class G1MainMenu : MonoBehaviour
                   "v1.0.0 — PRESENTATION BUILD", verStyle);
     }
 }
-}
