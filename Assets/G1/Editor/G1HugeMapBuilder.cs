@@ -295,13 +295,7 @@ public static class G1HugeMapBuilder
         go.name = name;
         go.transform.position = pos;
         G1Rig.Setup(go, $"{Models}/Protagonist.fbx", "Assets/G1/Anim/Protagonist.controller");
-        int idx = 0;
-        foreach (var r in go.GetComponentsInChildren<Renderer>())
-        {
-            var m = r.sharedMaterial != null ? new Material(r.sharedMaterial) : new Material(Shader.Find("Standard"));
-            m.color = idx++ == 0 ? tint : tint * 0.6f;
-            r.sharedMaterial = m;
-        }
+        G1CharacterSkin.Apply(go, "Protagonist", tint, tint * 0.55f);
         var col = go.AddComponent<CapsuleCollider>();
         col.height = 1.8f; col.radius = 0.35f; col.center = new Vector3(0, 0.9f, 0);
         var agent = go.AddComponent<UnityEngine.AI.NavMeshAgent>();
@@ -387,13 +381,8 @@ public static class G1HugeMapBuilder
         go.name = "Survivor";
         go.transform.position = G1Placement.FindStandingSpot(pos, "Survivor");
         G1Rig.Setup(go, $"{Models}/Protagonist.fbx", "Assets/G1/Anim/Protagonist.controller");
-        int idx = 0;
-        foreach (var r in go.GetComponentsInChildren<Renderer>())
-        {
-            var m = r.sharedMaterial != null ? new Material(r.sharedMaterial) : new Material(Shader.Find("Standard"));
-            m.color = idx++ == 0 ? new Color(0.9f, 0.85f, 0.3f) : new Color(0.5f, 0.47f, 0.18f);
-            r.sharedMaterial = m;
-        }
+        G1CharacterSkin.Apply(go, "Protagonist",
+                              new Color(0.9f, 0.85f, 0.3f), new Color(0.5f, 0.47f, 0.18f));
         go.AddComponent<G1Rescuable>().objectiveId = "rescue";
     }
 
@@ -437,6 +426,9 @@ public static class G1HugeMapBuilder
         go.transform.position = pos;
         go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
         G1Rig.Setup(go, $"{Models}/Villain.fbx", "Assets/G1/Anim/Villain.controller");
+        // he keeps his own colours; the tint arguments are the material's own
+        // so nothing is re-coloured, and his dirt map is near-white by design
+        G1CharacterSkin.Apply(go, "Villain", Color.white, Color.white);
         go.AddComponent<G1GManCameo>();
     }
 

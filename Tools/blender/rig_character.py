@@ -5,6 +5,7 @@ Run: blender --background <char>.blend --python rig_character.py -- <protagonist
 """
 import bpy
 import math
+import os
 import sys
 
 argv = sys.argv
@@ -133,6 +134,108 @@ bpy.ops.object.join()
 body = bpy.context.active_object
 body.name = "Body"
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+# ------------------------------------------------- bake the dirt to a texture
+# The wear in build_character.py is a Blender node network, and an FBX carries
+# a base colour and nothing else — so in-game the character was still flat.
+#
+# What gets baked is the dirt *mask*, not the finished albedo. Baking the
+# albedo would fuse the hazard orange into the texture, and the Unity builders
+# tint each contact by faction (blue security, orange science, drowned cyan for
+# an Echo); multiplying a blue tint over baked orange gives mud. A white-to-
+# grime mask multiplies cleanly against any tint, which is exactly what the
+# Standard shader's _MainTex * _Color already does — no custom shader needed.
+def bake_dirt(target_png, size=1024):
+    img = bpy.data.images.new("G1_Dirt", size, size)
+    # Fill white explicitly. generated_color alone leaves the buffer black, and
+    # black in a mask that gets multiplied means "filthy" — so every pixel the
+    # UV islands do not cover, and every texel a seam samples just outside an
+    # island, would render as a black smear on the model.
+    img.pixels.foreach_set([1.0] * (size * size * 4))
+
+    bpy.ops.object.select_all(action="DESELECT")
+    body.select_set(True)
+    bpy.context.view_layer.objects.active = body
+
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.006)
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+    # Swap every material's Base Color for its dirt mask, remembering what was
+    # there so the .blend and the turnaround renders are left untouched.
+    restore = []
+    for slot in body.material_slots:
+        mat = slot.material
+        if mat is None or not mat.use_nodes:
+            continue
+        nt = mat.node_tree
+        bsdf = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
+        if bsdf is None:
+            continue
+        base = bsdf.inputs["Base Color"]
+        old_link = base.links[0].from_socket if base.links else None
+        old_value = tuple(base.default_value)
+        # A DIFFUSE bake has no diffuse component to read off a metal, so the
+        # steel and aluminium trim came back pure black — which in a multiply
+        # mask means those parts vanish in game. Flatten metalness for the
+        # bake only.
+        old_metal = bsdf.inputs["Metallic"].default_value
+        bsdf.inputs["Metallic"].default_value = 0.0
+
+        dirt = nt.nodes.get("G1_DIRT")
+        if dirt is not None:
+            ramp = nt.nodes.new("ShaderNodeValToRGB")
+            ramp.name = "G1_BAKE_RAMP"
+            ramp.color_ramp.elements[0].color = (1, 1, 1, 1)          # clean
+            ramp.color_ramp.elements[1].color = (0.20, 0.175, 0.15, 1)  # filthy
+            nt.links.new(dirt.outputs[0], ramp.inputs["Fac"])
+            nt.links.new(ramp.outputs["Color"], base)
+        else:
+            # no dirt on this material (the Auditor, lamps, glass): pure white so
+            # the tint passes through untouched
+            for lk in list(base.links):
+                nt.links.remove(lk)
+            base.default_value = (1, 1, 1, 1)
+
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.name = "G1_BAKE_TARGET"
+        tex.image = img
+        nt.nodes.active = tex
+        tex.select = True
+        restore.append((nt, bsdf, old_link, old_value, tex, old_metal))
+
+    sc.render.engine = "CYCLES"
+    sc.cycles.samples = 4
+    sc.cycles.bake_type = "DIFFUSE"
+    sc.render.bake.use_pass_direct = False       # colour only, no lighting —
+    sc.render.bake.use_pass_indirect = False     # shading is Unity's job
+    sc.render.bake.use_pass_color = True
+    sc.render.bake.margin = 24
+    bpy.ops.object.bake(type="DIFFUSE")
+
+    os.makedirs(os.path.dirname(target_png), exist_ok=True)
+    img.filepath_raw = target_png
+    img.file_format = "PNG"
+    img.save()
+
+    for nt, bsdf, old_link, old_value, tex, old_metal in restore:
+        base = bsdf.inputs["Base Color"]
+        for lk in list(base.links):
+            nt.links.remove(lk)
+        if old_link is not None:
+            nt.links.new(old_link, base)
+        else:
+            base.default_value = old_value
+        bsdf.inputs["Metallic"].default_value = old_metal
+        nt.nodes.remove(tex)
+        r = nt.nodes.get("G1_BAKE_RAMP")
+        if r is not None:
+            nt.nodes.remove(r)
+    print(f"BAKED dirt -> {target_png}")
+
+
+bake_dirt(f"{UNITY}/../Textures/{CHAR.capitalize()}Dirt.png")
 
 # ------------------------------------------------------------- armature
 bpy.ops.object.armature_add(enter_editmode=True, location=(0, 0, 0))

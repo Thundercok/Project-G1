@@ -196,15 +196,7 @@ public static class G1QuestNpcBuilder
         G1Rig.Setup(go, $"{Models}/Protagonist.fbx", "Assets/G1/Anim/Protagonist.controller");
 
         var profile = G1NpcRoster.GetProfile(role);
-        int idx = 0;
-        foreach (var r in go.GetComponentsInChildren<Renderer>())
-        {
-            var m = r.sharedMaterial != null
-                ? new Material(r.sharedMaterial)
-                : new Material(Shader.Find("Standard"));
-            m.color = idx++ == 0 ? profile.suit : profile.trim;
-            r.sharedMaterial = m;
-        }
+        G1CharacterSkin.Apply(go, "Protagonist", profile.suit, profile.trim);
 
         var col = go.AddComponent<CapsuleCollider>();
         col.height = 1.8f; col.radius = 0.4f; col.center = new Vector3(0f, 0.9f, 0f);

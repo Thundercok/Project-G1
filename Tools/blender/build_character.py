@@ -117,6 +117,7 @@ def M(name, color, rough=0.7, metal=0.0, emit=None, estr=0.0,
     nt.links.new(nz.outputs[0], dirt.inputs[1])
 
     gain = nt.nodes.new("ShaderNodeMath")         # per-material susceptibility
+    gain.name = gain.label = "G1_DIRT"            # rig_character.py bakes this
     gain.operation = "MULTIPLY"
     gain.use_clamp = True
     gain.inputs[1].default_value = grime
