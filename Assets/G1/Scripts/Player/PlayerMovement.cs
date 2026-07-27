@@ -41,6 +41,8 @@ public class PlayerMovement : MonoBehaviour
     public KeyCode sprintKey = KeyCode.LeftShift;
     /// Written by the active weapon while aiming down sights. 1 = free.
     [HideInInspector] public float aimSlow = 1f;
+    /// Written by status effects like HEV suit morphine auto-injector. 1 = normal.
+    [HideInInspector] public float speedModifier = 1f;
 
     [Header("God Mode / Fly")]
     public bool isFlying = false;
@@ -182,6 +184,7 @@ public class PlayerMovement : MonoBehaviour
         else if (isSprinting)
             currentMaxSpeed *= sprintMult;
         currentMaxSpeed *= Mathf.Clamp(aimSlow, 0.2f, 1f);
+        currentMaxSpeed *= Mathf.Max(0.1f, speedModifier);
 
         if (grounded)
             coyoteTimer = CoyoteWindow;
