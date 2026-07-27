@@ -279,6 +279,30 @@ public static class G1VerifyBuild
             if (Resources.Load<AudioClip>("Audio/voice_" + v) == null) bank = false;
         log.AppendLine($"  fallback syllable bank present: {bank} {(bank ? "PASS" : "FAIL")}");
 
+        // Every assignment ends at a trigger volume, and a volume the player
+        // cannot reach is an objective that can never be ticked. This caught
+        // three quests pointing at the mirrored side of the map — one of them
+        // inside the solid footing of the comms dish.
+        int reachableZones = 0, deadZones = 0;
+        foreach (var z in Object.FindObjectsOfType<G1QuestZone>())
+        {
+            var at = z.transform.position - Vector3.up * 2f;
+            bool ok = G1Placement.IsStandable(at, out _) ||
+                      UnityEngine.AI.NavMesh.SamplePosition(
+                          at, out _, 10f, UnityEngine.AI.NavMesh.AllAreas);
+            if (ok) reachableZones++;
+            else { deadZones++; log.AppendLine($"  UNREACHABLE quest zone: {z.objectiveId} at {at}"); }
+        }
+        log.AppendLine($"quest zones: {reachableZones} reachable, {deadZones} dead " +
+                       $"{(deadZones == 0 ? "PASS" : "FAIL")}");
+
+        var trucks = Object.FindObjectsOfType<G1Vehicle>();
+        int drivable = 0;
+        foreach (var t in trucks)
+            if (t.seat != null && t.GetComponent<Collider>() != null) drivable++;
+        log.AppendLine($"vehicles: {trucks.Length} parked, {drivable} drivable " +
+                       $"{(trucks.Length > 0 && drivable == trucks.Length ? "PASS" : "FAIL")}");
+
         var gateNow = GameObject.Find("SouthGate");
         float gzp = gateNow != null ? gateNow.transform.position.z : -352f;
         foreach (var probe in new (string, Vector3)[]

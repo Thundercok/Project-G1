@@ -47,6 +47,7 @@ is the tool that ends it.
 - **Weapons & Equipment** — crowbar → pistol → shotgun → SMG → .357 magnum → cookable grenades. Found as spinning pickups. Every model is scripted in Blender with animated slides/bolts/cylinders; per-shell shotgun reload, revolver cylinder FSM with emergency chamber. Includes a toggleable **Flashlight** (`F`).
 - **Aim down sights (hold RMB)** — the weapon comes up to the eye: FOV narrows to ~46°, bob and sway fade out, spread tightens to a third, and look sensitivity and walk speed drop to match the zoom. Driven from `WeaponBase` so all five weapons behave identically and a holstered one hands back everything it was scaling. Suppressed while sprinting — you cannot run and aim.
 - **Secondary fire (middle mouse / `B`)** — pistol 3-round burst, shotgun double-barrel, SMG 40mm grenade launcher (draws from grenade reserve), crowbar charged heavy swing (2.5× + knockback). Moved off RMB when aim-down-sights took it. Grenades bounce with a full explosion (light flash, shockwave ring, debris) and cooking feedback.
+- **Drivable trucks** — an 800m map is a lot of walking and sprint only buys seven seconds of it, so six trucks are parked where you already stand: Kane's staging post, the motor pool, the allied base, the hangar, the ruins and the tank park. `E` to get in, WASD to drive at about three times running speed, `E` to get out; headlights come on while you are driving and the engine note tracks your speed. Deliberately arcade rather than WheelColliders — wheel physics needs friction curves, suspension and a centre of mass that all have to be right together or it flips on the first kerb, and none of that is visible to someone crossing a battlefield. Forces along the body plus a ground raycast stay predictable on terrain with this many ramps and berms. The trade is that a truck is a large loud target that cannot use cover.
 - **HEV armor** — HL-style armor pool absorbs 80% of incoming damage; AP meter on the HUD; battery pickups and wall chargers (`E`) across the campaign.
 - **Pickups & Progression** — Health/armor/ammo packs, story lore cards, checkpoints, and a cross-session **save/Continue** (JSON in persistentDataPath).
 - **Bosses** — Level 2 HECU gunship: strafing machine-gun runs, 3-rocket salvos, destructible rotor health.
@@ -113,7 +114,8 @@ is the tool that ends it.
 | R | Reload |
 | 1–6 / scroll | Switch weapon (unlocked slots only; 6 = Grenade) |
 | F | Toggle Flashlight |
-| E | Use (doors, terminals) |
+| E | Use (doors, terminals, **get in / out of a truck**) |
+| WASD (driving) | Steer and accelerate |
 | G | Toggle God Mode (invincibility **and** unlimited ammunition) |
 | V | Toggle 3D Fly Mode (Flight / Noclip) |
 | TAB | Toggle Mob Spawner Toolbox |

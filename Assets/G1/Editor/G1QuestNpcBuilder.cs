@@ -27,6 +27,15 @@ public static class G1QuestNpcBuilder
 
     /// Spawns the contact network laid out for the Corvus Sprawl (HugeMap) and
     /// makes sure the player is carrying a scanner to find them with.
+    ///
+    /// Coordinates here are UNITY space. That matters: the map's FBX export
+    /// flips Blender +Y to Unity -Z, so the district a quest names and the
+    /// district its coordinates land in are mirrored unless you convert. Three
+    /// assignments used to send the player to the far side of the map — one of
+    /// them into the solid footing of the comms dish — and the objective read
+    /// as impossible because the place it described was 300m away. Check any
+    /// new target against HugeMap.manifest.json, which is written in Unity
+    /// space for exactly this reason.
     public static void PopulateSprawl()
     {
         G1Rig.EnsureAvatars($"{Models}/Protagonist.fbx");
@@ -56,7 +65,7 @@ public static class G1QuestNpcBuilder
         Contact(new Vector3(46f, 0.1f, -34f), 190f, "MEDIC SORENSEN", G1NpcRole.Medic,
                 "AID POST — PLAZA EAST",
                 "medical-cache", "Recover the medical cache from the breach ruins",
-                new Vector3(4f, 0f, -168f), "MEDICAL CACHE",
+                new Vector3(4f, 0f, 168f), "MEDICAL CACHE",
                 offer:
                 "I'm out of everything. Our resupply is sitting in the southern " +
                 "ruins with about thirty Taken walking circles around it. Get to " +
@@ -104,10 +113,10 @@ public static class G1QuestNpcBuilder
                 health: 30f, armor: 40f, ammo: true);
 
         // 5 ── engineer: the original comms quest, now part of the chain.
-        Contact(new Vector3(10f, 0.1f, 150f), 220f, "ENGINEER OKAFOR", G1NpcRole.Engineer,
+        Contact(new Vector3(10f, 0.1f, -150f), 40f, "ENGINEER OKAFOR", G1NpcRole.Engineer,
                 "LAB COMPLEX — NORTH",
                 "restore-comms", "Restore the signal at the comms array",
-                new Vector3(155f, 0f, -150f), "COMMS ARRAY",
+                new Vector3(150f, 0f, 150f), "COMMS ARRAY",
                 offer:
                 "The Sweepers cut our comms, but the southeast dish is still " +
                 "standing. Reach it and bring the array back up, or nobody topside " +
@@ -121,10 +130,10 @@ public static class G1QuestNpcBuilder
                 health: 25f, armor: 50f, ammo: true);
 
         // 6 ── research lead: the data core, deep in the hostile northeast.
-        Contact(new Vector3(-140f, 0.1f, 148f), 240f, "DR. HALLORAN", G1NpcRole.Researcher,
+        Contact(new Vector3(-140f, 0.1f, -148f), 60f, "DR. HALLORAN", G1NpcRole.Researcher,
                 "LIVING QUARTERS — NORTHWEST",
                 "recover-core", "Recover the data core from the northeast warehouse",
-                new Vector3(148f, 0f, 146f), "DATA CORE",
+                new Vector3(160f, 0f, -160f), "DATA CORE",
                 offer:
                 "Everything we recorded about the Threshold is on one core in the " +
                 "northeast warehouse — including the iteration count. I need to " +

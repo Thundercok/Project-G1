@@ -52,9 +52,9 @@ public static class G1DoorKitBuilder
         Bunker("Bunker_SouthRuins", new Vector3(-42f, 0f, -178f), 145f);
 
         // quest destinations become places you have to get into
-        Compound("Compound_CommsArray", new Vector3(155f, 0f, -150f), 0f,
+        Compound("Compound_CommsArray", new Vector3(150f, 0f, 150f), 180f,
                  "ARRAY ACCESS");
-        Compound("Compound_Warehouse", new Vector3(148f, 0f, 146f), 180f,
+        Compound("Compound_Warehouse", new Vector3(160f, 0f, -160f), 0f,
                  "WAREHOUSE SHUTTER");
     }
 
