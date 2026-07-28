@@ -29,7 +29,7 @@ def mirror(bones):
     return out
 
 
-if CHAR == "protagonist":
+if CHAR in ("protagonist", "soldier", "robot"):  # same body, different kit
     BONES = mirror({
         "root": ((0, 0, 0), (0, 0, 0.15), "", False),
         "hips": ((0, 0, 0.95), (0, 0, 1.10), "root", False),

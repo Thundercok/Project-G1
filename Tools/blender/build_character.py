@@ -287,6 +287,71 @@ def oval(name, z0, z1, w0, d0, w1, d1, mt, verts=20, y=0.0):
     return _finish(ob, mt, bevel=0, smooth=True)
 
 
+HBM = ("/Users/minhdang_work/halflife-like-game/external/"
+       "human-base-meshes-bundle-v1.4.1/human_base_meshes_bundle.blend")
+
+
+def human_part(asset, name, loc, height, mt, rot=(0, 0, 0), mirror=False):
+    """Bring in a real human head or hand from Blender Studio's CC0 bundle.
+
+    Everything else on these characters is boxes and spheres, and that is the
+    right call for armour: a plate carrier really is flat panels. It is the
+    wrong call for the two things a player reads as *human*. A face built from
+    a sphere with a box for a mouth is not stylised, it is uncanny — and it was
+    the weakest part of both the protagonist and the soldier.
+
+    So the head and the hands come from the Human Base Meshes bundle (CC0, no
+    attribution required, Blender Studio) and everything else stays generated.
+    The head asset is 632 triangles and the hand 1,658, which is the same order
+    as the parts they replace; this buys anatomy, not polygons.
+
+    `height` is the real-world size to scale the asset to, so the numbers here
+    read as centimetres rather than as scale factors.
+    """
+    d = HBM + "/Object/"
+    before = set(bpy.data.objects)
+    try:
+        bpy.ops.wm.append(filepath=d + asset, directory=d, filename=asset)
+    except Exception as e:
+        print("  ! human part missing:", asset, e)
+        return None
+    new = [o for o in bpy.data.objects if o not in before]
+    if not new:
+        print("  ! human part not appended:", asset)
+        return None
+    ob = new[0]
+    ob.name = name
+
+    # normalise: the bundle's assets sit wherever they were modelled
+    bpy.ops.object.select_all(action="DESELECT")
+    ob.select_set(True)
+    bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    bpy.context.scene.cursor.location = (0.0, 0.0, 0.0)
+    bpy.ops.object.origin_set(type="ORIGIN_GEOMETRY", center="BOUNDS")
+
+    k = height / max(1e-6, ob.dimensions.z)
+    ob.scale = (k * (-1 if mirror else 1), k, k)
+    ob.rotation_euler = rot
+    ob.location = loc
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    if mirror:
+        # a negative scale flips the winding; recalculate so it is not inside out
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.mesh.normals_make_consistent(inside=False)
+        bpy.ops.object.mode_set(mode="OBJECT")
+
+    ob.data.materials.clear()
+    ob.data.materials.append(mt)
+    try:
+        bpy.ops.object.shade_auto_smooth(angle=math.radians(50))
+    except Exception:
+        bpy.ops.object.shade_smooth()
+    parts.append(ob)
+    return ob
+
+
 def clear_scene():
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete()
@@ -620,14 +685,14 @@ def build_villain():
 
     # ---- head: the one face in the game
     cyl("neckseat", (0, 0.012, 1.448), (0, 0.006, 1.610), 0.052, skin)
-    sph("head", (0, 0.004, 1.664), 0.085, skin, scale=(0.92, 1.02, 1.10))
+    # A real head. The Auditor is the character the player stands closest to and
+    # looks at longest — he does all the talking and never fights — so he is the
+    # one who could least afford a face made of boxes.
+    human_part("Head - Generic Topology", "head", (0, 0.004, 1.660), 0.232, skin)
     sph("hair_top", (0, 0.014, 1.722), 0.077, hair, scale=(1.01, 1.06, 0.55))
     box("hair_back", (0, 0.066, 1.670), (0.146, 0.045, 0.146), hair, bevel=0.030)
-    box("brow", (0, -0.068, 1.698), (0.116, 0.028, 0.018), skin, bevel=0.008)
-    box("nose", (0, -0.080, 1.656), (0.023, 0.025, 0.040), skin, bevel=0.006)
-    box("mouth", (0, -0.074, 1.600), (0.036, 0.013, 0.009), hair, bevel=0)
     for sgn in (-1, 1):
-        sph(f"eye{sgn}", (0.033 * sgn, -0.070, 1.674), 0.012, eye)
+        sph(f"eye{sgn}", (0.0335 * sgn, -0.0745, 1.678), 0.0105, eye)
         box(f"ear{sgn}", (0.078 * sgn, 0.008, 1.662), (0.013, 0.034, 0.045),
             skin, bevel=0.006)
 
@@ -664,6 +729,290 @@ def build_villain():
             shoe, bevel=0.020)
         box(f"shoe_toe{sgn}", (0.105 * sgn, -0.140, 0.048), (0.092, 0.080, 0.058),
             shoe, bevel=0.024)
+
+
+def build_soldier():
+    """A HECU rifleman.
+
+    Until now "soldier" was the protagonist's hazard suit tinted blue-grey,
+    which is why the enemy never read as an enemy: they were wearing the
+    player's own kit. This is a different silhouette on the same skeleton —
+    the rig, the Humanoid avatar and every animation are unchanged, only the
+    shape hanging off them differs.
+
+    What separates a soldier from a hazard worker, in order of how far away it
+    reads: a **helmet** instead of a sealed dome, a **plate carrier** with
+    magazine pouches instead of a smooth chest plate, **no backpack** breaking
+    the shoulder line, and knee pads. At 60 metres you get helmet-and-vest, and
+    that is the whole job.
+    """
+    # A palette has to separate by *value*, not by hue. The first pass gave
+    # fatigues, vest, helmet and webbing four shades of the same sage and the
+    # whole soldier read as one moulded plastic toy — at any distance you saw a
+    # figure, not a figure wearing equipment. These are deliberately spread:
+    # near-black armour, mid olive cloth, pale tan webbing.
+    fatigue = M("hecu_fatigue", (0.175, 0.190, 0.120), rough=0.94,
+                wear=0.20, grime=0.55, wear_color=(0.24, 0.25, 0.18))
+    vest = M("hecu_vest", (0.052, 0.058, 0.050), rough=0.82,
+             wear=0.35, grime=0.45, wear_color=(0.16, 0.16, 0.15))
+    kevlar = M("hecu_helmet", (0.088, 0.100, 0.072), rough=0.76,
+               wear=0.45, grime=0.40, wear_color=(0.22, 0.22, 0.18))
+    rubber = M("hecu_rubber", (0.028, 0.028, 0.032), rough=0.95,
+               wear=0.25, grime=0.45, wear_color=(0.11, 0.11, 0.12))
+    webbing = M("hecu_webbing", (0.315, 0.275, 0.155), rough=0.92,
+                wear=0.15, grime=0.75, wear_color=(0.36, 0.32, 0.20))
+    steel = M("hecu_steel", (0.42, 0.43, 0.46), rough=0.36, metal=0.9,
+              wear=0.45, grime=0.40, wear_color=(0.66, 0.67, 0.69))
+    skin = M("hecu_skin", (0.44, 0.29, 0.21), rough=0.80)
+    visor = M("hecu_goggles", (0.035, 0.055, 0.045), rough=0.16)
+    lamp = M("hecu_lamp", (0.9, 0.25, 0.15), rough=0.2,
+             emit=(0.9, 0.15, 0.10), estr=2.0)
+
+    # ---- body: same rings as the engineer, in fatigues rather than a suit
+    oval("crotch", 0.855, 0.955, 0.126, 0.110, 0.160, 0.120, fatigue)
+    oval("pelvis", 0.955, 1.055, 0.160, 0.120, 0.150, 0.112, fatigue)
+    oval("abdomen_a", 1.055, 1.165, 0.150, 0.112, 0.136, 0.104, fatigue)
+    oval("abdomen_b", 1.165, 1.255, 0.136, 0.104, 0.158, 0.114, fatigue)
+    oval("chest_a", 1.255, 1.360, 0.158, 0.114, 0.186, 0.126, fatigue)
+    oval("chest_b", 1.360, 1.470, 0.186, 0.126, 0.170, 0.116, fatigue)
+
+    # ---- plate carrier: the thing that says "soldier" at distance
+    #
+    # Built out of `oval` rings rather than one cube. A cube the width of the
+    # shoulders hangs off the chest like a packing crate with daylight under
+    # it; rings follow the torso they are strapped to, and stopping the last
+    # one at the navel is what makes it read as worn rather than carried.
+    oval("chest_plate_a", 1.210, 1.310, 0.172, 0.132, 0.196, 0.142, vest)
+    oval("chest_plate_b", 1.310, 1.430, 0.196, 0.142, 0.188, 0.132, vest)
+    oval("chest_collar", 1.430, 1.516, 0.188, 0.132, 0.132, 0.104, vest)
+    for i, z in enumerate((1.245, 1.320)):        # magazine pouches, front
+        for sx in (-1, 0, 1):
+            box(f"pocket_mag{i}_{abs(sx)}{'l' if sx < 0 else 'r'}",
+                (sx * 0.078, -0.128 - i * 0.004, z),
+                (0.068, 0.048, 0.058), webbing, bevel=0.010)
+    box("pocket_radio", (0.132, -0.078, 1.395), (0.058, 0.048, 0.098), webbing, bevel=0.010)
+    box("pocket_utility", (-0.152, 0.015, 1.300), (0.048, 0.088, 0.098), webbing, bevel=0.010)
+    strap("strap_chest_rig", (0, -0.126, 1.398), (0.24, 0.016, 0.026), webbing, steel,
+          buckle=False)
+    for sgn in (-1, 1):
+        box(f"shoulder_pad{sgn}", (0.122 * sgn, 0.0, 1.448),
+            (0.095, 0.185, 0.055), vest, bevel=0.024)
+
+    box("belt", (0, 0, 0.965), (0.335, 0.245, 0.062), webbing, bevel=0.014)
+    box("belt_buckle", (0, -0.122, 0.965), (0.048, 0.020, 0.042), steel, bevel=0.005)
+    box("pouch_hip", (0.168, -0.015, 0.945), (0.052, 0.095, 0.105), webbing, bevel=0.014)
+    box("pouch_canteen", (-0.170, 0.030, 0.940), (0.050, 0.085, 0.115), webbing, bevel=0.018)
+
+    # ---- head: helmet and goggles, a face underneath
+    cyl("neckseat", (0, 0.008, 1.470), (0, 0.004, 1.572), 0.052, skin)
+    human_part("Head - Generic Topology", "head", (0, 0.004, 1.646), 0.230, skin)
+    # The head is a real one now, so the brow/eye/nose/jaw boxes that used to
+    # fake a face are gone: they were the best a sphere could do and they were
+    # still the worst thing on the model.
+    # the helmet: a dome with a brim, not a sealed sphere
+    sph("hair_helm", (0, 0.008, 1.714), 0.094, kevlar, scale=(1.0, 1.06, 0.84))
+    box("hair_brim", (0, -0.074, 1.700), (0.176, 0.064, 0.020), kevlar,
+        bevel=0.009, rot=(-0.30, 0, 0))
+    box("hair_nape", (0, 0.074, 1.664), (0.152, 0.042, 0.074), kevlar, bevel=0.016)
+    band("garm_chin", (0, 0.006, 1.560), (0, 0.006, 1.544), 0.080, webbing)
+    box("lens_goggles", (0, -0.058, 1.744), (0.158, 0.048, 0.036), visor, bevel=0.012)
+    box("gbridge", (0, -0.080, 1.744), (0.028, 0.014, 0.024), rubber, bevel=0.004)
+    box("ear_pad-1", (-0.086, 0.006, 1.664), (0.024, 0.068, 0.068), rubber, bevel=0.014)
+    box("ear_pad1", (0.086, 0.006, 1.664), (0.024, 0.068, 0.068), rubber, bevel=0.014)
+    box("commpod1", (0.094, -0.032, 1.660), (0.020, 0.048, 0.024), steel, bevel=0.006)
+    box("lamp_ident", (0, 0.090, 1.726), (0.030, 0.020, 0.014), lamp, bevel=0)
+
+    # ---- arms: sleeves, elbow pads, gloves. No pauldrons — this is cloth.
+    for s in (-1, 1):
+        sph(f"pauldron{s}", (0.248 * s, 0, 1.428), 0.070, fatigue,
+            scale=(1.12, 1.16, 0.95))
+        taper(f"uarm{s}", (0.27 * s, 0, 1.41), (0.385 * s, 0, 1.15), 0.058, 0.047, fatigue)
+        band(f"armband{s}", (0.318 * s, 0, 1.30), (0.325 * s, 0, 1.27), 0.056, webbing)
+        sph(f"elbow{s}", (0.385 * s, 0, 1.14), 0.052, rubber)
+        fore, fq = taper(f"farm{s}", (0.39 * s, 0, 1.13), (0.45 * s, 0, 0.90),
+                         0.050, 0.042, fatigue)
+        mid = Vector(((0.39 * s + 0.45 * s) / 2, 0, (1.13 + 0.90) / 2))
+        if s == -1:
+            box("device", mid + Vector((0, -0.048, 0.02)), (0.085, 0.05, 0.09),
+                steel, bevel=0.010, quat=fq)     # wrist compass, not a computer
+        box(f"cuff{s}", (0.442 * s, 0, 0.930), (0.092, 0.092, 0.035), fatigue,
+            bevel=0.008, quat=fq)
+        # The hands stay built. A real hand asset is 1,658 triangles for
+        # something the player sees at twenty metres inside a glove, and
+        # aligning it to a forearm that is already rotated by a quaternion is a
+        # fight for no visible gain. The face was worth it; the fingers are not.
+        box(f"hand{s}", (0.462 * s, -0.005, 0.858), (0.070, 0.095, 0.108),
+            rubber, bevel=0.018, quat=fq)
+        box(f"hand_knuckle{s}", (0.468 * s, -0.042, 0.820), (0.066, 0.046, 0.046),
+            vest, bevel=0.010, quat=fq)
+
+    # ---- legs: fatigues bloused into boots, knee pads
+    for s in (-1, 1):
+        taper(f"thigh{s}", (0.12 * s, 0, 0.99), (0.13 * s, 0, 0.58), 0.086, 0.070, fatigue)
+        box(f"thigh_pouch{s}", (0.158 * s, -0.070, 0.755), (0.070, 0.075, 0.130),
+            webbing, bevel=0.010)
+        band(f"thigh_strap{s}", (0.133 * s, 0, 0.650), (0.134 * s, 0, 0.678),
+             0.082, webbing)
+        sph(f"knee{s}", (0.13 * s, 0, 0.565), 0.062, rubber)
+        box(f"knee_pad{s}", (0.133 * s, -0.050, 0.565), (0.105, 0.062, 0.105),
+            vest, bevel=0.018)
+        taper(f"shin{s}", (0.13 * s, 0, 0.55), (0.135 * s, 0, 0.16), 0.068, 0.058, fatigue)
+        box(f"boot{s}", (0.135 * s, -0.030, 0.108), (0.158, 0.29, 0.135), rubber, bevel=0.02)
+        box(f"boot_sole{s}", (0.135 * s, -0.035, 0.030), (0.168, 0.315, 0.058),
+            rubber, bevel=0.012)
+        box(f"boot_ankle{s}", (0.135 * s, 0.018, 0.188), (0.140, 0.135, 0.078),
+            rubber, bevel=0.014)
+        box(f"toecap{s}", (0.135 * s, -0.150, 0.078), (0.144, 0.096, 0.096),
+            rubber, bevel=0.014)
+
+
+def build_robot():
+    """A base maintenance robot with something riding it.
+
+    Built on the same skeleton as everyone else, which is the whole point: it
+    walks with the existing animation set, the Humanoid avatar maps, and every
+    piece of NPC code already knows what to do with it. What changes is the
+    silhouette — no cloth, no soft edges, exposed actuators at every joint, and
+    a chest that is obviously a housing rather than a ribcage.
+
+    The parasite is the reason it is dangerous and the reason it can be killed.
+    It sits on the shoulder yoke where a head would be, wrapped over the
+    machine's own sensor mast, and it is the only part of this thing that is
+    alive. Unity gives it its own collider and a damage multiplier, so a player
+    who works that out kills these in one shot and a player who does not empties
+    a magazine into armour plate.
+    """
+    plate = M("bot_plate", (0.235, 0.245, 0.255), rough=0.55, metal=0.55,
+              wear=0.40, grime=0.35, wear_color=(0.44, 0.45, 0.47))
+    plate_lit = M("bot_plate_lit", (0.32, 0.335, 0.35), rough=0.45, metal=0.6,
+                  wear=0.45, grime=0.28, wear_color=(0.52, 0.53, 0.55))
+    hydraulic = M("bot_hydraulic", (0.66, 0.67, 0.70), rough=0.18, metal=0.95,
+                  wear=0.20, grime=0.30, wear_color=(0.78, 0.79, 0.80))
+    rubber = M("bot_rubber", (0.045, 0.045, 0.050), rough=0.95,
+               wear=0.20, grime=0.50, wear_color=(0.14, 0.14, 0.15))
+    hazard = M("bot_hazard", (0.72, 0.40, 0.04), rough=0.7,
+               wear=0.50, grime=0.40, wear_color=(0.80, 0.60, 0.20))
+    # the tenant. Emissive, so it is the one thing you can pick out in a dark
+    # server hall — which is exactly the information the player needs
+    # Wet, not glossy-toy. The first pass was a bright green pod that read as
+    # a power-up; low roughness plus a much darker base is what makes a surface
+    # look like it would be warm to touch.
+    flesh = M("bot_parasite", (0.155, 0.255, 0.065), rough=0.16,
+              emit=(0.20, 0.52, 0.06), estr=1.15)
+    flesh_dark = M("bot_parasite_dark", (0.058, 0.088, 0.030), rough=0.30)
+    sinew = M("bot_sinew", (0.072, 0.050, 0.038), rough=0.20)
+    eye = M("bot_eye", (0.9, 0.15, 0.10), rough=0.1, emit=(1.0, 0.12, 0.06), estr=3.0)
+
+    # ---- chassis: a housing, not a torso. Flat panels, visible fasteners.
+    box("crotch", (0, 0, 0.905), (0.26, 0.22, 0.11), plate, bevel=0.014)
+    box("pelvis", (0, 0, 1.010), (0.30, 0.24, 0.11), plate_lit, bevel=0.016)
+    cyl("abdomen_spine", (0, 0, 1.06), (0, 0, 1.26), 0.072, hydraulic)
+    box("abdomen_ring", (0, 0, 1.16), (0.20, 0.18, 0.10), plate, bevel=0.02)
+    box("chest_core", (0, 0, 1.345), (0.36, 0.26, 0.28), plate_lit, bevel=0.026)
+    box("chest_vent", (0, -0.140, 1.345), (0.24, 0.03, 0.18), rubber, bevel=0.006)
+    for i in range(3):
+        box(f"chest_fin{i}", (0, -0.150, 1.28 + i * 0.06), (0.22, 0.02, 0.018),
+            hydraulic, bevel=0)
+    box("chest_lamp", (0, -0.150, 1.452), (0.10, 0.03, 0.05), eye, bevel=0)
+    box("chest_yoke", (0, 0.02, 1.470), (0.40, 0.22, 0.07), plate, bevel=0.02)
+    for i2 in range(3):
+        z2 = 1.235 + i2 * 0.062
+        taper(f"chest_vein{i2}", (-0.168, -0.112, z2), (0.168, -0.120, z2 - 0.030),
+              0.007, 0.007, sinew, verts=5)
+    box("chest_hazard_l", (-0.130, -0.142, 1.245), (0.08, 0.02, 0.05), hazard, bevel=0)
+    box("chest_hazard_r", (0.130, -0.142, 1.245), (0.08, 0.02, 0.05), hazard, bevel=0)
+    box("belt", (0, 0, 0.985), (0.34, 0.26, 0.05), hydraulic, bevel=0.01)
+
+    # ---- the parasite, over the sensor mast where a head would be
+    cyl("neckseat", (0, 0.01, 1.470), (0, 0.01, 1.560), 0.052, hydraulic)
+    box("head", (0, 0.006, 1.612), (0.19, 0.20, 0.13), plate_lit, bevel=0.028)
+    box("lens_sensor", (0, -0.098, 1.616), (0.15, 0.03, 0.06), eye, bevel=0.008)
+    box("ear_vent-1", (-0.104, 0.010, 1.606), (0.02, 0.10, 0.07), rubber, bevel=0.008)
+    box("ear_vent1", (0.104, 0.010, 1.606), (0.02, 0.10, 0.07), rubber, bevel=0.008)
+    # body of the thing: a sac draped over the crown, front-heavy
+    sph("hair_sac", (0, 0.012, 1.706), 0.108, flesh, scale=(1.00, 1.14, 0.80))
+    sph("hair_sac_lobe", (0, -0.070, 1.680), 0.070, flesh, scale=(1.10, 0.90, 0.85))
+    box("brow_ridge", (0, -0.086, 1.716), (0.13, 0.05, 0.030), flesh_dark, bevel=0.012)
+    # legs gripping the chassis: four, splayed, reaching down past the sensor
+    for i, (dx, dy) in enumerate(((-1, -0.55), (1, -0.55), (-1, 0.65), (1, 0.65))):
+        box(f"garm_leg{i}", (dx * 0.105, dy * 0.10, 1.646),
+            (0.032, 0.032, 0.14), flesh_dark, bevel=0.010,
+            rot=(0.30 * dy, -0.42 * dx, 0))
+        box(f"garm_claw{i}", (dx * 0.128, dy * 0.13, 1.572),
+            (0.028, 0.028, 0.06), flesh_dark, bevel=0.008)
+    box("nose_probe", (0, -0.118, 1.660), (0.022, 0.07, 0.022), flesh_dark, bevel=0.006)
+    box("mouth", (0, -0.140, 1.652), (0.036, 0.026, 0.020), eye, bevel=0.004)
+
+    # Roots. The thing does not perch on the chassis, it has gone into it —
+    # under the collar, down the neck seat, through the shoulder pins. A
+    # creature sitting on a robot is a hat; a creature growing through one is
+    # the reason the robot is walking.
+    for i2, (ax, ay) in enumerate(((-0.075, -0.045), (0.075, -0.045),
+                                   (-0.055, 0.070), (0.055, 0.070))):
+        taper(f"garm_root{i2}", (ax, ay, 1.690), (ax * 1.9, ay * 1.6, 1.498),
+              0.013, 0.005, sinew, verts=5)
+    # and the same growth coming out the other side, on the chest, so the two
+    # meet across the neck. Split at the bone boundary on purpose: a single
+    # mesh spanning head and chest would tear the moment the head turned.
+    for i2, (ax, ay) in enumerate(((-0.085, -0.060), (0.085, -0.060),
+                                   (-0.062, 0.078), (0.062, 0.078))):
+        taper(f"chest_root{i2}", (ax * 1.8, ay * 1.5, 1.492),
+              (ax * 3.0, ay * 1.9, 1.268), 0.012, 0.004, sinew, verts=5)
+    sph("chest_growth_a", (0, -0.132, 1.368), 0.044, flesh_dark,
+        scale=(1.5, 0.42, 0.7))
+    sph("chest_growth_b", (0.108, 0.030, 1.418), 0.040, flesh_dark,
+        scale=(0.9, 1.3, 0.8))
+    # a torn faceplate, with the growth showing through the gap
+    box("head_tear", (-0.052, -0.096, 1.596), (0.070, 0.030, 0.052), flesh_dark,
+        bevel=0.006, rot=(0, 0, 0.34))
+    box("head_plate_bent", (0.062, -0.104, 1.640), (0.060, 0.020, 0.086), plate,
+        bevel=0.004, rot=(0.22, 0, -0.26))
+
+    # ---- arms: actuators and clamps, no hands
+    for s in (-1, 1):
+        sph(f"pauldron{s}", (0.235 * s, 0, 1.436), 0.072, plate,
+            scale=(1.05, 1.05, 0.90))
+        cyl(f"pauldron_pin{s}", (0.20 * s, -0.07, 1.436), (0.20 * s, 0.07, 1.436),
+            0.030, hydraulic)
+        taper(f"uarm{s}", (0.27 * s, 0, 1.41), (0.385 * s, 0, 1.15), 0.052, 0.044, plate)
+        cyl(f"armband{s}", (0.30 * s, 0, 1.355), (0.34 * s, 0, 1.265), 0.056, hydraulic)
+        sph(f"elbow{s}", (0.385 * s, 0, 1.14), 0.050, hydraulic)
+        fore, fq = taper(f"farm{s}", (0.39 * s, 0, 1.13), (0.45 * s, 0, 0.90),
+                         0.046, 0.040, plate)
+        mid = Vector(((0.39 * s + 0.45 * s) / 2, 0, (1.13 + 0.90) / 2))
+        cyl(f"bracer_ram{s}", mid + Vector((0.04 * s, -0.05, 0.06)),
+            mid + Vector((0.04 * s, -0.05, -0.08)), 0.020, hydraulic)
+        if s == -1:
+            box("device", mid + Vector((0, -0.055, 0.02)), (0.075, 0.05, 0.10),
+                plate_lit, bevel=0.010, quat=fq)
+        box(f"cuff{s}", (0.442 * s, 0, 0.930), (0.086, 0.086, 0.030), hydraulic,
+            bevel=0.008, quat=fq)
+        # clamp instead of a hand: two opposed jaws
+        for j in (-1, 1):
+            box(f"hand_jaw{'a' if j < 0 else 'b'}{s}", (0.462 * s, j * 0.035, 0.862),
+                (0.062, 0.038, 0.115), plate, bevel=0.014, quat=fq)
+        box(f"hand_pad{s}", (0.462 * s, 0, 0.798), (0.060, 0.075, 0.030), rubber,
+            bevel=0.010, quat=fq)
+
+    # ---- legs: digitigrade-ish, exposed rams, flat pad feet
+    for s in (-1, 1):
+        cyl(f"thigh_hip{s}", (0.09 * s, 0, 0.99), (0.15 * s, 0, 0.99), 0.052, hydraulic)
+        taper(f"thigh{s}", (0.12 * s, 0, 0.99), (0.13 * s, 0, 0.58), 0.078, 0.062, plate)
+        cyl(f"thigh_ram{s}", (0.185 * s, -0.045, 0.94), (0.175 * s, -0.045, 0.64),
+            0.022, hydraulic)
+        sph(f"knee{s}", (0.13 * s, 0, 0.565), 0.058, hydraulic)
+        box(f"knee_guard{s}", (0.133 * s, -0.056, 0.575), (0.098, 0.050, 0.110),
+            plate_lit, bevel=0.018)
+        taper(f"shin{s}", (0.13 * s, 0, 0.55), (0.135 * s, 0, 0.16), 0.062, 0.052, plate)
+        cyl(f"shin_ram{s}", (0.182 * s, -0.040, 0.52), (0.172 * s, -0.040, 0.24),
+            0.020, hydraulic)
+        box(f"boot{s}", (0.135 * s, -0.020, 0.115), (0.150, 0.26, 0.130), plate, bevel=0.018)
+        box(f"boot_sole{s}", (0.135 * s, -0.025, 0.035), (0.162, 0.29, 0.060), rubber,
+            bevel=0.012)
+        box(f"toecap{s}", (0.135 * s, -0.148, 0.085), (0.138, 0.09, 0.09), plate,
+            bevel=0.014)
+        box(f"shoe_heel{s}", (0.135 * s, 0.108, 0.090), (0.120, 0.07, 0.100), plate,
+            bevel=0.014)
 
 
 # ---------------------------------------------------------------- studio
@@ -739,6 +1088,10 @@ def setup_render():
 clear_scene()
 if CHAR == "protagonist":
     build_protagonist()
+elif CHAR == "soldier":
+    build_soldier()
+elif CHAR == "robot":
+    build_robot()
 else:
     build_villain()
 cams = build_studio()

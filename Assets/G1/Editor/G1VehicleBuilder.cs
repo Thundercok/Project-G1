@@ -77,6 +77,59 @@ public static class G1VehicleBuilder
         return made;
     }
 
+    /// Park one truck at an arbitrary spot. Cradle Station's motor pool
+    /// declares its own bays in the map manifest, so it needs the factory
+    /// without the Sprawl's baked-in list of parking spaces.
+    public static void SpawnAt(Vector3 at, float yaw, string name = "Truck")
+    {
+        var spot = G1Placement.FindClearFootprint(at, new Vector2(2.4f, 4.2f), name);
+        Truck(name, spot, yaw);
+    }
+
+    const string TruckFbx = "Assets/G1/Models/Vehicles/Truck.fbx";
+
+    /// Park a tank or an APC. Not drivable — armour on a base is scenery, and
+    /// scenery this size does a job the trucks cannot: it gives the motor pool
+    /// and the tank park something at their centre that says what they are
+    /// from two hundred metres away.
+    public static GameObject Armour(string kind, Vector3 at, float yaw)
+    {
+        var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(
+            $"Assets/G1/Models/Vehicles/{kind}.fbx");
+        if (fbx == null) return null;
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(fbx);
+        go.name = kind;
+        go.transform.position = G1Placement.FindClearFootprint(
+            at, new Vector2(3.4f, 7.2f), kind);
+        go.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+        // one box rather than the hull mesh: an AI that catches on a road wheel
+        // is worse than one that walks around a slightly bigger rectangle
+        foreach (var c in go.GetComponentsInChildren<Collider>())
+            Object.DestroyImmediate(c);
+        // The FBX origin sits on the ground between the tracks/wheels, so the
+        // collider is measured up from zero. Sized to the hull rather than to a
+        // guess: an AI that walks through the back half of a tank is worse than
+        // one that walks round a box slightly larger than it.
+        var col = go.AddComponent<BoxCollider>();
+        col.center = kind == "Tank" ? new Vector3(0f, 1.35f, 0f)
+                                    : new Vector3(0f, 1.45f, 0f);
+        col.size = kind == "Tank" ? new Vector3(3.6f, 2.70f, 7.60f)
+                                  : new Vector3(3.0f, 2.90f, 7.40f);
+        G1VehicleSkin.Apply(go);
+        return go;
+    }
+
+    /// The armour a base would actually have standing on it.
+    public static int ParkArmour((Vector3 at, float yaw, string kind)[] spots)
+    {
+        int n = 0;
+        foreach (var s in spots)
+            if (Armour(s.kind, s.at, s.yaw) != null) n++;
+        Debug.Log($"G1: {n} armoured vehicles parked.");
+        return n;
+    }
+
+
     static void Truck(string name, Vector3 at, float yaw)
     {
         var olive = Mat(new Color(0.22f, 0.24f, 0.16f));
@@ -86,6 +139,27 @@ public static class G1VehicleBuilder
         var root = new GameObject(name);
         root.transform.position = at + Vector3.up * 0.55f;
         root.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+
+        // The modelled 6x6 if it has been generated, the assembled boxes if
+        // not. Everything below — collider, seat, lights, G1Vehicle — is the
+        // same either way, so the truck drives identically and only its
+        // appearance changes. The fallback stays because a missing FBX should
+        // cost you a good-looking truck, not a drivable one.
+        var body = AssetDatabase.LoadAssetAtPath<GameObject>(TruckFbx);
+        if (body != null)
+        {
+            var mesh = (GameObject)PrefabUtility.InstantiatePrefab(body);
+            mesh.name = "Body";
+            mesh.transform.SetParent(root.transform, false);
+            // the Blender origin is on the ground between the wheels; the root
+            // is raised half a metre so the box fallback sits right
+            mesh.transform.localPosition = new Vector3(0f, -0.55f, 0f);
+            foreach (var c in mesh.GetComponentsInChildren<Collider>())
+                Object.DestroyImmediate(c);
+            G1VehicleSkin.Apply(mesh);
+            InstallTruckExtras(root, dark);
+            return;
+        }
 
         Slab("Chassis", root, new Vector3(0f, 0.15f, 0f), new Vector3(2.3f, 0.7f, 5.2f), olive);
         Slab("Cab", root, new Vector3(0f, 0.95f, -1.25f), new Vector3(2.1f, 1.1f, 2.0f), olive);
@@ -106,6 +180,13 @@ public static class G1VehicleBuilder
             w.GetComponent<Renderer>().sharedMaterial = dark;
         }
 
+        InstallTruckExtras(root, dark);
+    }
+
+    /// Collider, seat, headlights and the drive component — the parts that make
+    /// a truck a vehicle rather than a decoration.
+    static void InstallTruckExtras(GameObject root, Material dark)
+    {
         var lights = new List<Light>();
         foreach (float x in new[] { -0.75f, 0.75f })
         {
@@ -129,11 +210,18 @@ public static class G1VehicleBuilder
             lights.Add(l);
         }
 
-        // one box collider for the whole vehicle: the player rides inside it,
-        // so it must not be a mesh the driver can catch on
+        // One box for the whole vehicle: the player rides inside it, so it must
+        // not be a mesh the driver can catch on, and G1Vehicle uses this exact
+        // box for both the wall sweep and the ram — a truck that hits things
+        // with a box smaller than itself drives its nose through walls and its
+        // bumper through soldiers without touching either.
+        //
+        // Sized to the modelled 6x6: 6.9 m long, 2.2 wide, roof of the tilt
+        // 2.66 m off the ground. The root sits 0.55 m up, so the ground is at
+        // local y = -0.55 and the roof at local y = 2.11.
         var col = root.AddComponent<BoxCollider>();
-        col.center = new Vector3(0f, 0.6f, 0f);
-        col.size = new Vector3(2.3f, 1.9f, 5.4f);
+        col.center = new Vector3(0f, 0.78f, 0.30f);
+        col.size = new Vector3(2.24f, 2.66f, 6.90f);
 
         var seat = new GameObject("Seat");
         seat.transform.SetParent(root.transform, false);
