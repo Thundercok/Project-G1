@@ -110,6 +110,9 @@ public sealed class G1QuestGiver : MonoBehaviour, IUsable
 
     void OnGUI()
     {
+        if (G1IntroStory.IsActive || G1EndingCutscene.IsPlaying || (G1CutsceneManager.Instance != null && G1CutsceneManager.Instance.isCutsceneActive))
+            return;
+
         // "PRESS E" prompt while trapped
         if (!freed && player != null &&
             Vector3.Distance(player.position, transform.position) <= promptRange)

@@ -21,6 +21,44 @@ public class PlayerUse : MonoBehaviour
     // to talk to someone. Sized for the worst corner of the sprawl.
     static readonly Collider[] buf = new Collider[192];
 
+    GUIStyle _promptStyle;
+
+    void OnGUI()
+    {
+        // Only query physics during repaint; OnGUI is called several times per frame.
+        if (Event.current.type != EventType.Repaint || viewCamera == null)
+            return;
+        if (G1CutsceneManager.Instance != null && G1CutsceneManager.Instance.isCutsceneActive)
+            return;
+        if (G1MobSpawnerToolbox.IsOpen || FindUsable() == null)
+            return;
+
+        if (_promptStyle == null)
+        {
+            _promptStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 18,
+                fontStyle = FontStyle.Bold
+            };
+            var font = Resources.Load<Font>("Fonts/ShareTechMono-Regular");
+            if (font != null) _promptStyle.font = font;
+            _promptStyle.normal.textColor = Color.white;
+        }
+
+        const float width = 250f;
+        const float height = 42f;
+        var rect = new Rect((Screen.width - width) * 0.5f, Screen.height * 0.66f, width, height);
+        var oldColor = GUI.color;
+        GUI.color = new Color(0.01f, 0.03f, 0.04f, 0.9f);
+        GUI.DrawTexture(rect, Texture2D.whiteTexture);
+        GUI.color = new Color(0.16f, 0.75f, 0.75f, 0.9f);
+        GUI.DrawTexture(new Rect(rect.x, rect.y, 3f, rect.height), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(rect.x, rect.yMax - 2f, rect.width, 2f), Texture2D.whiteTexture);
+        GUI.color = oldColor;
+        GUI.Label(rect, "[ E ]  INTERACT", _promptStyle);
+    }
+
     void Update()
     {
         if (!Input.GetKeyDown(KeyCode.E))

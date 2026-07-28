@@ -54,6 +54,13 @@ public sealed class G1SaveApplier : MonoBehaviour
                 else if (w.TryGetComponent(out G1Grenade g)) { if (d.grenades > 0) g.count = d.grenades; }
             }
         }
+
+        if (d.isLevelClearTransition)
+        {
+            d.isLevelClearTransition = false;
+            G1SaveSystem.Save(d);
+        }
+
         Debug.Log("Save data applied successfully.");
     }
 }

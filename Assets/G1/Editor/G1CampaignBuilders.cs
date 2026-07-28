@@ -11,10 +11,12 @@ using UnityEngine.SceneManagement;
 public static class G1CampaignBuilders
 {
     // ---------------------------------------------------------- shared bits
-    static Material Mat(Color c, float emission = 0f, string texName = null, float tileX = 1f, float tileY = 1f)
+    static Material Mat(Color c, float emission = 0f, string texName = null, float tileX = 1f, float tileY = 1f, float metallic = 0f, float smoothness = 0.15f)
     {
         var m = new Material(Shader.Find("Standard"));
         m.color = c;
+        m.SetFloat("_Metallic", metallic);
+        m.SetFloat("_Glossiness", smoothness);
         if (emission > 0f)
         {
             m.EnableKeyword("_EMISSION");
@@ -175,26 +177,80 @@ public static class G1CampaignBuilders
 
         // overcast dawn: flat grey-blue ambient, no sun, distant fog
         RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.36f, 0.42f, 0.50f);
+        RenderSettings.ambientMode = AmbientMode.Flat;
+        RenderSettings.ambientLight = new Color(0.18f, 0.22f, 0.32f); // cool shadow fill
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogStartDistance = 30f;
-        RenderSettings.fogEndDistance = 90f;
-        RenderSettings.fogColor = new Color(0.45f, 0.50f, 0.56f);
+        RenderSettings.fogStartDistance = 25f;
+        RenderSettings.fogEndDistance = 75f;
+        RenderSettings.fogColor = new Color(0.24f, 0.28f, 0.36f); // cool industrial haze
 
-        var concrete = Mat(new Color(0.85f, 0.88f, 0.90f), 0f, "tex_concrete_wall", 8f, 2f);
-        var asphalt = Mat(new Color(0.75f, 0.77f, 0.80f), 0f, "tex_floor_metal_grid", 10f, 10f);
-        var green = Mat(new Color(0.6f, 0.7f, 0.6f), 0f, "tex_steel_panel", 2f, 2f);
-        var wood = Mat(new Color(0.6f, 0.5f, 0.3f), 0f, "tex_steel_panel", 1f, 1f);
+        // Warm dawn sun casting soft shadows
+        var sun = new GameObject("DawnSun");
+        var sunLt = sun.AddComponent<Light>();
+        sunLt.type = LightType.Directional;
+        sunLt.color = new Color(1f, 0.72f, 0.48f); // Golden sunrise light
+        sunLt.intensity = 1.35f;
+        sunLt.shadows = LightShadows.Soft;
+        sun.transform.rotation = Quaternion.Euler(14f, 45f, 0f);
+
+        var concrete = Mat(new Color(0.85f, 0.88f, 0.90f), 0f, "tex_concrete_wall", 8f, 2f, 0f, 0.1f);
+        var asphalt = Mat(new Color(0.75f, 0.77f, 0.80f), 0f, "tex_floor_metal_grid", 10f, 10f, 0.85f, 0.4f);
+        var green = Mat(new Color(0.6f, 0.7f, 0.6f), 0f, "tex_steel_panel", 2f, 2f, 0.75f, 0.45f);
+        var wood = Mat(new Color(0.6f, 0.5f, 0.3f), 0f, "tex_steel_panel", 1f, 1f, 0.05f, 0.15f);
 
         Slab("Yard", new Vector3(0, -0.25f, 0), new Vector3(60, 0.5f, 40), asphalt);
-        Slab("WallN", new Vector3(0, 2f, 20), new Vector3(60.5f, 4, 0.6f), concrete);
-        Slab("WallS", new Vector3(0, 2f, -20), new Vector3(60.5f, 4, 0.6f), concrete);
-        Slab("WallW", new Vector3(-30, 2f, 0), new Vector3(0.6f, 4, 40.5f), concrete);
-        Slab("WallE", new Vector3(30, 2f, 0), new Vector3(0.6f, 4, 40.5f), concrete);
+        Slab("WallN", new Vector3(0, 6f, 20), new Vector3(60.5f, 12, 0.6f), concrete);
+        Slab("WallS", new Vector3(0, 6f, -20), new Vector3(60.5f, 12, 0.6f), concrete);
+        Slab("WallW", new Vector3(-30, 6f, 0), new Vector3(0.6f, 12, 40.5f), concrete);
+        Slab("WallE", new Vector3(30, 6f, 0), new Vector3(0.6f, 12, 40.5f), concrete);
 
-        // elevator exit alcove (player spawn, west side)
-        Slab("ElevatorBox", new Vector3(-27f, 1.5f, 12f), new Vector3(4, 3, 4), concrete);
+        // Hangar roof perimeter overhang rim and steel cross beams
+        Slab("RoofRimN", new Vector3(0, 11.75f, 18f), new Vector3(60.5f, 0.5f, 4f), concrete);
+        Slab("RoofRimS", new Vector3(0, 11.75f, -18f), new Vector3(60.5f, 0.5f, 4f), concrete);
+        Slab("RoofRimW", new Vector3(-28f, 11.75f, 0f), new Vector3(4f, 0.5f, 40.5f), concrete);
+        Slab("RoofRimE", new Vector3(28f, 11.75f, 0f), new Vector3(4f, 0.5f, 40.5f), concrete);
+        for (float x = -20f; x <= 20f; x += 10f)
+        {
+            Slab("RoofBeam_" + x, new Vector3(x, 11.8f, 0f), new Vector3(0.6f, 0.4f, 40f), green);
+        }
+
+        // Spawn perimeter structural pillars to break up the flat concrete yard walls
+        for (float x = -24f; x <= 24f; x += 8f)
+        {
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(x, 0f, 19.6f), 180f);
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(x, 0f, -19.6f), 0f);
+        }
+        for (float z = -15f; z <= 15f; z += 6f)
+        {
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(-29.6f, 0f, z), 90f);
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(29.6f, 0f, z), -90f);
+        }
+
+        // Perimeter floodlight towers shining onto the motor pool yard
+        Vector3[] floodlightPos = { new Vector3(-22f, 0f, 16f), new Vector3(22f, 0f, 16f), new Vector3(-22f, 0f, -16f), new Vector3(22f, 0f, -16f) };
+        for (int i = 0; i < floodlightPos.Length; i++)
+        {
+            var p = floodlightPos[i];
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", p, 0f);
+            var flGo = new GameObject($"YardFloodlight_{i}");
+            flGo.transform.position = p + Vector3.up * 3.6f;
+            flGo.transform.rotation = Quaternion.LookRotation(new Vector3(0f, 0.2f, 0f) - flGo.transform.position);
+            var flLt = flGo.AddComponent<Light>();
+            flLt.type = LightType.Spot;
+            flLt.spotAngle = 65f;
+            flLt.color = new Color(1f, 0.88f, 0.75f);
+            flLt.range = 35f;
+            flLt.intensity = 2.5f;
+            flLt.shadows = LightShadows.Soft;
+        }
+
+        // elevator starting room (player spawn, west side)
+        Slab("ElevatorFloor", new Vector3(-27f, -0.25f, 10f), new Vector3(6, 0.5f, 6), asphalt);
+        Slab("ElevatorCeiling", new Vector3(-27f, 3.25f, 10f), new Vector3(6, 0.5f, 6), concrete);
+        Slab("ElevatorWallW", new Vector3(-30f, 1.5f, 10f), new Vector3(0.5f, 3f, 6f), concrete);
+        Slab("ElevatorWallN", new Vector3(-27f, 1.5f, 13f), new Vector3(6f, 3f, 0.5f), concrete);
+        Slab("ElevatorWallS", new Vector3(-27f, 1.5f, 7f), new Vector3(6f, 3f, 0.5f), concrete);
 
         // helicopter on its pad (center-east)
         Slab("HeliPad", new Vector3(12f, 0.05f, 0f), new Vector3(12, 0.1f, 12), concrete);
@@ -231,17 +287,25 @@ public static class G1CampaignBuilders
         bossRotor.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.1f, 0.1f, 0.12f));
         bossRotor.AddComponent<G1WeaponSpinner>();   // spins for the rotor look
         var bossHealth = boss.AddComponent<HealthSystem>();
-        bossHealth.maxHealth = 400f;
+        bossHealth.maxHealth = 140f;   // Demo: 2 SMG magazines to kill, not 5
         boss.AddComponent<G1HelicopterBoss>();
+        boss.AddComponent<G1ObjectiveOnDeath>().objectiveId = "hecu_patrol";
         var bossBar = boss.AddComponent<WorldSpaceHealthBar>();
         bossBar.heightOffset = 2.4f;
 
-        // scattered cover: crates + barrels
+        // Heavy concrete barricades around the helipad — give the player cover from rockets.
+        // Four L-shaped blast walls at the corners of the pad, each 2m tall.
+        Slab("Barricade_NW", new Vector3(3f,  1f,  8f),  new Vector3(3f, 2f, 0.5f), concrete);
+        Slab("Barricade_NE", new Vector3(21f, 1f,  8f),  new Vector3(3f, 2f, 0.5f), concrete);
+        Slab("Barricade_SW", new Vector3(3f,  1f, -8f),  new Vector3(3f, 2f, 0.5f), concrete);
+        Slab("Barricade_SE", new Vector3(21f, 1f, -8f),  new Vector3(3f, 2f, 0.5f), concrete);
+        // Low crates the player can vault-peek over
         var cratePos = new[]
         {
             new Vector3(-12, 0.4f, 4), new Vector3(-8, 0.4f, -6),
-            new Vector3(0, 0.4f, 10), new Vector3(4, 0.4f, -10),
+            new Vector3(0,  0.4f, 10), new Vector3(4,  0.4f, -10),
             new Vector3(-2, 0.4f, -2), new Vector3(20, 0.4f, 8),
+            new Vector3(8,  0.4f, 6),  new Vector3(16, 0.4f, -6), // extra crates near pad
         };
         foreach (var p in cratePos)
         {
@@ -250,40 +314,64 @@ public static class G1CampaignBuilders
             crate.GetComponent<HealthSystem>().maxHealth = 50f;
         }
 
-        // sweeper patrol (prefabs carry full AI; they hold position and aggro)
-        var s1 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(6f, 0f, 12f), 200f);
-        var s2 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(2f, 0f, -12f), 320f);
-        var s3 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(22f, 0f, -4f), 270f);
+        // Two sweeper soldiers — far enough apart that the player isn't instantly cross-fired.
+        // (Removed the third soldier at z=-4 who flanked the starter room exit.)
+        var s1 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(6f,  0f,  14f), 200f);
+        var s2 = SpawnPrefabAndReturn("Assets/G1/Prefabs/HECUSoldier.prefab", new Vector3(-4f, 0f, -14f), 320f);
+        var s3 = (GameObject)null; // removed — was too close to the starter room door
 
         // Setup Level 2 Objectives
         var objGo = new GameObject("ObjectiveManager");
         var objMgr = objGo.AddComponent<G1ObjectiveManager>();
-        objMgr.AddObjective("hecu_patrol", "Eliminate Surface HECU Sweeper Patrols", mandatory: true, requiredCount: 3);
+        // Defeating the Gunship Boss or any 1 sweeper patrol fulfills the objective!
+        objMgr.AddObjective("hecu_patrol", "Eliminate Surface HECU Sweeper Patrols or Gunship", mandatory: true, requiredCount: 1);
         objMgr.AddObjective("evac_shaft", "Locate Maintenance Access Shaft to Undercroft", mandatory: false);
 
         foreach (var soldier in new[] { s1, s2, s3 })
         {
             if (soldier != null)
             {
-                var hp = soldier.GetComponent<HealthSystem>();
-                if (hp != null)
-                    hp.OnDeath += (pos, nrm) => { if (G1ObjectiveManager.Instance != null) G1ObjectiveManager.Instance.IncrementProgress("hecu_patrol"); };
+                // Scene construction happens in the editor, so event listeners
+                // registered here would not be serialized into the saved scene.
+                // Attach a runtime listener instead.
+                var objectiveOnDeath = soldier.AddComponent<G1ObjectiveOnDeath>();
+                objectiveOnDeath.objectiveId = "hecu_patrol";
             }
         }
 
-        G1HealthPack.Create(new Vector3(-20f, 0.5f, -8f));
-        G1AmmoPack.Create(new Vector3(-14f, 0.5f, 10f));
-        G1AmmoPack.Create(new Vector3(18f, 0.5f, 12f));
-        G1ArmorPack.Create(new Vector3(-24f, 0.5f, 10f), 50f);
-        G1WallCharger.Create(new Vector3(-26.6f, 1.1f, 12f));
+        // ── Health packs ─────────────────────────────────────────────────────
+        G1HealthPack.Create(new Vector3(-28f, 0.5f, 10.0f)); // Starter room — safe refill
+        G1HealthPack.Create(new Vector3(-20f, 0.5f, -8f));   // Mid-yard
+        G1HealthPack.Create(new Vector3(4f,   0.5f,  12f));  // Courtyard refill
+        G1HealthPack.Create(new Vector3(-4f,  0.5f, -10f));  // South mid
+        G1HealthPack.Create(new Vector3(10f,  0.5f,   4f));  // Behind NW barricade (boss fight)
+        G1HealthPack.Create(new Vector3(18f,  0.5f,  -4f));  // Behind SE barricade (boss fight)
+        // ── Ammo packs ───────────────────────────────────────────────────────
+        G1AmmoPack.Create(new Vector3(-28f, 0.5f,  8.5f));  // Starter room
+        G1AmmoPack.Create(new Vector3(-14f, 0.5f,  10f));   // Mid-yard approach
+        G1AmmoPack.Create(new Vector3(10f,  0.5f,  -4f));   // Near NE barricade
+        G1AmmoPack.Create(new Vector3(20f,  0.5f,  10f));   // Near helipad
+        G1AmmoPack.Create(new Vector3(0f,   0.5f, -14f));   // South corner
+        // ── Armor packs ──────────────────────────────────────────────────────
+        G1ArmorPack.Create(new Vector3(-28f, 0.5f, 11.5f), 50f); // Starter room
+        G1ArmorPack.Create(new Vector3(8f,   0.5f,   2f),  50f); // Courtyard
+        G1ArmorPack.Create(new Vector3(16f,  0.5f,   6f),  35f); // Near boss — reward for pushing up
+        // ── Wall chargers ─────────────────────────────────────────────────────
+        G1WallCharger.Create(new Vector3(-29.6f, 1.1f, 10f));  // Starter room
+        G1WallCharger.Create(new Vector3(28.6f,  1.1f,  0f));  // East wall near boss area
 
         Checkpoint("Checkpoint_Yard", new Vector3(0f, 0f, 0f));
         Cameo(new Vector3(24f, 4.2f, 16f), 210f);   // on the perimeter wall
 
-        // maintenance shaft down (east corner) → Level 3, gated by a story question
-        Slab("ShaftHousing", new Vector3(26f, 1.2f, -16f), new Vector3(4, 2.4f, 4), concrete);
-        var l2Exit = Exit("ExitToUndercroft", new Vector3(26f, 1f, -16f),
-             new Vector3(2.5f, 2f, 2.5f), "Level3");
+        // maintenance shaft down (east corner) → Level 3, hollow walk-in alcove
+        Slab("ShaftFloor", new Vector3(26f, -0.25f, -16f), new Vector3(4, 0.5f, 4), asphalt);
+        Slab("ShaftCeiling", new Vector3(26f, 2.45f, -16f), new Vector3(4, 0.5f, 4), concrete);
+        Slab("ShaftWallE", new Vector3(28f, 1.1f, -16f), new Vector3(0.5f, 2.2f, 4f), concrete);
+        Slab("ShaftWallN", new Vector3(26f, 1.1f, -14f), new Vector3(4f, 2.2f, 0.5f), concrete);
+        Slab("ShaftWallS", new Vector3(26f, 1.1f, -18f), new Vector3(4f, 2.2f, 0.5f), concrete);
+
+        var l2Exit = Exit("ExitToUndercroft", new Vector3(26f, 1.1f, -16f),
+             new Vector3(2.5f, 2.2f, 2.5f), "Level3");
         var l2Et = l2Exit.GetComponent<G1LevelExitTrigger>();
         if (l2Et != null) l2Et.requireUnlock = true;
         objMgr.AddObjective("solve_shaft", "Answer the shaft access console to descend", mandatory: true);
@@ -292,7 +380,7 @@ public static class G1CampaignBuilders
         shaftConsole.name = "ShaftQuestionConsole";
         shaftConsole.transform.position = new Vector3(23f, 1f, -15f);
         shaftConsole.transform.localScale = new Vector3(1.1f, 1.5f, 0.4f);
-        shaftConsole.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.85f, 0.15f, 0.15f), 1.4f);
+        shaftConsole.GetComponent<Renderer>().sharedMaterial = Mat(new Color(0.85f, 0.15f, 0.15f), 1.8f, metallic: 0.9f, smoothness: 0.6f);
         var q2 = shaftConsole.AddComponent<G1QuestionTerminal>();
         q2.question = "Who really 'audits' this facility — and what do they want?";
         q2.options = new[]
@@ -304,7 +392,17 @@ public static class G1CampaignBuilders
         q2.correctIndex = 1;
         q2.objectiveId = "solve_shaft";
 
-        Player(new Vector3(-26f, 0.05f, 8f), "CHAPTER TWO",
+        // Pulsing amber warning beacon light on top of the console
+        var beaconGo = new GameObject("TerminalBeaconLight");
+        beaconGo.transform.position = new Vector3(23f, 1.8f, -15f);
+        var bl = beaconGo.AddComponent<Light>();
+        bl.type = LightType.Point;
+        bl.color = new Color(1f, 0.35f, 0f);
+        bl.range = 8f;
+        bl.intensity = 2.2f;
+        bl.shadows = LightShadows.Soft;
+
+        Player(new Vector3(-27.5f, 0.05f, 10f), "CHAPTER TWO",
                "QUARANTINE — Surface Motor Pool, dawn", "ambient_industrial");
 
         FinishScene(scene, "Assets/Scenes/Level2.unity",
@@ -332,17 +430,51 @@ public static class G1CampaignBuilders
         RenderSettings.fogEndDistance = 45f;
         RenderSettings.fogColor = new Color(0.02f, 0.07f, 0.08f);
 
-        var rock = Mat(new Color(0.6f, 0.65f, 0.7f), 0f, "tex_concrete_wall", 6f, 6f);
+        var rock = Mat(new Color(0.6f, 0.65f, 0.7f), 0f, "tex_concrete_wall", 6f, 6f, 0.05f, 0.25f);
         var teal = new Color(0.16f, 0.75f, 0.75f);
 
         Slab("Floor", new Vector3(0, -0.25f, 20), new Vector3(30, 0.5f, 56), rock);
+        Slab("CavernCeiling", new Vector3(0, 8.25f, 20), new Vector3(30.5f, 0.5f, 56.5f), rock);
         Slab("WallW", new Vector3(-15, 4f, 20), new Vector3(0.6f, 8, 56.5f), rock);
         Slab("WallE", new Vector3(15, 4f, 20), new Vector3(0.6f, 8, 56.5f), rock);
         Slab("WallS", new Vector3(0, 4f, -8), new Vector3(30.5f, 8, 0.6f), rock);
         Slab("WallN", new Vector3(0, 4f, 48), new Vector3(30.5f, 8, 0.6f), rock);
 
-        // alien pods and spore lights along the hall
-        var podMat = Mat(Color.white, 0.8f, "tex_alien_bio", 2f, 2f);
+        // Spawn side structural pillars along the Undercroft walls for depth and rhythm
+        for (float z = 0f; z <= 40f; z += 8f)
+        {
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(-14.6f, 0f, z), 90f);
+            SpawnPrefabAndReturn("Assets/G1/Models/Environment/prop_pillar_structural.fbx", new Vector3(14.6f, 0f, z), -90f);
+        }
+
+        // Overhead alien structural archways spanning the cavern roof
+        for (float z = 4f; z <= 44f; z += 10f)
+        {
+            var arch = Slab("AlienArch", new Vector3(0f, 7.2f, z), new Vector3(29.5f, 0.4f, 0.8f), rock);
+            arch.transform.rotation = Quaternion.Euler(0f, 0f, 2f);
+        }
+
+        // Glowing Xen crystal clusters along the cavern floor
+        var crystalMat = Mat(teal, 3.0f, null, 1f, 1f, 0.2f, 0.9f);
+        Vector3[] crystalLocs = { new Vector3(-13f, 0.4f, 8f), new Vector3(13f, 0.4f, 18f), new Vector3(-13f, 0.4f, 28f), new Vector3(13f, 0.4f, 36f) };
+        foreach (var cl in crystalLocs)
+        {
+            var crystal = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            crystal.name = "XenCrystalCluster";
+            crystal.transform.position = cl;
+            crystal.transform.localScale = new Vector3(0.8f, 1.6f, 0.8f);
+            crystal.transform.rotation = Quaternion.Euler(15f, 30f, -20f);
+            crystal.GetComponent<Renderer>().sharedMaterial = crystalMat;
+            var clLt = crystal.AddComponent<Light>();
+            clLt.type = LightType.Point;
+            clLt.color = teal;
+            clLt.range = 8f;
+            clLt.intensity = 1.8f;
+            clLt.shadows = LightShadows.Soft;
+        }
+
+        // alien pods and spore lights along the hall (organic wet finish + shadow-casting lights)
+        var podMat = Mat(Color.white, 0.8f, "tex_alien_bio", 2f, 2f, 0.1f, 0.75f);
         for (int i = 0; i < 6; i++)
         {
             float x = (i % 2 == 0) ? -11f : 11f;
@@ -359,39 +491,51 @@ public static class G1CampaignBuilders
             li.color = teal;
             li.range = 6f;
             li.intensity = 0.9f;
+            li.shadows = LightShadows.Soft;
         }
 
-        // the taken and the strays defend the hall
-        var enemies = new List<GameObject>
+        // Four guardians spread across the full length of the hall.
+        // Fewer enemies + wider spacing means the player fights 1-2 at a time,
+        // not a five-way pile-on in the chokepoint.
+        var enemies = new System.Collections.Generic.List<GameObject>
         {
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-6f, 0f, 12f)),
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3(6f, 0f, 18f)),
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-4f, 0f, 26f)),
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab", new Vector3(8f, 0f, 24f)),
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab", new Vector3(-8f, 0f, 32f)),
-            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab", new Vector3(4f, 0f, 38f))
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3(-5f, 0f, 10f)),  // Entrance zone
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Zombie.prefab", new Vector3( 5f, 0f, 22f)),  // Mid hall
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab",  new Vector3(-7f, 0f, 30f)),  // Deep hall
+            SpawnPrefabAndReturn("Assets/G1/Prefabs/Alien.prefab",  new Vector3( 7f, 0f, 38f)),  // Pre-boss arena
         };
+        // (Removed 2 enemies that were directly stacked in the chokepoint at z=18 and z=24)
 
         // Setup Level 3 Objectives
         var objGo = new GameObject("ObjectiveManager");
         var objMgr = objGo.AddComponent<G1ObjectiveManager>();
-        objMgr.AddObjective("undercroft_guardians", "Neutralize Undercroft Guardians", mandatory: true, requiredCount: 6);
+        objMgr.AddObjective("undercroft_guardians", "Neutralize Undercroft Guardians", mandatory: true, requiredCount: 4);
         objMgr.AddObjective("threshold_portal", "Step through the Threshold — OR break its emitters to end the loop", mandatory: false);
 
         foreach (var enemy in enemies)
         {
             if (enemy != null)
             {
-                var hp = enemy.GetComponent<HealthSystem>();
-                if (hp != null)
-                    hp.OnDeath += (pos, nrm) => { if (G1ObjectiveManager.Instance != null) G1ObjectiveManager.Instance.IncrementProgress("undercroft_guardians"); };
+                var objOnDeath = enemy.AddComponent<G1ObjectiveOnDeath>();
+                objOnDeath.objectiveId = "undercroft_guardians";
             }
         }
 
-        G1HealthPack.Create(new Vector3(-12f, 0.5f, 10f));
-        G1HealthPack.Create(new Vector3(12f, 0.5f, 30f));
-        G1AmmoPack.Create(new Vector3(-12f, 0.5f, 22f));
-        G1AmmoPack.Create(new Vector3(12f, 0.5f, 14f));
+        // ── Health packs ─────────────────────────────────────────────────────
+        G1HealthPack.Create(new Vector3(0f,    0.5f,  2f));   // Right at spawn — no "I died immediately" soft-locks
+        G1HealthPack.Create(new Vector3(-12f,  0.5f, 10f));   // Entrance zone
+        G1HealthPack.Create(new Vector3(12f,   0.5f, 20f));   // Mid hall
+        G1HealthPack.Create(new Vector3(-12f,  0.5f, 30f));   // Deep hall
+        G1HealthPack.Create(new Vector3(12f,   0.5f, 38f));   // Pre-boss arena
+        // ── Ammo packs ───────────────────────────────────────────────────────
+        G1AmmoPack.Create(new Vector3(-12f, 0.5f, 22f));      // Mid hall
+        G1AmmoPack.Create(new Vector3(12f,  0.5f, 14f));      // Entrance zone far side
+        G1AmmoPack.Create(new Vector3(0f,   0.5f, 34f));      // Center deep
+        // ── Armor packs ──────────────────────────────────────────────────────
+        G1ArmorPack.Create(new Vector3(0f, 0.5f, 4f), 50f);   // Spawn area
+        G1ArmorPack.Create(new Vector3(0f, 0.5f, 26f), 35f);  // Mid hall breather
+        // ── Wall charger ─────────────────────────────────────────────────────
+        G1WallCharger.Create(new Vector3(-14.4f, 1.1f, 2f));  // Left wall at start — recharge before the gauntlet
 
         Checkpoint("Checkpoint_Undercroft", new Vector3(0f, 0f, 2f));
 
@@ -463,7 +607,7 @@ public static class G1CampaignBuilders
             var oldAi = boss.GetComponent<G1AlienAI>(); if (oldAi) Object.DestroyImmediate(oldAi);
             var elite = boss.GetComponent<G1EliteAlien>(); if (elite) Object.DestroyImmediate(elite);
             boss.transform.localScale = Vector3.one * 1.9f;
-            var bh = boss.GetComponent<HealthSystem>(); if (bh) bh.maxHealth = 600f;
+            var bh = boss.GetComponent<HealthSystem>(); if (bh) bh.maxHealth = 160f;  // Demo: fun chase, not bullet sponge
             var bar = boss.GetComponent<WorldSpaceHealthBar>() ?? boss.AddComponent<WorldSpaceHealthBar>();
             bar.heightOffset = 3.2f;
             foreach (var r in boss.GetComponentsInChildren<Renderer>())

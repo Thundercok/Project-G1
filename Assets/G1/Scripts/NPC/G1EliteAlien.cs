@@ -50,7 +50,16 @@ public class G1EliteAlien : MonoBehaviour
         _instanceMats = new Material[renderers.Length];
         for (int i = 0; i < renderers.Length; i++)
         {
-            var mat = new Material(renderers[i].sharedMaterial);
+            // Some spawned alien child renderers (for example a LineRenderer)
+            // have no material assigned. Material's copy constructor rejects a
+            // null source, so give those renderers a standalone fallback.
+            var source = renderers[i].sharedMaterial;
+            var mat = source != null
+                ? new Material(source)
+                : CreateFallbackMaterial();
+            if (mat == null)
+                continue;
+
             // Saturated teal body
             mat.color = new Color(0.05f, 0.85f, 0.80f);
             mat.EnableKeyword("_EMISSION");
@@ -59,6 +68,14 @@ public class G1EliteAlien : MonoBehaviour
             renderers[i].sharedMaterial = mat;
             _instanceMats[i] = mat;
         }
+    }
+
+    private static Material CreateFallbackMaterial()
+    {
+        var shader = Shader.Find("Standard")
+                  ?? Shader.Find("Universal Render Pipeline/Lit")
+                  ?? Shader.Find("Sprites/Default");
+        return shader != null ? new Material(shader) : null;
     }
 
     private void Update()

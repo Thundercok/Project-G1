@@ -41,10 +41,13 @@ public static class G1MenuBuilder
         // 5. Build Level 3 (Threshold)
         G1CampaignBuilders.BuildLevel3();
 
-        // 6. Build Weapon Testing Range (Sandbox)
+        // 5.5. Build Chapter 4 (HugeMap Battlefield)
+        G1HugeMapBuilder.BuildHugeMap();
+
+        // Build the isolated weapon practice range.
         G1WeaponTestBuilder.BuildTestRange();
 
-        // 7. Register all scenes in EditorBuildSettings
+        // 6. Register all scenes in EditorBuildSettings
         RegisterScenes();
 
         // 8. Open Main Menu scene ready for Play
@@ -54,7 +57,7 @@ public static class G1MenuBuilder
             "G1 Campaign Build Complete",
             "★ ALL CAMPAIGN LEVELS & MAIN MENU BUILT SUCCESSFULLY! ★\n\n" +
             "✓ Save file reset (Fresh New Player Experience)\n" +
-            "✓ Main Menu, Level 1, Level 2, Level 3 & Sandbox Range built\n" +
+            "✓ Main Menu, Level 1, Level 2, & Level 3 built\n" +
             "✓ Scene build index configured in Build Settings\n\n" +
             "Press PLAY in Unity to start as a New Player!",
             "LET'S PLAY!"
@@ -141,8 +144,8 @@ public static class G1MenuBuilder
             "Assets/Scenes/TestScene.unity",
             "Assets/Scenes/Level2.unity",
             "Assets/Scenes/Level3.unity",
-            "Assets/Scenes/WeaponTestScene.unity",
             "Assets/Scenes/HugeMap.unity",
+            "Assets/Scenes/WeaponTestScene.unity",
         })
         {
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) != null)

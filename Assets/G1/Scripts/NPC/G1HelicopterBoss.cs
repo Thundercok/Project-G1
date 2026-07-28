@@ -15,11 +15,11 @@ public sealed class G1HelicopterBoss : MonoBehaviour
 
     [Header("Machine gun")]
     public float mgInterval = 0.14f;
-    public float mgDamage = 4f;
+    public float mgDamage = 2.5f;
     public float mgRange = 60f;
 
     [Header("Rockets")]
-    public float salvoInterval = 6f;
+    public float salvoInterval = 7.5f;
     public float rocketSpeed = 18f;
 
     HealthSystem health;
@@ -128,6 +128,14 @@ public sealed class G1HelicopterBoss : MonoBehaviour
         dead = true;
         G1Audio.Play("explosion", transform.position, 1f);
         G1ExplosionFX.Spawn(transform.position);
+
+        // Unlock elevator shaft exit and advance objective
+        G1LevelExitTrigger.ElevatorUnlocked = true;
+        if (G1ObjectiveManager.Instance != null)
+            G1ObjectiveManager.Instance.CompleteObjective("hecu_patrol");
+        GameObject.FindWithTag("Player")?.GetComponent<PlayerHUD>()
+            ?.ShowTerminalLog("GUNSHIP DOWN! MAINTENANCE SHAFT UNLOCKED.");
+
         Destroy(gameObject, 3f);
     }
 }

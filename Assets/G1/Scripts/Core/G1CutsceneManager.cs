@@ -1,8 +1,11 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// Cinematic in-engine cutscene and narrative camera manager.
-/// Features sequential typewriter status text, realistic floor wake-up camera motion, and character thoughts.
+/// Features sequential typewriter status text, realistic floor wake-up camera
+/// motion, queued multi-beat subtitles with professional dark panel rendering,
+/// and robust camera reference acquisition.
 public class G1CutsceneManager : MonoBehaviour
 {
     public static G1CutsceneManager Instance { get; private set; }
@@ -16,11 +19,15 @@ public class G1CutsceneManager : MonoBehaviour
     private PlayerMovement playerMove;
 
     private Texture2D blackTex;
+    private Texture2D pixelTex;
     private float letterboxHeight = 0f;
     private float targetLetterboxHeight = 0f;
 
+    // Subtitle system — supports queued multi-line beats
     private string currentSubtitle = "";
     private float subtitleTimer = 0f;
+    private float subtitleFade = 0f;     // 0..1, used for fade-in/out
+    private float subtitleDuration = 0f; // total duration of current subtitle
 
     // Sequential Typewriter status lines
     private int visibleLineCount = 0;
@@ -34,12 +41,18 @@ public class G1CutsceneManager : MonoBehaviour
     // Eyelid blink overlay alpha (1.0 = eyes closed, 0.0 = fully awake)
     private float eyelidAlpha = 0f;
 
+    private Font font;
     private GUIStyle titleChapterStyle;
     private GUIStyle titleSubStyle;
     private GUIStyle titleSubjectStyle;
     private GUIStyle titleStatusStyle;
     private GUIStyle titleDirectiveStyle;
     private GUIStyle subtitleStyle;
+    private GUIStyle subtitleSpeakerStyle;
+
+    // Pre-parsed subtitle parts (speaker tag vs body)
+    private string subtitleSpeaker = "";
+    private string subtitleBody = "";
 
     private void Awake()
     {
@@ -54,6 +67,9 @@ public class G1CutsceneManager : MonoBehaviour
         blackTex = new Texture2D(1, 1);
         blackTex.SetPixel(0, 0, Color.black);
         blackTex.Apply();
+
+        pixelTex = Texture2D.whiteTexture;
+        font = Resources.Load<Font>("Fonts/ShareTechMono-Regular");
     }
 
     private void Update()
@@ -64,11 +80,51 @@ public class G1CutsceneManager : MonoBehaviour
         if (subtitleTimer > 0f)
         {
             subtitleTimer -= Time.deltaTime;
+
+            // Fade in during first 0.3s
+            float elapsed = subtitleDuration - subtitleTimer;
+            if (elapsed < 0.3f)
+                subtitleFade = elapsed / 0.3f;
+            // Fade out during last 0.5s
+            else if (subtitleTimer < 0.5f)
+                subtitleFade = subtitleTimer / 0.5f;
+            else
+                subtitleFade = 1f;
+
             if (subtitleTimer <= 0f)
             {
                 currentSubtitle = "";
+                subtitleSpeaker = "";
+                subtitleBody = "";
+                subtitleFade = 0f;
             }
         }
+    }
+
+    /// Acquire camera and player references, retrying if they haven't spawned yet.
+    private IEnumerator AcquirePlayerReferences()
+    {
+        float timeout = 3f;
+        float waited = 0f;
+        while (waited < timeout)
+        {
+            mainCam = Camera.main;
+            if (mainCam != null)
+            {
+                playerCamTransform = mainCam.transform;
+                mouseLook = FindFirstObjectByType<MouseLook>();
+                playerMove = FindFirstObjectByType<PlayerMovement>();
+                if (mouseLook != null && playerMove != null)
+                    yield break; // Got everything
+            }
+            yield return null;
+            waited += Time.deltaTime;
+        }
+        // Best-effort: use whatever we found
+        if (mainCam == null) mainCam = Camera.main;
+        if (mainCam != null) playerCamTransform = mainCam.transform;
+        if (mouseLook == null) mouseLook = FindFirstObjectByType<MouseLook>();
+        if (playerMove == null) playerMove = FindFirstObjectByType<PlayerMovement>();
     }
 
     public void PlayWakeUpIntroCutscene(string chapter, string subLocation, string subjectName, string status, string directive)
@@ -83,16 +139,11 @@ public class G1CutsceneManager : MonoBehaviour
         eyelidAlpha = 1.0f;
         textAlpha = 1.0f;
 
-        mainCam = Camera.main;
-        if (mainCam != null)
-        {
-            playerCamTransform = mainCam.transform;
-            mouseLook = FindFirstObjectByType<MouseLook>();
-            playerMove = FindFirstObjectByType<PlayerMovement>();
+        // Robustly acquire player references (handles race conditions)
+        yield return StartCoroutine(AcquirePlayerReferences());
 
-            if (mouseLook != null) mouseLook.enabled = false;
-            if (playerMove != null) playerMove.enabled = false;
-        }
+        if (mouseLook != null) mouseLook.enabled = false;
+        if (playerMove != null) playerMove.enabled = false;
 
         titleChapter = chapter;
         titleSub = subLocation;
@@ -100,24 +151,29 @@ public class G1CutsceneManager : MonoBehaviour
         titleStatus = status;
         titleDirective = directive;
 
-        // PHASE 1: Sequential Line-by-Line Typewriter Reveal (Clean & easy to read)
+        // ─────────────────────────────────────────────────────────
+        // PHASE 1: Sequential Line-by-Line Typewriter Reveal
+        // ─────────────────────────────────────────────────────────
         visibleLineCount = 0;
         yield return new WaitForSeconds(0.5f);
 
-        visibleLineCount = 1; // Show Chapter
+        // Play a quiet terminal boot sound for atmosphere
+        G1Audio.Play2D("door_servo", 0.2f, 0.6f, 0f);
+
+        visibleLineCount = 1; // Chapter
         yield return new WaitForSeconds(1.1f);
 
-        visibleLineCount = 2; // Show Sub-location
+        visibleLineCount = 2; // Sub-location
         yield return new WaitForSeconds(1.1f);
 
-        visibleLineCount = 3; // Show Subject
+        visibleLineCount = 3; // Subject
         yield return new WaitForSeconds(1.1f);
 
-        visibleLineCount = 4; // Show Status
+        visibleLineCount = 4; // Status
         yield return new WaitForSeconds(1.2f);
 
-        visibleLineCount = 5; // Show Directive
-        yield return new WaitForSeconds(2.0f); // Hold full text so it's very clear to read
+        visibleLineCount = 5; // Directive
+        yield return new WaitForSeconds(2.2f); // Hold full text long enough to read
 
         // Smoothly fade out text lines before eyes open
         float fadeElapsed = 0f;
@@ -130,13 +186,18 @@ public class G1CutsceneManager : MonoBehaviour
         textAlpha = 0f;
         visibleLineCount = 0;
 
+        // ─────────────────────────────────────────────────────────
         // PHASE 2: Realistic Floor Wake-Up Sequence
-        // Starting Pose: Lying sideways flat on the floor (Y = 0.25m, Roll = 45deg, Pitch = 75deg looking down)
-        Vector3 standingPos = playerCamTransform != null ? playerCamTransform.position : new Vector3(0f, 1.6f, -14f);
-        Quaternion standingRot = playerCamTransform != null ? playerCamTransform.rotation : Quaternion.identity;
+        // ─────────────────────────────────────────────────────────
+        Vector3 standingPos = playerCamTransform != null
+            ? playerCamTransform.position
+            : new Vector3(0f, 1.6f, -14f);
+        Quaternion standingRot = playerCamTransform != null
+            ? playerCamTransform.rotation
+            : Quaternion.identity;
 
-        Vector3 floorPos = standingPos - new Vector3(0f, 1.35f, 0f); // Ground level
-        Quaternion floorRot = Quaternion.Euler(75f, standingRot.eulerAngles.y - 30f, 45f); // Sideways floor posture
+        Vector3 floorPos = standingPos - new Vector3(0f, 1.35f, 0f);
+        Quaternion floorRot = Quaternion.Euler(75f, standingRot.eulerAngles.y - 30f, 45f);
 
         if (mainCam != null)
         {
@@ -144,49 +205,81 @@ public class G1CutsceneManager : MonoBehaviour
             mainCam.transform.rotation = floorRot;
         }
 
-        // First Eyelid Blink (slight open then close)
+        // First Eyelid Blink — a groggy flutter (open briefly, close, open again)
         float elapsed = 0f;
-        while (elapsed < 1.4f)
+        while (elapsed < 1.0f)
         {
             elapsed += Time.deltaTime;
-            eyelidAlpha = 1.0f - Mathf.Sin((elapsed / 1.4f) * Mathf.PI) * 0.5f;
+            float t01 = elapsed / 1.0f;
+            // Quick flutter: sin curve that opens to ~50%, closes, opens to ~60%
+            eyelidAlpha = 1.0f - Mathf.Sin(t01 * Mathf.PI) * 0.5f;
             yield return null;
         }
 
-        ShowSubtitle("[CHAD'S THOUGHTS]: \"*gasp*... *cough*... My head... The experiment failed. Aliens everywhere, and government hit squads are executing all witnesses. I need to get up and ESCAPE NOW!\"", 6.5f);
+        // Brief darkness again — eyes slam shut
+        eyelidAlpha = 0.95f;
+        yield return new WaitForSeconds(0.3f);
 
-        // Slow Push-Up & Stand-Up Motion off Floor (4.5 seconds with heavy breathing head wobble)
+        // Second blink — slightly wider this time
         elapsed = 0f;
-        float duration = 4.5f;
+        while (elapsed < 0.8f)
+        {
+            elapsed += Time.deltaTime;
+            float t01 = elapsed / 0.8f;
+            eyelidAlpha = 0.95f - Mathf.Sin(t01 * Mathf.PI) * 0.65f;
+            yield return null;
+        }
+        eyelidAlpha = 0.85f;
+        yield return new WaitForSeconds(0.15f);
+
+        // ─────────────────────────────────────────────────────────
+        // PHASE 2B: Multi-Beat Internal Monologue (during stand-up)
+        // ─────────────────────────────────────────────────────────
+        ShowSubtitle("[CHAD]: ...Ugh. My head.", 2.4f);
+
+        // Slow Push-Up & Stand-Up from floor (5s with breathing wobble)
+        elapsed = 0f;
+        float duration = 5.0f;
 
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             float t = elapsed / duration;
 
-            // Eyelid opens completely
-            eyelidAlpha = Mathf.Lerp(1.0f, 0.0f, t * 1.5f);
+            // Eyelid opens completely during the first third
+            eyelidAlpha = Mathf.Lerp(0.85f, 0.0f, Mathf.Clamp01(t * 3f));
 
             if (mainCam != null)
             {
                 // Smooth position lift from floor to standing
-                Vector3 currentPos = Vector3.Lerp(floorPos, standingPos, Mathf.SmoothStep(0f, 1f, t));
+                float smoothT = Mathf.SmoothStep(0f, 1f, t);
+                Vector3 currentPos = Vector3.Lerp(floorPos, standingPos, smoothT);
 
-                // Add subtle heavy breathing head shake / wobble while pushing off floor
-                float wobbleX = Mathf.Sin(t * Mathf.PI * 6f) * 0.03f * (1f - t);
-                float wobbleY = Mathf.Cos(t * Mathf.PI * 4f) * 0.02f * (1f - t);
+                // Heavy breathing head wobble (stronger early, fades out)
+                float wobbleIntensity = (1f - t) * (1f - t); // quadratic falloff
+                float wobbleX = Mathf.Sin(t * Mathf.PI * 5f) * 0.04f * wobbleIntensity;
+                float wobbleY = Mathf.Cos(t * Mathf.PI * 3.5f) * 0.025f * wobbleIntensity;
                 currentPos += new Vector3(wobbleX, wobbleY, 0f);
 
-                // Smooth rotation un-roll from sideways to upright eye-level
-                Quaternion currentRot = Quaternion.Slerp(floorRot, standingRot, Mathf.SmoothStep(0f, 1f, t));
+                // Smooth rotation un-roll from sideways to upright
+                Quaternion currentRot = Quaternion.Slerp(floorRot, standingRot, smoothT);
 
                 mainCam.transform.position = currentPos;
                 mainCam.transform.rotation = currentRot;
             }
+
+            // Trigger subtitle beats at timed intervals during stand-up
+            if (t > 0.35f && t < 0.36f)
+                ShowSubtitle("[CHAD]: The experiment... it failed.", 2.2f);
+            if (t > 0.65f && t < 0.66f)
+                ShowSubtitle("[CHAD]: I need to get out. Now.", 2.5f);
+
             yield return null;
         }
 
+        // ─────────────────────────────────────────────────────────
         // PHASE 3: Complete Wake-Up & Restore Player Control
+        // ─────────────────────────────────────────────────────────
         eyelidAlpha = 0f;
         targetLetterboxHeight = 0f;
 
@@ -202,10 +295,27 @@ public class G1CutsceneManager : MonoBehaviour
         isCutsceneActive = false;
     }
 
-    public void ShowSubtitle(string text, float duration = 4f)
+    /// Show a subtitle. If a speaker tag is present in brackets (e.g. "[CHAD]: text"),
+    /// it will be rendered separately with a teal highlight.
+    public void ShowSubtitle(string text, float dur = 4f)
     {
         currentSubtitle = text;
-        subtitleTimer = duration;
+        subtitleTimer = dur;
+        subtitleDuration = dur;
+        subtitleFade = 0f;
+
+        // Parse speaker tag: "[SPEAKER]: body"
+        if (text.StartsWith("[") && text.Contains("]:"))
+        {
+            int endBracket = text.IndexOf("]:");
+            subtitleSpeaker = text.Substring(0, endBracket + 2); // e.g. "[CHAD]:"
+            subtitleBody = text.Substring(endBracket + 2).TrimStart();
+        }
+        else
+        {
+            subtitleSpeaker = "";
+            subtitleBody = text;
+        }
     }
 
     private void OnGUI()
@@ -231,116 +341,183 @@ public class G1CutsceneManager : MonoBehaviour
         // Draw Sequential Typewriter Status Title Card during Phase 1
         if (textAlpha > 0.01f && visibleLineCount > 0)
         {
-            Color oldCol = GUI.color;
-            float startY = Screen.height * 0.28f;
-
-            // Line 1: Chapter Title
-            if (visibleLineCount >= 1 && !string.IsNullOrEmpty(titleChapter))
-            {
-                GUI.color = new Color(1f, 0.75f, 0.1f, textAlpha);
-                GUI.Label(new Rect(0, startY, Screen.width, 45), titleChapter, titleChapterStyle);
-            }
-
-            // Line 2: Sub-Location
-            if (visibleLineCount >= 2 && !string.IsNullOrEmpty(titleSub))
-            {
-                GUI.color = new Color(0.9f, 0.9f, 0.9f, textAlpha);
-                GUI.Label(new Rect(0, startY + 48, Screen.width, 35), titleSub, titleSubStyle);
-            }
-
-            // Line 3: Subject Name
-            if (visibleLineCount >= 3 && !string.IsNullOrEmpty(titleSubject))
-            {
-                GUI.color = new Color(0.2f, 0.9f, 0.4f, textAlpha);
-                GUI.Label(new Rect(0, startY + 83, Screen.width, 35), titleSubject, titleSubjectStyle);
-            }
-
-            // Line 4: Status Warning
-            if (visibleLineCount >= 4 && !string.IsNullOrEmpty(titleStatus))
-            {
-                GUI.color = new Color(1f, 0.25f, 0.2f, textAlpha);
-                GUI.Label(new Rect(0, startY + 118, Screen.width, 35), titleStatus, titleStatusStyle);
-            }
-
-            // Line 5: Government Directive
-            if (visibleLineCount >= 5 && !string.IsNullOrEmpty(titleDirective))
-            {
-                GUI.color = new Color(1f, 0.9f, 0.1f, textAlpha);
-                GUI.Label(new Rect(0, startY + 153, Screen.width, 35), titleDirective, titleDirectiveStyle);
-            }
-
-            GUI.color = oldCol;
+            DrawTypewriterTitleCard();
         }
 
-        // Draw Subtitles
-        if (!string.IsNullOrEmpty(currentSubtitle))
+        // Draw Subtitles (professional dark panel rendering)
+        if (!string.IsNullOrEmpty(currentSubtitle) && subtitleFade > 0.01f)
         {
-            Color oldCol = GUI.color;
-            GUI.color = Color.white;
-            float subY = Screen.height - letterboxHeight - 45f;
-            if (letterboxHeight < 10f) subY = Screen.height - 80f;
-
-            GUI.Box(new Rect(Screen.width * 0.08f, subY, Screen.width * 0.84f, 38f), "", GUI.skin.box);
-            GUI.Label(new Rect(Screen.width * 0.08f, subY + 6f, Screen.width * 0.84f, 30f), currentSubtitle, subtitleStyle);
-            GUI.color = oldCol;
+            DrawSubtitle();
         }
+    }
+
+    private void DrawTypewriterTitleCard()
+    {
+        Color oldCol = GUI.color;
+        float startY = Screen.height * 0.28f;
+
+        // Dark panel background behind title card for legibility
+        GUI.color = new Color(0f, 0f, 0f, 0.55f * textAlpha);
+        float panelTop = startY - 20f;
+        float panelH = 220f;
+        GUI.DrawTexture(new Rect(Screen.width * 0.1f, panelTop, Screen.width * 0.8f, panelH), pixelTex);
+        GUI.color = oldCol;
+
+        // Teal accent line at top of panel
+        GUI.color = new Color(0.16f, 0.75f, 0.75f, 0.5f * textAlpha);
+        GUI.DrawTexture(new Rect(Screen.width * 0.1f, panelTop, Screen.width * 0.8f, 2f), pixelTex);
+        GUI.color = oldCol;
+
+        // Line 1: Chapter Title (amber/gold)
+        if (visibleLineCount >= 1 && !string.IsNullOrEmpty(titleChapter))
+        {
+            GUI.color = new Color(1f, 0.75f, 0.1f, textAlpha);
+            GUI.Label(new Rect(0, startY, Screen.width, 45), titleChapter, titleChapterStyle);
+        }
+
+        // Line 2: Sub-Location (light grey)
+        if (visibleLineCount >= 2 && !string.IsNullOrEmpty(titleSub))
+        {
+            GUI.color = new Color(0.9f, 0.9f, 0.9f, textAlpha * 0.85f);
+            GUI.Label(new Rect(0, startY + 48, Screen.width, 35), titleSub, titleSubStyle);
+        }
+
+        // Separator line
+        if (visibleLineCount >= 3)
+        {
+            GUI.color = new Color(0.16f, 0.75f, 0.75f, 0.3f * textAlpha);
+            GUI.DrawTexture(new Rect(Screen.width * 0.3f, startY + 82, Screen.width * 0.4f, 1f), pixelTex);
+        }
+
+        // Line 3: Subject Name (green)
+        if (visibleLineCount >= 3 && !string.IsNullOrEmpty(titleSubject))
+        {
+            GUI.color = new Color(0.2f, 0.9f, 0.4f, textAlpha);
+            GUI.Label(new Rect(0, startY + 90, Screen.width, 35), titleSubject, titleSubjectStyle);
+        }
+
+        // Line 4: Status Warning (red)
+        if (visibleLineCount >= 4 && !string.IsNullOrEmpty(titleStatus))
+        {
+            GUI.color = new Color(1f, 0.25f, 0.2f, textAlpha);
+            GUI.Label(new Rect(0, startY + 125, Screen.width, 35), titleStatus, titleStatusStyle);
+        }
+
+        // Line 5: Directive (yellow)
+        if (visibleLineCount >= 5 && !string.IsNullOrEmpty(titleDirective))
+        {
+            GUI.color = new Color(1f, 0.9f, 0.1f, textAlpha);
+            GUI.Label(new Rect(0, startY + 160, Screen.width, 35), titleDirective, titleDirectiveStyle);
+        }
+
+        GUI.color = oldCol;
+    }
+
+    private void DrawSubtitle()
+    {
+        Color oldCol = GUI.color;
+        float alpha = subtitleFade;
+
+        // Position: above bottom letterbox bar (or near bottom of screen)
+        float subY = Screen.height - letterboxHeight - 60f;
+        if (letterboxHeight < 10f) subY = Screen.height - 90f;
+
+        float panelW = Screen.width * 0.72f;
+        float panelX = (Screen.width - panelW) * 0.5f;
+        float panelH = 46f;
+
+        // Dark semi-transparent panel background
+        GUI.color = new Color(0.02f, 0.03f, 0.05f, 0.82f * alpha);
+        GUI.DrawTexture(new Rect(panelX, subY, panelW, panelH), pixelTex);
+
+        // Teal accent line at bottom of subtitle panel
+        GUI.color = new Color(0.16f, 0.75f, 0.75f, 0.45f * alpha);
+        GUI.DrawTexture(new Rect(panelX, subY + panelH - 2f, panelW, 2f), pixelTex);
+
+        // Small teal accent on left edge
+        GUI.color = new Color(0.16f, 0.75f, 0.75f, 0.6f * alpha);
+        GUI.DrawTexture(new Rect(panelX, subY, 3f, panelH), pixelTex);
+
+        // Render speaker tag in teal, body text in white
+        if (!string.IsNullOrEmpty(subtitleSpeaker))
+        {
+            // Speaker tag (teal)
+            GUI.color = new Color(0.16f, 0.75f, 0.75f, alpha);
+            float speakerW = subtitleSpeakerStyle.CalcSize(new GUIContent(subtitleSpeaker)).x + 8f;
+            GUI.Label(new Rect(panelX + 18f, subY + 10f, speakerW, 28f), subtitleSpeaker, subtitleSpeakerStyle);
+
+            // Body text (white)
+            GUI.color = new Color(0.92f, 0.94f, 0.95f, alpha);
+            GUI.Label(new Rect(panelX + 18f + speakerW, subY + 10f, panelW - speakerW - 36f, 28f), subtitleBody, subtitleStyle);
+        }
+        else
+        {
+            // No speaker tag — render all white
+            GUI.color = new Color(0.92f, 0.94f, 0.95f, alpha);
+            GUI.Label(new Rect(panelX + 18f, subY + 10f, panelW - 36f, 28f), subtitleBody, subtitleStyle);
+        }
+
+        GUI.color = oldCol;
     }
 
     private void InitStyles()
     {
-        if (titleChapterStyle == null)
+        if (titleChapterStyle != null) return;
+
+        titleChapterStyle = new GUIStyle(GUI.skin.label)
         {
-            titleChapterStyle = new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 28,
-                fontStyle = FontStyle.Bold
-            };
-        }
-        if (titleSubStyle == null)
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 28,
+            fontStyle = FontStyle.Bold
+        };
+        titleSubStyle = new GUIStyle(GUI.skin.label)
         {
-            titleSubStyle = new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 17,
-                fontStyle = FontStyle.Italic
-            };
-        }
-        if (titleSubjectStyle == null)
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 17,
+            fontStyle = FontStyle.Italic
+        };
+        titleSubjectStyle = new GUIStyle(GUI.skin.label)
         {
-            titleSubjectStyle = new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 16,
-                fontStyle = FontStyle.Bold
-            };
-        }
-        if (titleStatusStyle == null)
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 16,
+            fontStyle = FontStyle.Bold
+        };
+        titleStatusStyle = new GUIStyle(GUI.skin.label)
         {
-            titleStatusStyle = new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 16,
-                fontStyle = FontStyle.Bold
-            };
-        }
-        if (titleDirectiveStyle == null)
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 16,
+            fontStyle = FontStyle.Bold
+        };
+        titleDirectiveStyle = new GUIStyle(GUI.skin.label)
         {
-            titleDirectiveStyle = new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 17,
-                fontStyle = FontStyle.Bold
-            };
-        }
-        if (subtitleStyle == null)
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 17,
+            fontStyle = FontStyle.Bold
+        };
+        subtitleStyle = new GUIStyle(GUI.skin.label)
         {
-            subtitleStyle = new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 16,
-                fontStyle = FontStyle.Bold
-            };
+            alignment = TextAnchor.MiddleLeft,
+            fontSize = 16,
+            fontStyle = FontStyle.Normal,
+            wordWrap = true,
+        };
+        subtitleSpeakerStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleLeft,
+            fontSize = 16,
+            fontStyle = FontStyle.Bold,
+        };
+
+        // Apply custom font to all styles
+        if (font != null)
+        {
+            titleChapterStyle.font = font;
+            titleSubStyle.font = font;
+            titleSubjectStyle.font = font;
+            titleStatusStyle.font = font;
+            titleDirectiveStyle.font = font;
+            subtitleStyle.font = font;
+            subtitleSpeakerStyle.font = font;
         }
     }
 }

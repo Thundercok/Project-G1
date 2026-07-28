@@ -37,6 +37,8 @@ public class PlayerHUD : MonoBehaviour
 
     float _objFlashTime;
 
+    int _killCount = 0;
+
     void Start()
     {
         playerHealth = GetComponent<HealthSystem>();
@@ -59,11 +61,28 @@ public class PlayerHUD : MonoBehaviour
         if (fontAsset != null) _hudFont = fontAsset;
 
         G1ObjectiveManager.OnObjectiveUpdated += HandleObjectiveUpdated;
+        HealthSystem.OnAnyEnemyKilled += HandleEnemyKilled;
     }
 
     void OnDestroy()
     {
         G1ObjectiveManager.OnObjectiveUpdated -= HandleObjectiveUpdated;
+        HealthSystem.OnAnyEnemyKilled -= HandleEnemyKilled;
+    }
+
+    void HandleEnemyKilled(GameObject enemy)
+    {
+        _killCount++;
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.F5))
+        {
+            G1Audio.Play2D("pickup", 0.8f, 1.5f);
+            UnityEngine.SceneManagement.SceneManager.LoadScene(
+                UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        }
     }
 
     void HandleObjectiveUpdated(G1ObjectiveManager.Objective activeObj, bool isNewCompletion)
@@ -149,6 +168,7 @@ public class PlayerHUD : MonoBehaviour
 
         // Draw HUD elements with drop shadows for legibility
         DrawObjectiveHUD();
+        DrawKillCounter();
         DrawWaypointMarker();
         DrawHealthHUD();
         DrawAmmoHUD();
@@ -160,9 +180,45 @@ public class PlayerHUD : MonoBehaviour
         if (camFX && camFX.HitMarkerActive)
             DrawHitMarker();
 
-        // Damage vignette
+        // Damage vignette & Low Health warning
         if (camFX && camFX.DamageFlashAlpha > 0.01f)
             DrawDamageVignette(camFX.DamageFlashAlpha);
+        DrawLowHealthWarning();
+    }
+
+    void DrawLowHealthWarning()
+    {
+        if (playerHealth == null || playerHealth.IsDead || playerHealth.CurrentHealth > 25f)
+            return;
+
+        float alpha = (0.15f + 0.25f * Mathf.PingPong(Time.time * 4f, 1f)) * (1f - playerHealth.CurrentHealth / 25f);
+        Color oldColor = GUI.color;
+        GUI.color = new Color(0.85f, 0.05f, 0.05f, alpha);
+        // Top & bottom hazard border strips
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, 18), _barTex);
+        GUI.DrawTexture(new Rect(0, Screen.height - 18, Screen.width, 18), _barTex);
+        GUI.DrawTexture(new Rect(0, 0, 18, Screen.height), _barTex);
+        GUI.DrawTexture(new Rect(Screen.width - 18, 0, 18, Screen.height), _barTex);
+        GUI.color = oldColor;
+    }
+
+    void DrawKillCounter()
+    {
+        var style = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 17,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.UpperRight,
+            font = _hudFont
+        };
+
+        // Shadow
+        style.normal.textColor = new Color(0f, 0f, 0f, 0.7f);
+        GUI.Label(new Rect(Screen.width - 240, 22, 220, 30), $"KILLS: {_killCount}", style);
+
+        // Main Amber Text
+        style.normal.textColor = new Color(hudColor.r, hudColor.g, hudColor.b, 0.9f);
+        GUI.Label(new Rect(Screen.width - 242, 20, 220, 30), $"KILLS: {_killCount}", style);
     }
 
     void DrawObjectiveHUD()

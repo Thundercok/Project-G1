@@ -30,33 +30,30 @@ public static class G1Difficulty
         }
     }
 
-    // Per-level scalars. Level 1 = easiest, Level 3 = hardest.
-    static float LvlDamageFactor => Level == 3 ? 1.6f : Level == 2 ? 1.3f : 1.0f;
-    static float LvlHordeFactor  => Level == 3 ? 1.6f : Level == 2 ? 1.25f : 1.0f;
+    // Per-level scalars — demo-friendly: damage ramps gently so new players can reach the credits.
+    static float LvlDamageFactor => Level == 3 ? 0.90f : Level == 2 ? 0.80f : 0.70f;
+    static float LvlHordeFactor  => Level == 3 ? 1.1f  : Level == 2 ? 1.0f  : 0.9f;
 
-    /// Damage the player receives: crisp & dangerous, ramped up by level.
+    /// Damage the player receives: gentle enough that first-timers survive burst fire.
     public static float IncomingDamageMult =>
-        (Casual ? 0.6f : Easy ? 0.8f : 1.0f) * LvlDamageFactor;
+        (Casual ? 0.45f : Easy ? 0.55f : 0.65f) * LvlDamageFactor;
 
-    /// Damage the player's weapons deal (high impact & crisp execution).
+    /// Damage the player's weapons deal: punchy and satisfying — enemies die in 3-5 shots.
     public static float OutgoingDamageMult =>
-        (Casual ? 2.0f : Easy ? 1.4f : 1.0f) * (Level == 3 ? 0.9f : Level == 2 ? 0.95f : 1.1f);
+        (Casual ? 2.4f : Easy ? 1.8f : 1.5f) * (Level == 3 ? 1.2f : Level == 2 ? 1.15f : 1.25f);
 
-    /// ThreatDirector pacing: manageable hordes/soldier limits, eased on lower levels.
+    /// ThreatDirector pacing: generous relax windows so the player can breathe and explore.
     public static float RelaxDurationMult =>
-        (Casual ? 2.5f : Easy ? 1.8f : 1f) * (Level == 1 ? 1.4f : Level == 2 ? 1.0f : 0.7f);
-    public static float HordeSizeMult => (Casual ? 0.5f : Easy ? 0.75f : 1f) * LvlHordeFactor;
-    public static int MaxSoldiersDelta => (Casual ? -2 : Easy ? -1 : 0) + (Level == 3 ? 1 : 0);
+        (Casual ? 3.0f : Easy ? 2.2f : 1.5f) * (Level == 1 ? 1.8f : Level == 2 ? 1.4f : 1.1f);
+    public static float HordeSizeMult => (Casual ? 0.4f : Easy ? 0.6f : 0.8f) * LvlHordeFactor;
+    public static int MaxSoldiersDelta => (Casual ? -3 : Easy ? -2 : -1) + (Level == 3 ? 1 : 0);
 
-    /// Health & Armor siphon granted directly on every enemy kill.
-    public static float KillHealthReward => Casual ? 15f : Easy ? 10f : 5f;
-    public static float KillArmorReward => Casual ? 10f : Easy ? 5f : 0f;
+    /// Health & Armor siphon on every kill — aggression keeps you alive.
+    public static float KillHealthReward => Casual ? 25f : Easy ? 22f : 20f;
+    public static float KillArmorReward  => Casual ? 18f : Easy ? 14f : 12f;
 
-    /// Passive regen when out of combat — generous early, gone by Level 3.
-    public static float RegenCeiling =>
-        Level >= 3 ? 0f
-      : Level == 2 ? (Casual ? 40f : Easy ? 25f : 0f)
-      :              (Casual ? 50f : Easy ? 30f : 0f);
+    /// Passive regen out of combat — prevents "stuck at 2 HP, no packs left" soft-locks.
+    public static float RegenCeiling => Casual ? 70f : Easy ? 60f : 60f;
 
     public static string Name => Casual ? "CASUAL ACTION" : Easy ? "TACTICAL EASY" : "NORMAL";
 }

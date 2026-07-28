@@ -1,4 +1,4 @@
-# Project G1
+# THE CORVEX (The Corvus Experiment)
 
 A retro FPS in the spirit of 1998 — original story, original world, built in Unity
 with a fully scripted Blender asset pipeline. Hazard suits, humming laboratories,
@@ -125,7 +125,8 @@ is the tool that ends it.
 | V | Toggle 3D Fly Mode (Flight / Noclip) |
 | TAB | Toggle Mob Spawner Toolbox |
 | F3 | Toggle AI telemetry overlay |
-| Esc | Release mouse cursor / Open pause settings menu |
+| F5 | Instant Scene Restart (reloads current active scene) |
+| Esc | Pause menu (resume, settings, restart, main menu) |
 
 ## Project layout
 

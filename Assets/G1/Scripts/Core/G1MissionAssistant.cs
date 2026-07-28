@@ -119,6 +119,9 @@ public sealed class G1MissionAssistant : MonoBehaviour
 
     void OnGUI()
     {
+        if (G1IntroStory.IsActive || G1EndingCutscene.IsPlaying || (G1CutsceneManager.Instance != null && G1CutsceneManager.Instance.isCutsceneActive))
+            return;
+
         var om = G1ObjectiveManager.Instance;
         if (om == null) return;
 

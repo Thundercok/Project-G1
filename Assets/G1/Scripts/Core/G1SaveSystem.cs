@@ -112,6 +112,7 @@ public static class G1SaveSystem
 
         if (nextSceneName == "Level2" && data.maxUnlockedLevelIndex < 2) data.maxUnlockedLevelIndex = 2;
         if (nextSceneName == "Level3" && data.maxUnlockedLevelIndex < 3) data.maxUnlockedLevelIndex = 3;
+        if (nextSceneName == "HugeMap" && data.maxUnlockedLevelIndex < 4) data.maxUnlockedLevelIndex = 4;
 
         if (player != null)
         {

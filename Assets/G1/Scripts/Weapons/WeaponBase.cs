@@ -215,7 +215,7 @@ public abstract class WeaponBase : MonoBehaviour
             target.TakeDamage(finalDamage, hit.point, hit.normal);
 
             // Display HUD Headshot/Crit popup banner & play audio hit ping
-            var hud = FindFirstObjectByType<PlayerHUD>();
+            var hud = Object.FindObjectOfType<PlayerHUD>();
             if (hud != null && (isHeadshot || isCrit))
             {
                 hud.ShowCritFeedback(isHeadshot, isCrit, finalDamage);

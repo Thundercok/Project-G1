@@ -81,13 +81,15 @@ public class G1EndingCutscene : MonoBehaviour
     {
         LockPlayer();
 
-        Say("[CHAD'S THOUGHTS]: \"The portal's right there. Step through, get out — just like every instinct is screaming.\"", 6f);
-        yield return new WaitForSeconds(6.5f);
-        Say("[THE AUDITOR]: \"Yes. That's it. Walk through. You always do.\"  (He closes his ledger, satisfied.)", 6f);
-        yield return new WaitForSeconds(6.5f);
+        Say("[CHAD]: The portal's right there. Step through. Get out.", 4f);
+        yield return new WaitForSeconds(4.5f);
+        Say("[CHAD]: ...Just like every instinct is screaming.", 3.5f);
+        yield return new WaitForSeconds(4f);
+        Say("[THE AUDITOR]: Yes. That's it. Walk through. You always do.", 5f);
+        yield return new WaitForSeconds(5.5f);
 
         yield return FadeToBlack();
-        yield return new WaitForSeconds(8.0f);
+        yield return WaitForEndOrInput(6.0f);
         SceneManager.LoadScene("MenuScene");
     }
 
@@ -97,14 +99,28 @@ public class G1EndingCutscene : MonoBehaviour
         LockPlayer();
         G1Audio.Play2D("explosion", 0.9f, 0.6f);
 
-        Say("[CHAD'S THOUGHTS]: \"Not through it. Break it. The crowbar was the answer the whole time.\"", 6f);
-        yield return new WaitForSeconds(6.5f);
-        Say("[THE AUDITOR]: \"...No. You are the Anchor. If the ring goes, so do — \"  (For the first time, he looks afraid.)", 6.5f);
-        yield return new WaitForSeconds(7.0f);
+        Say("[CHAD]: Not through it. Break it.", 3f);
+        yield return new WaitForSeconds(3.5f);
+        Say("[CHAD]: The crowbar was the answer the whole time.", 4f);
+        yield return new WaitForSeconds(4.5f);
+        Say("[THE AUDITOR]: ...No. You are the Anchor. If the ring goes, so do—", 5f);
+        yield return new WaitForSeconds(5.5f);
 
         yield return FadeToBlack();
-        yield return new WaitForSeconds(8.0f);
+        yield return WaitForEndOrInput(6.0f);
         SceneManager.LoadScene("MenuScene");
+    }
+
+    private IEnumerator WaitForEndOrInput(float seconds)
+    {
+        float t = 0f;
+        while (t < seconds)
+        {
+            t += Time.deltaTime;
+            if (Input.anyKeyDown)
+                yield break;
+            yield return null;
+        }
     }
 
     private IEnumerator FadeToBlack()
@@ -133,20 +149,20 @@ public class G1EndingCutscene : MonoBehaviour
         if (chosen == Ending.Stabilize)
         {
             GUI.color = new Color(1f, 0.25f, 0.2f, 1f);
-            GUI.Label(new Rect(0, y, Screen.width, 45), "STATUS: EXPERIMENT FAILED — FACILITY OVERRIDDEN", alertStyle);
+            GUI.Label(new Rect(0, y, Screen.width, 45), "STATUS: THE CORVEX EXPERIMENT — FACILITY OVERRIDDEN", alertStyle);
             GUI.color = new Color(1f, 0.85f, 0.1f, 1f);
             GUI.Label(new Rect(0, y + 48, Screen.width, 35), "GOVERNMENT ORDER: TERMINATE ALL WITNESSES", alertStyle);
             GUI.color = new Color(0.2f, 0.9f, 0.4f, 1f);
             GUI.Label(new Rect(0, y + 95, Screen.width, 45), "SUBJECT: CHAD THUNDERCOCK", titleStyle);
             GUI.color = new Color(0.85f, 0.87f, 0.88f, 1f);
-            GUI.Label(new Rect(0, y + 145, Screen.width, 35), "DISPOSITION: SURVIVED — RE-ANCHORED", bodyStyle);
+            GUI.Label(new Rect(0, y + 145, Screen.width, 35), "DISPOSITION: SURVIVED — RE-ANCHORED TO THE CORVEX", bodyStyle);
             GUI.Label(new Rect(0, y + 178, Screen.width, 35), "ITERATION ##8   ·   AUDIT YIELD: NOMINAL", bodyStyle);
             GUI.Label(new Rect(0, y + 214, Screen.width, 35), "Somewhere, a locker-room floor is cold again.", bodyStyle);
         }
         else
         {
             GUI.color = new Color(0.16f, 0.85f, 0.85f, 1f);
-            GUI.Label(new Rect(0, y, Screen.width, 45), "STATUS: THRESHOLD COLLAPSED — CYCLE RESOLVED", alertStyle);
+            GUI.Label(new Rect(0, y, Screen.width, 45), "STATUS: THE CORVEX COLLAPSED — CYCLE RESOLVED", alertStyle);
             GUI.color = new Color(1f, 0.55f, 0.15f, 1f);
             GUI.Label(new Rect(0, y + 48, Screen.width, 35), "CONCORDANCE AUDIT: TERMINATED — ASSET LOST", alertStyle);
             GUI.color = new Color(0.2f, 0.9f, 0.4f, 1f);
@@ -156,6 +172,11 @@ public class G1EndingCutscene : MonoBehaviour
             GUI.Label(new Rect(0, y + 178, Screen.width, 35), "For the first time in ##8 iterations, the floor stays empty.", bodyStyle);
             GUI.Label(new Rect(0, y + 214, Screen.width, 35), "The graffiti is gone. So is the hand that wrote it.", bodyStyle);
         }
+
+        // Return prompt
+        float pulse = 0.5f + 0.5f * Mathf.PingPong(Time.time * 2f, 1f);
+        GUI.color = new Color(0.16f, 0.75f, 0.75f, pulse);
+        GUI.Label(new Rect(0, Screen.height - 60f, Screen.width, 30f), "[ PRESS ANY KEY TO RETURN TO MAIN MENU ]", bodyStyle);
     }
 
     private void InitStyles()

@@ -35,7 +35,7 @@ public sealed class G1IntroStory : MonoBehaviour
     // The origin story — the unique "it's a time loop and you are its anchor" premise.
     static readonly Beat[] Beats =
     {
-        new Beat("CORVUS DEEP RESEARCH ANNEX", "Sub-Level C  —  0559 hours", 2.0f),
+        new Beat("THE CORVEX EXPERIMENT", "Corvus Deep Research Annex  —  Sub-Level C  —  0559 hours", 2.2f),
         new Beat("They called it the Threshold.", "A hole in the world one micron wide, held open by a machine the size of a city.", 3.0f),
         new Beat("You are a test engineer.", "Too senior to refuse the morning's experiment. Wrong seniority. Right suit.", 3.0f),
         new Beat("Today the experiment fails.", "It always does.", 2.6f),
@@ -156,6 +156,9 @@ public sealed class G1IntroStory : MonoBehaviour
                 yield return null;
             }
         }
+
+        if (!skipped)
+            yield return new WaitForSeconds(0.4f);
 
         // Hand off to the floor wake-up. It re-asserts its own black eyelid the
         // same frame, so there is no flash of the level between the two.

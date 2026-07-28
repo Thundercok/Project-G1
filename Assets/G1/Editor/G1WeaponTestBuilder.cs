@@ -191,6 +191,10 @@ public static class G1WeaponTestBuilder
 
         // --- 9. Player Spawn & Max Weapon Loadout Setup
         var player = G1SceneBuilder.BuildStandardPlayer();
+        // BuildStandardPlayer configures the Level 1 intro; the practice range
+        // must begin immediately.
+        var intro = player.GetComponent<G1IntroCutsceneTrigger>();
+        if (intro != null) Object.DestroyImmediate(intro);
         var cc = player.GetComponent<CharacterController>();
         if (cc) cc.enabled = false;
         player.transform.position = new Vector3(0f, 0.05f, -10f);
@@ -227,19 +231,7 @@ public static class G1WeaponTestBuilder
 
         var grenade = player.GetComponentInChildren<G1Grenade>(true);
         if (grenade) grenade.count = 10;
-
-        // Never run dry while testing
         player.AddComponent<G1InfiniteAmmoSandbox>();
-
-        // Mob spawner toolbox (Tab key)
-        player.AddComponent<G1MobSpawnerToolbox>();
-
-        // --- 9b. Target Reset Terminal at the Supply Depot (press E)
-        var terminal = Slab("TargetResetTerminal", new Vector3(7.5f, 0.9f, -7f),
-                            new Vector3(0.7f, 1.4f, 0.7f), Mat(new Color(0.1f, 0.7f, 0.7f), 0.6f));
-        terminal.AddComponent<G1TargetResetTerminal>();
-        Slab("TargetResetSign", new Vector3(7.5f, 1.8f, -7f),
-             new Vector3(0.9f, 0.5f, 0.1f), Mat(new Color(0.1f, 0.7f, 0.7f), 0.4f));
 
         // --- 10. Bake NavMesh & Save Scene
         var navGo = new GameObject("NavMesh");
