@@ -127,7 +127,7 @@ public sealed class G1MainMenu : MonoBehaviour
             else if (chosen.Contains("LEVEL 2")) SceneManager.LoadScene("Level2");
             else if (chosen.Contains("LEVEL 3")) SceneManager.LoadScene("Level3");
             else if (chosen.Contains("LEVEL 4")) SceneManager.LoadScene("HugeMap");
-            else if (chosen.Contains("WEAPON RANGE")) SceneManager.LoadScene("TestScene");
+            else if (chosen.Contains("WEAPON RANGE")) SceneManager.LoadScene("WeaponTestScene");
             return;
         }
 
@@ -147,7 +147,7 @@ public sealed class G1MainMenu : MonoBehaviour
         else if (chosen.Contains("WEAPON RANGE"))
         {
             G1SaveSystem.ClearSave();
-            SceneManager.LoadScene("TestScene");
+            SceneManager.LoadScene("WeaponTestScene");
         }
         else if (chosen.Contains("LEVEL SELECT"))
         {

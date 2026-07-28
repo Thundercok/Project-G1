@@ -21,6 +21,10 @@ public class G1IntroCutsceneTrigger : MonoBehaviour
 
     private void Start()
     {
+        // The weapon range is an instant practice sandbox, not a story level.
+        if (SceneManager.GetActiveScene().name == "WeaponTestScene")
+            return;
+
         bool firstLevel = SceneManager.GetActiveScene().name == introSceneName;
 
         if (playNarrativeIntro && firstLevel)

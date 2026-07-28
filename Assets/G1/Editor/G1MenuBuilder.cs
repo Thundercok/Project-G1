@@ -44,6 +44,9 @@ public static class G1MenuBuilder
         // 5.5. Build Chapter 4 (HugeMap Battlefield)
         G1HugeMapBuilder.BuildHugeMap();
 
+        // Build the isolated weapon practice range.
+        G1WeaponTestBuilder.BuildTestRange();
+
         // 6. Register all scenes in EditorBuildSettings
         RegisterScenes();
 
@@ -142,6 +145,7 @@ public static class G1MenuBuilder
             "Assets/Scenes/Level2.unity",
             "Assets/Scenes/Level3.unity",
             "Assets/Scenes/HugeMap.unity",
+            "Assets/Scenes/WeaponTestScene.unity",
         })
         {
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) != null)

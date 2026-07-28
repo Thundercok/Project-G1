@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 
 /// Sandbox Mob Spawner Toolbox.
 ///
-/// AUTO-BOOTSTRAPS: attaches itself to the Player in any scene whose name
+/// AUTO-BOOTSTRAPS only in the dedicated WeaponTestScene.
 /// contains "WeaponTest" or "TestScene" — no scene rebuild needed.
 ///
 /// Press TAB (default) to open/close the panel.
@@ -34,14 +34,15 @@ public class G1MobSpawnerToolbox : MonoBehaviour
     static void AutoBootstrap()
     {
         string sceneName = SceneManager.GetActiveScene().name;
-        bool isPlayable = sceneName.Contains("WeaponTest") || sceneName.Contains("TestScene")
-            || sceneName.Contains("Level") || sceneName.Contains("HugeMap");
-        if (!isPlayable)
+        if (sceneName != "WeaponTestScene")
             return;
 
         // Find the Player and attach if not already present
         var player = GameObject.FindWithTag("Player");
         if (player == null) return;
+
+        if (player.GetComponent<G1InfiniteAmmoSandbox>() == null)
+            player.AddComponent<G1InfiniteAmmoSandbox>();
         if (player.GetComponent<G1MobSpawnerToolbox>() != null) return;
 
         player.AddComponent<G1MobSpawnerToolbox>();
@@ -201,7 +202,6 @@ public class G1MobSpawnerToolbox : MonoBehaviour
         {
             go = Instantiate(prefab, navHit.position, Quaternion.identity);
             go.name = $"{mob.label.Replace(" ", "")}_{_alive.Count}";
-            go.tag  = "Enemy";
 
             // Override HP on existing HealthSystem
             var existingHs = go.GetComponent<HealthSystem>();
@@ -277,7 +277,6 @@ public class G1MobSpawnerToolbox : MonoBehaviour
             go.name = $"{mob.label.Replace(" ", "")}_{_alive.Count}";
             go.transform.position   = navHit.position + Vector3.up * 0.02f;
             go.transform.localScale = Vector3.one * mob.scale;
-            go.tag = "Enemy";
 
             var mat = new Material(Shader.Find("Standard")) { color = mob.col };
             mat.SetFloat("_Metallic",   0.1f);
