@@ -23,7 +23,17 @@ eSpeak rather than the OS voice on purpose: it regenerates identically on any
 platform, its output is unambiguously ours to ship, and its formant synthesis
 sounds like 1998, which is the whole brief.
 
-Requires:  brew install espeak-ng   (or apt install espeak-ng)
+Requires:  a Piper voice model per role in external/piper-voices/, and the
+           piper virtualenv at .piper-venv/ (see PIPER below).
+
+Piper replaced eSpeak here. eSpeak is a formant synthesiser: it builds speech
+out of filtered buzz, which is why every character sounded like the same robot
+at a different pitch, and why "the Auditor is slow and unbothered" had to be
+faked with a words-per-minute number. Piper is neural, with one trained speaker
+per model, so two characters differ because they are different people rather
+than the same oscillator retuned. MIT-licensed, entirely offline; the models
+are 60-128 MB each and live outside Assets/ because a game does not need to
+ship its own recording studio.
 Run:       python3 Tools/audio/generate_voice.py
 """
 import hashlib
@@ -55,22 +65,29 @@ OUT = os.path.join(ROOT, "Assets", "Resources", "Audio", "Voice")
 #
 # Character comes from the *relative* placement, which is preserved: the chief
 # is still the lowest and flattest, the signals tech still the fastest.
+PIPER = os.path.join(os.path.dirname(ROOT), ".piper-venv", "bin", "piper")
+MODELS = os.path.join(os.path.dirname(ROOT), "external", "piper-voices")
+
+# One trained speaker per role, plus a length scale (higher is slower) and a
+# noise scale (higher is less even). The casting is the performance now: there
+# is no pitch knob to hide behind, so a role that has to sound tired has to be
+# given a voice that sounds tired.
 VOICES = {
-    # role            voice        wpm  pitch  gap
-    "SecurityChief": ("en-us+m3", 152, 30, 4),
-    "Quartermaster": ("en-us+m4", 142, 24, 5),
-    "Engineer":      ("en-us+m1", 158, 46, 4),
-    "Researcher":    ("en-us+f2", 158, 60, 4),
-    "Medic":         ("en-us+f3", 166, 66, 3),
-    "SignalTech":    ("en-us+m2", 172, 70, 3),
-    # was +croak, which is heavy vocal fry — atmospheric and close to
-    # unintelligible. The Echo drags because of the pauses now, not because
-    # its throat is broken, which is both clearer and more unsettling.
-    "Echo":          ("en-us+m5", 118, 26, 12),
+    # role             model                      length  noise
+    "SecurityChief": ("en_US-joe-medium",         1.00,  0.55),
+    "Quartermaster": ("en_GB-alan-medium",        1.04,  0.60),
+    "Engineer":      ("en_US-lessac-medium",      0.96,  0.60),
+    "Researcher":    ("en_US-amy-medium",         1.00,  0.62),
+    "Medic":         ("en_GB-jenny_dioco-medium", 0.98,  0.62),
+    "SignalTech":    ("en_US-lessac-medium",      0.90,  0.70),
+    # The Echo is what you used to be, forty loops ago. Same model as the
+    # player's own voice, slowed and made unsteady, which says "this was me"
+    # better than a broken-throat effect ever did.
+    "Echo":          ("en_US-lessac-medium",      1.45,  0.90),
     # narration
-    "Vi":            ("en-us+f4", 168, 72, 5),   # synthetic, too even
-    "Auditor":       ("en-us+m4", 138, 22, 6),   # slow, low, unbothered
-    "Self":          ("en-us+m1", 152, 44, 4),
+    "Vi":            ("en_US-amy-medium",         0.94,  0.30),  # a machine: too even
+    "Auditor":       ("en_US-ryan-high",          1.18,  0.45),  # slow, low, unbothered
+    "Self":          ("en_US-lessac-medium",      1.00,  0.60),
 }
 
 SR = 22050
@@ -132,8 +149,16 @@ def collect():
                     lines.append((role, unquote(m.group(1))))
 
     # --- narration beats: B(SPEAKER, "...")
-    path = os.path.join(ROOT, "Assets/G1/Editor/G1StoryBuilder.cs")
-    if os.path.exists(path):
+    #
+    # The opening sequence uses the same three speakers and the same marker, so
+    # it is scanned the same way. Listing the files rather than globbing keeps
+    # an unrelated `B(` somewhere in the codebase from silently becoming
+    # dialogue.
+    for rel in ("Assets/G1/Editor/G1StoryBuilder.cs",
+                "Assets/G1/Editor/G1OpeningBuilder.cs"):
+        path = os.path.join(ROOT, rel)
+        if not os.path.exists(path):
+            continue
         src = open(path, encoding="utf-8").read()
         for m in re.finditer(r"\bB\(\s*(VI|AU|ME)\s*,\s*" + STR_RUN, src):
             lines.append((SPEAKER_ALIAS[m.group(1)], unquote(m.group(2))))
@@ -142,15 +167,12 @@ def collect():
 
 
 def polish(path):
-    """Clean up what eSpeak hands back.
+    """Clean up what the synthesiser hands back.
 
     Three things, in order, each fixing something measurable:
       * trim the silence it pads either end with — the game paces its
         typewriter to the clip's length, so padding makes the text lag the
         voice;
-      * a gentle one-pole roll-off at 7kHz, which is above everything that
-        carries consonants and squarely on the buzz that makes formant
-        synthesis grating;
       * normalise to a fixed peak instead of letting amplitude ride, which
         both stops the loud lines railing and makes every character sit at the
         same level.
@@ -170,12 +192,12 @@ def polish(path):
     if not s:
         return 0.0
 
-    # one-pole low-pass at ~7kHz
-    a = 1.0 / (1.0 + sr / (2.0 * math.pi * 7000.0))
-    y = 0.0
-    for i, x in enumerate(s):
-        y += a * (x - y)
-        s[i] = y
+    # The 7 kHz roll-off that used to live here existed to tame formant buzz —
+    # eSpeak put a lot of energy above where consonants are, and cutting it made
+    # the difference between grating and listenable. Neural speech has no such
+    # buzz; the same filter on it only removes sibilance and leaves everyone
+    # sounding like they are speaking through a door. Trimming and levelling
+    # below are still worth doing.
 
     peak = max(abs(x) for x in s) or 1.0
     g = TARGET_PEAK * 32767.0 / peak
@@ -198,22 +220,29 @@ def polish(path):
 
 
 def speak(role, text, path):
-    voice, speed, pitch, gap = VOICES.get(role, VOICES["Self"])
+    model, length, noise = VOICES.get(role, VOICES["Self"])
     # eSpeak reads "—" and "..." as literal punctuation names in some voices;
     # give it prose it can pronounce without narrating the typography
     spoken = (text.replace("—", ", ").replace("…", "...")
                   .replace("...", ", ").replace("’", "'"))
     subprocess.run(
-        ["espeak-ng", "-v", voice, "-s", str(speed), "-p", str(pitch),
-         "-g", str(gap), "-a", "100", "-w", path, spoken],
+        [PIPER, "-m", os.path.join(MODELS, model + ".onnx"),
+         "--length-scale", str(length), "--noise-scale", str(noise),
+         "-f", path, "--", spoken],
         check=True, capture_output=True)
     return polish(path)
 
 
 def main():
-    if shutil.which("espeak-ng") is None:
-        sys.exit("espeak-ng not found — brew install espeak-ng "
-                 "(or apt install espeak-ng), then re-run.")
+    if not os.path.exists(PIPER):
+        sys.exit(f"piper not found at {PIPER} — create it with:\n"
+                 "  python3 -m venv .piper-venv && "
+                 ".piper-venv/bin/pip install piper-tts")
+    missing = sorted({m for m, _, _ in VOICES.values()
+                      if not os.path.exists(os.path.join(MODELS, m + ".onnx"))})
+    if missing:
+        sys.exit("missing Piper voice models in external/piper-voices/:\n  " +
+                 "\n  ".join(missing))
 
     lines = collect()
     if not lines:
@@ -241,7 +270,7 @@ def main():
     print(f"VOICE DONE — {len(index)} lines spoken into {OUT}")
     for r in sorted(by_role):
         v = VOICES.get(r, VOICES["Self"])
-        print(f"  {r:<15} {by_role[r]:>2} lines  {v[0]:<12} {v[1]}wpm pitch {v[2]} gap {v[3]}")
+        print(f"  {r:<15} {by_role[r]:>2} lines  {v[0]:<26} length {v[1]}  noise {v[2]}")
 
 
 if __name__ == "__main__":
