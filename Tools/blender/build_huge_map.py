@@ -1036,6 +1036,19 @@ def _join(members, name):
         bpy.ops.object.join()
     piece = bpy.context.active_object
     piece.name = name
+
+    # World-scale UVs.
+    #
+    # A generated box carries the default UV map, which spans 0..1 across each
+    # face however big the face is — so a 400 m road and a 2 m crate get the
+    # same one tile of texture, and the road's concrete is stretched two hundred
+    # times. Cube-projecting after the join, with the projection cube fixed in
+    # metres, makes one UV unit mean one metre everywhere on the map, so every
+    # surface takes the same texture at the same real-world scale.
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.cube_project(cube_size=2.0, correct_aspect=True, scale_to_bounds=False)
+    bpy.ops.object.mode_set(mode="OBJECT")
     pieces.append(piece)
 
 

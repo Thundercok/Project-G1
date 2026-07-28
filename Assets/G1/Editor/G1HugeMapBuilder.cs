@@ -40,7 +40,7 @@ public static class G1HugeMapBuilder
         return 0;
     }
 
-    static void SetLayerRecursive(GameObject go, int layer)
+    public static void SetLayerRecursive(GameObject go, int layer)
     {
         go.layer = layer;
         foreach (Transform c in go.transform) SetLayerRecursive(c.gameObject, layer);
@@ -56,7 +56,8 @@ public static class G1HugeMapBuilder
         }
 
         // must happen before anything instantiates the character models
-        G1Rig.EnsureAvatars($"{Models}/Protagonist.fbx", $"{Models}/Villain.fbx");
+        G1Rig.EnsureAvatars($"{Models}/Protagonist.fbx", $"{Models}/Villain.fbx",
+                            $"{Models}/Soldier.fbx");
 
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -138,6 +139,9 @@ public static class G1HugeMapBuilder
         }
         var map = (GameObject)PrefabUtility.InstantiatePrefab(mapPrefab);
         map.name = "CorvusSprawl";
+        // photographed surfaces over the flat palette; the district colours
+        // survive as a tint so the map is still readable by hue
+        G1MapSkin.Apply(map);
         map.transform.position = Vector3.zero;
         foreach (var mf in map.GetComponentsInChildren<MeshFilter>())
         {
@@ -221,6 +225,19 @@ public static class G1HugeMapBuilder
 
         // three helicopters, on the three pads worth leaving from
         int helis = G1HelicopterBuilder.Build();
+
+        // armour on the tank park and at the hangar — the districts were named
+        // for vehicles that were never in them
+        int armour = G1VehicleBuilder.ParkArmour(new[]
+        {
+            (new Vector3(-300f, 0f, 18f), 90f, "Tank"),
+            (new Vector3(-300f, 0f, 34f), 90f, "Tank"),
+            (new Vector3(-278f, 0f, 6f), 90f, "Apc"),
+            (new Vector3(-278f, 0f, 46f), 90f, "Apc"),
+            (new Vector3(162f, 0f, -18f), -90f, "Tank"),
+            (new Vector3(162f, 0f, 6f), -90f, "Apc"),
+            (new Vector3(28f, 0f, -330f), 0f, "Apc"),
+        });
 
         // extraction teleport gate on the plaza's south approach, gated on ALL
         // mandatory objectives (rescues + the engineer's quest).
@@ -346,7 +363,8 @@ public static class G1HugeMapBuilder
                   $"{(manifest != null ? manifest.rooms.Length : 0)} interiors, " +
                   $"{lampCount} lights, {stocked} caches, " +
                   $"{coverCount - prunedCover} cover points ({prunedCover} pruned), " +
-                  $"{interiorCount} acoustic spaces, {trucks} trucks, {lifts} lifts, {helis} helicopters.");
+                  $"{interiorCount} acoustic spaces, {trucks} trucks, {armour} armour, " +
+                  $"{lifts} lifts, {helis} helicopters.");
     }
 
     // ------------------------------------------------------------- helpers
@@ -475,7 +493,11 @@ public static class G1HugeMapBuilder
         var col = trig.AddComponent<BoxCollider>();
         col.isTrigger = true;
         col.size = new Vector3(6f, 5f, 3f);
-        trig.AddComponent<G1LevelExitTrigger>().nextScene = "MenuScene";
+        // The extraction gate used to end the game. It now hands the player
+        // to Cradle Station — the Sprawl was where the outbreak reached, and
+        // the research facility is where it came from, so "extraction" was
+        // always the wrong word for it.
+        trig.AddComponent<G1LevelExitTrigger>().nextScene = "CradleStation";
         var wp = trig.AddComponent<G1Waypoint>();
         wp.label = "EXTRACTION";
     }

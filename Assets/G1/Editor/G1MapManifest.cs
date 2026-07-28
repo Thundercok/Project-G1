@@ -36,6 +36,25 @@ public static class G1MapManifest
         public float x, z, y;
     }
 
+    /// A piece of interactive equipment the generator placed.
+    ///
+    /// The room list exists so nobody re-types an interior's coordinates on the
+    /// Unity side. This is the same argument one level down: the script that
+    /// built a shutter-shaped hole in a wall is the only thing that knows where
+    /// the shutter goes, so it says so, and the builder attaches the component
+    /// rather than guessing.
+    ///
+    /// `tag` carries whatever the kind needs — a lock group for doors and
+    /// readers, a comma-separated list of stop heights for a lift.
+    [System.Serializable]
+    public class Device
+    {
+        public string kind;
+        public float x, z, y;
+        public float yaw;
+        public string tag;
+    }
+
     [System.Serializable]
     public class Data
     {
@@ -43,6 +62,7 @@ public static class G1MapManifest
         public Room[] rooms;
         public Lamp[] lights;
         public Spot[] cover;
+        public Device[] devices;
     }
 
     public static Data Load(string fbxPath)
@@ -65,7 +85,7 @@ public static class G1MapManifest
 
     /// Lights every interior and raises the map's floodlights. Returns how many
     /// lights it placed.
-    public static int ApplyLighting(Data data)
+    public static int ApplyLighting(Data data, Vector3 offset = default)
     {
         if (data == null) return 0;
         var root = new GameObject("MapLighting");
@@ -76,7 +96,7 @@ public static class G1MapManifest
             if (r == null || !r.light) continue;
             var go = new GameObject("Lamp_" + r.name);
             go.transform.SetParent(root.transform, false);
-            go.transform.position = new Vector3(r.x, r.y + Mathf.Max(1.4f, r.h - 0.7f), r.z);
+            go.transform.position = offset + new Vector3(r.x, r.y + Mathf.Max(1.4f, r.h - 0.7f), r.z);
             var l = go.AddComponent<Light>();
             l.type = LightType.Point;
             l.color = new Color(1f, 0.83f, 0.58f);   // sodium, not daylight
@@ -92,7 +112,7 @@ public static class G1MapManifest
         {
             var go = new GameObject("Flood");
             go.transform.SetParent(root.transform, false);
-            go.transform.position = new Vector3(f.x, f.y, f.z);
+            go.transform.position = offset + new Vector3(f.x, f.y, f.z);
             var l = go.AddComponent<Light>();
             l.type = f.spot ? LightType.Spot : LightType.Point;
             if (f.spot)
@@ -116,7 +136,7 @@ public static class G1MapManifest
     /// trench fire steps, at pillbox slits, behind tower parapets — so the AI
     /// is using the cover the level designer built rather than whatever a grid
     /// sampler happened to find.
-    public static int ApplyCover(Data data)
+    public static int ApplyCover(Data data, Vector3 offset = default)
     {
         if (data == null || data.cover == null) return 0;
         var root = new GameObject("CoverPoints");
@@ -126,7 +146,7 @@ public static class G1MapManifest
             if (c == null) continue;
             var go = new GameObject("Cover");
             go.transform.SetParent(root.transform, false);
-            go.transform.position = new Vector3(c.x, c.y, c.z);
+            go.transform.position = offset + new Vector3(c.x, c.y, c.z);
             go.AddComponent<G1CoverPoint>();
             n++;
         }
@@ -152,6 +172,39 @@ public static class G1MapManifest
             removed++;
         }
         return removed;
+    }
+
+    /// Add a second map's rooms to whatever the player already carries, rather
+    /// than replacing them. Building one world out of two maps means the same
+    /// G1InteriorSpace has to know about both, and the obvious call — the one
+    /// that sets `space.rooms` — would leave the player deaf indoors on
+    /// whichever map was applied first.
+    public static int AppendInteriorSpaces(Data data, Vector3 offset)
+    {
+        var player = GameObject.FindWithTag("Player");
+        if (data == null || player == null) return 0;
+        var space = player.GetComponent<G1InteriorSpace>();
+        if (space == null) space = player.AddComponent<G1InteriorSpace>();
+
+        var list = new System.Collections.Generic.List<G1InteriorSpace.Room>(
+            space.rooms ?? new G1InteriorSpace.Room[0]);
+        int added = 0;
+        foreach (var r in data.rooms)
+        {
+            if (r == null) continue;
+            float w = Mathf.Max(1f, r.w - 2f);
+            float d = Mathf.Max(1f, r.d - 2f);
+            list.Add(new G1InteriorSpace.Room
+            {
+                name = r.name,
+                bounds = new Bounds(offset + new Vector3(r.x, r.y + r.h * 0.5f, r.z),
+                                    new Vector3(w, r.h, d)),
+                size = Mathf.Max(r.w, r.d),
+            });
+            added++;
+        }
+        space.rooms = list.ToArray();
+        return added;
     }
 
     /// Hands the room list to the runtime so the game can tell indoors from
@@ -193,7 +246,7 @@ public static class G1MapManifest
     /// Puts something worth finding inside a share of the interiors. A room the
     /// player can enter but that holds nothing teaches them not to enter the
     /// next one, so roughly every third interior pays out.
-    public static int StockInteriors(Data data)
+    public static int StockInteriors(Data data, Vector3 offset = default)
     {
         if (data == null) return 0;
         var rng = new System.Random(20601);      // fixed: builds must be repeatable
@@ -207,7 +260,7 @@ public static class G1MapManifest
             // stacked against the back wall, not dumped in the middle of the
             // floor — a crate on the centreline blocks the walk-through line
             // from one doorway to the other, which is the whole point of a room
-            var at = new Vector3(r.x, r.y + 0.5f, r.z + r.d / 2f - 1.6f);
+            var at = offset + new Vector3(r.x, r.y + 0.5f, r.z + r.d / 2f - 1.6f);
             int roll = rng.Next(100);
             if (roll < 40)
             {
@@ -221,7 +274,7 @@ public static class G1MapManifest
             }
             else
             {
-                G1WallCharger.Create(new Vector3(r.x, r.y + 1.2f, r.z + r.d / 2f - 0.9f));
+                G1WallCharger.Create(offset + new Vector3(r.x, r.y + 1.2f, r.z + r.d / 2f - 0.9f));
                 G1HealthPack.Create(at + new Vector3(-1.6f, 0f, 0f));
             }
             n++;
