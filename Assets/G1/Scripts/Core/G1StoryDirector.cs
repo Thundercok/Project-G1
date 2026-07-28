@@ -77,6 +77,8 @@ public sealed class G1StoryDirector : MonoBehaviour
         var src = go.GetComponent<AudioSource>();
         if (src != null) src.spatialBlend = 0f;
         v.blipVolume = 0.5f;
+        // the plot does not wait for a radio bark to finish
+        v.interruptible = false;
         return v;
     }
 

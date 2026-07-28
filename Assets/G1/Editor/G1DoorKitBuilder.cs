@@ -143,7 +143,7 @@ public static class G1DoorKitBuilder
             "You found one. That's more than we managed in two days. Take the " +
             "resupply — and whatever that thing out there told you, keep walking.",
             done: "Gate stays open. Bring them home if you can.",
-            introduces: "ITERATION 41",
+            introduces: "UNIT 41",
             health: 40f, armor: 50f, ammo: true);
 
         if (kane != null)

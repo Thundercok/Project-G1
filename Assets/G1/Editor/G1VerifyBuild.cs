@@ -378,6 +378,21 @@ public static class G1VerifyBuild
             ("27_watchtower",      new Vector3(-360f, 4f, -360f),  new Vector3(-394f, 8f, -394f)),
         };
 
+        // a couple of HECU at the range you actually fight them, plus one close
+        // enough to judge the model — the kit only has to read at the first
+        // distance, but if it is wrong it is wrong at the second
+        int seen = 0;
+        foreach (var f in Object.FindObjectsOfType<G1FactionFighter>())
+        {
+            if (f.faction != G1FactionFighter.Faction.Hostile) continue;
+            if (!f.name.Contains("HECU")) continue;
+            Vector3 at = f.transform.position;
+            float dist = seen == 0 ? 3.2f : 14f;
+            shots.Add(($"30_hecu_{seen}", at + f.transform.forward * dist + Vector3.up * 1.6f,
+                       at + Vector3.up * 1.5f));
+            if (++seen >= 2) break;
+        }
+
         // frame each contact from where a player would walk up, so a bad
         // placement is visible rather than merely "standable"
         foreach (var n in Object.FindObjectsOfType<G1QuestNpc>())

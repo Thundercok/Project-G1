@@ -98,6 +98,8 @@ public static class G1SceneBuilder
 
         ConfigureFbx($"{Models}/Protagonist.fbx", loopAll: true);
         ConfigureFbx($"{Models}/Villain.fbx", loopAll: true);
+        ConfigureFbx($"{Models}/Soldier.fbx", loopAll: true);
+        ConfigureFbx($"{Models}/Robot.fbx", loopAll: true);
         ConfigureFbx($"{Models}/Pistol.fbx", loopAll: false);   // only Idle loops
         ConfigureFbx($"{Models}/Smg.fbx", loopAll: false);
         ConfigureFbx($"{Models}/Shotgun.fbx", loopAll: false);
@@ -107,6 +109,9 @@ public static class G1SceneBuilder
             MakeNpcController($"{Models}/Protagonist.fbx", $"{AnimDir}/Protagonist.controller");
         RuntimeAnimatorController villainCtrl =
             MakeNpcController($"{Models}/Villain.fbx", $"{AnimDir}/Villain.controller");
+        RuntimeAnimatorController soldierCtrl =
+            MakeNpcController($"{Models}/Soldier.fbx", $"{AnimDir}/Soldier.controller");
+        MakeNpcController($"{Models}/Robot.fbx", $"{AnimDir}/Robot.controller");
         RuntimeAnimatorController pistolCtrl =
             MakePistolController($"{Models}/Pistol.fbx", $"{AnimDir}/Pistol.controller");
         RuntimeAnimatorController smgCtrl =
@@ -137,7 +142,7 @@ public static class G1SceneBuilder
         var cutsceneGo = new GameObject("CutsceneManager");
         cutsceneGo.AddComponent<G1CutsceneManager>();
 
-        BuildNpcs(protagonistCtrl, villainCtrl, player.transform.position, cfg, rng);
+        BuildNpcs(protagonistCtrl, villainCtrl, soldierCtrl, player.transform.position, cfg, rng);
 
         // Modern bake (com.unity.ai.navigation): a NavMeshSurface over the
         // Default layer only, so NPCs (Enemy layer) and the player never get
@@ -172,7 +177,7 @@ public static class G1SceneBuilder
         }
     }
 
-    static void ConfigureFbx(string path, bool loopAll)
+    public static void ConfigureFbx(string path, bool loopAll)
     {
         var importer = (ModelImporter)AssetImporter.GetAtPath(path);
         importer.animationType = ModelImporterAnimationType.Generic;
@@ -200,7 +205,7 @@ public static class G1SceneBuilder
         return AnimatorController.CreateAnimatorControllerAtPath(ctrlPath);
     }
 
-    static RuntimeAnimatorController MakeNpcController(string fbxPath, string ctrlPath)
+    public static RuntimeAnimatorController MakeNpcController(string fbxPath, string ctrlPath)
     {
         var ctrl = NewController(ctrlPath);
         var sm = ctrl.layers[0].stateMachine;
@@ -1206,7 +1211,8 @@ public static class G1SceneBuilder
     }
 
     static void BuildNpcs(RuntimeAnimatorController protagonistCtrl,
-                          RuntimeAnimatorController villainCtrl, Vector3 playerPos,
+                          RuntimeAnimatorController villainCtrl,
+                          RuntimeAnimatorController soldierCtrl, Vector3 playerPos,
                           ArenaConfig cfg, System.Random rng)
     {
         var protagonist = SpawnCharacter($"{Models}/Protagonist.fbx",
@@ -1240,13 +1246,10 @@ public static class G1SceneBuilder
         zombie.name = "Zombie";
         SetLayerRecursive(zombie, enemyLayer);
 
-        // Sickly green-decay skin color
-        foreach (var r in zombie.GetComponentsInChildren<Renderer>())
-        {
-            var m = new Material(r.sharedMaterial);
-            m.color = new Color(0.35f, 0.45f, 0.25f);
-            r.sharedMaterial = m;
-        }
+        // Sickly green-decay skin colour. Asset-backed, because this instance
+        // becomes Zombie.prefab and a prefab silently drops any material that
+        // is not a file on disk — that was the magenta.
+        G1CharacterSkin.Recolor(zombie, "Zombie", new Color(0.35f, 0.45f, 0.25f));
 
         // Attach fleshy Headcrab to head bone
         Transform headBone = FindBone(zombie.transform, "head");
@@ -1302,14 +1305,8 @@ public static class G1SceneBuilder
         alien.name = "Alien";
         SetLayerRecursive(alien, enemyLayer);
 
-        foreach (var r in alien.GetComponentsInChildren<Renderer>())
-        {
-            var m = new Material(r.sharedMaterial);
-            m.color = new Color(0.6f, 0.1f, 0.9f); // Neon purple
-            m.SetColor("_EmissionColor", new Color(0.2f, 0.05f, 0.3f));
-            m.EnableKeyword("_EMISSION");
-            r.sharedMaterial = m;
-        }
+        G1CharacterSkin.Recolor(alien, "Alien", new Color(0.6f, 0.1f, 0.9f),
+                                new Color(0.2f, 0.05f, 0.3f));
 
         var aHealth = alien.AddComponent<HealthSystem>();
         aHealth.maxHealth = 80f; // alien slightly squishier but faster
@@ -1330,21 +1327,21 @@ public static class G1SceneBuilder
             aAgent.stoppingDistance = 1.3f;   // just inside 1.8 attack range
         }
 
-        // Spawn Soldier AI (HECU soldier style - blue/grey camouflage tint)
-        var soldier = SpawnCharacter($"{Models}/Protagonist.fbx", new Vector3(12f, 0f, 45f), protagonistCtrl);
+        // Spawn Soldier AI.
+        //
+        // This used to be Protagonist.fbx with a blue-grey tint painted over
+        // slot 0, which is why the enemy never read as an enemy: it was the
+        // player's own hazard suit in a different colour, backpack and all.
+        // Soldier.fbx is a separate model on the same skeleton — helmet, plate
+        // carrier, magazine pouches, fatigues — so it silhouettes as a soldier
+        // at the range you actually see one.
+        var soldier = SpawnCharacter($"{Models}/Soldier.fbx", new Vector3(12f, 0f, 45f), soldierCtrl);
         soldier.name = "HECUSoldier";
         SetLayerRecursive(soldier, enemyLayer);
 
-        // HECU blue-grey and dark vest tinting
-        int renderIdx = 0;
-        foreach (var r in soldier.GetComponentsInChildren<Renderer>())
-        {
-            var m = new Material(r.sharedMaterial);
-            if (renderIdx == 0) m.color = new Color(0.2f, 0.25f, 0.3f); // blue-grey camo
-            else m.color = new Color(0.12f, 0.12f, 0.15f); // dark vest/boots
-            r.sharedMaterial = m;
-            renderIdx++;
-        }
+        // The model already ships its own military palette, so nothing is
+        // re-tinted here; Apply is what installs the baked wear map.
+        G1CharacterSkin.Apply(soldier, "Soldier", Color.white, Color.white);
 
         // Set up Soldier Patrol Path (inside Industrial Hall)
         var sPatrol = new GameObject("SoldierPatrolPath").transform;

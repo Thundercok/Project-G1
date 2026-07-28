@@ -28,8 +28,17 @@ public static class G1AutoRun
         {
             File.Delete("Temp/g1_hugemap");
             if (File.Exists(Flag)) File.Delete(Flag);
-            G1HugeMapBuilder.BuildHugeMap();
-            UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/HugeMap.unity");
+            // The huge map populates itself from prefabs the arena builder
+            // saves (HECUSoldier, Zombie, Alien), so building it alone leaves
+            // the world full of whatever those prefabs last contained — which
+            // is how a rebuilt soldier model can be exported, imported and
+            // still not appear in the game.
+            G1SceneBuilder.BuildScene();
+            G1CradleBuilder.BuildCradle();
+            // and the shared scene both of them now feed: one world, one
+            // NavMesh, no loading screen between the base and the facility
+            G1WorldBuilder.BuildWorld();
+            UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/World.unity");
             EditorApplication.EnterPlaymode();
             return;
         }

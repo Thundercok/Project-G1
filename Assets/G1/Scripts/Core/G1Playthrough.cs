@@ -80,8 +80,11 @@ public sealed class G1Playthrough : MonoBehaviour
         // expects, so walking it is also a test that the spine advances.
         string[] chain =
         {
-            "SGT. KANE", "ITERATION 41", "MEDIC SORENSEN", "QUARTERMASTER RIGGS",
-            "CHIEF VANCE", "ENGINEER OKAFOR", "DR. HALLORAN", "SIGNALS TECH PARK",
+            // Five, down from eight. The three that went were errands with no
+            // beat behind them; what is left is the shortest chain that still
+            // tells the story.
+            "SGT. KANE", "UNIT 41", "MEDIC SORENSEN",
+            "DR. HALLORAN", "SIGNALS TECH PARK",
         };
 
         foreach (var name in chain)

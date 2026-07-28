@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-/// Installs the main storyline on the Corvus Sprawl, and builds the Threshold
+/// Installs the main storyline on the Corvus Sprawl, and builds the breach
 /// ring the whole thing points at.
 ///
 /// The chapters deliberately hang off objectives the contacts already hand
@@ -63,25 +63,26 @@ public static class G1StoryBuilder
                 objectiveId = "first-contact",
                 title = "PROLOGUE", subtitle = "THE GATE",
                 onOpen = new[] {
-                    B(VI, "Hazard suit online. Local iteration index: unavailable. " +
-                          "You are at the south gate of the Corvus Sprawl. There are " +
-                          "people alive past this wall and no clean way to reach them."),
+                    B(VI, "You are at the south gate of the Corvus Sprawl. " +
+                          "There are people alive past this wall, and the army " +
+                          "outside has orders not to let anyone through it."),
                 },
                 onClose = new[] {
-                    B(AU, "You found one of ours. Good. You always find one of ours."),
+                    B(AU, "You found one of the survivors. Good. " +
+                          "Keep a count for me. I have to put a number in the report."),
                 },
             },
 
             new G1StoryDirector.Chapter {
                 objectiveId = "echo-witness",
-                title = "CHAPTER ONE", subtitle = "WHAT IS LEFT OF FORTY-ONE",
+                title = "CHAPTER ONE", subtitle = "UNIT FORTY-ONE",
                 onOpen = new[] {
-                    B(ME, "It said it used to be me. Forty loops ago, it was me, and " +
-                          "it is still standing at the place where it stopped."),
+                    B(ME, "The machine by the gate still talks. It uses the name " +
+                          "of the man it was working beside when this started."),
                 },
                 onClose = new[] {
-                    B(AU, "Forty-one was an excellent Anchor. Not as good as you. " +
-                          "Nobody has ever been as good as you."),
+                    B(AU, "Forty-one was a maintenance unit. Whatever is riding it " +
+                          "kept the parts of him it found useful. Speech, mostly."),
                 },
             },
 
@@ -89,97 +90,62 @@ public static class G1StoryBuilder
                 objectiveId = "medical-cache",
                 title = "CHAPTER TWO", subtitle = "THE LIVING",
                 onOpen = new[] {
-                    B(VI, "Medical stores located in the southern ruins. Casualty " +
-                          "count inside the Sprawl: rising."),
+                    B(VI, "Medical stores located in the southern ruins. " +
+                          "Casualties inside the Sprawl are still rising."),
                 },
                 onClose = new[] {
-                    B(ME, "Sorensen doesn't know this has all happened before. " +
-                          "I am not going to be the one who tells her."),
-                },
-            },
-
-            new G1StoryDirector.Chapter {
-                objectiveId = "gunship",
-                title = "CHAPTER THREE", subtitle = "WHAT IS IN THE SKY",
-                onOpen = new[] {
-                    B(VI, "Rotor signature holding over the central plaza. Hostile. " +
-                          "Four strafing runs on the motor pool in the last hour."),
-                },
-                onClose = new[] {
-                    B(AU, "You brought down a gunship that has been brought down two " +
-                          "hundred and five times already. It flies again on Tuesday. " +
-                          "It always flies again on Tuesday."),
-                },
-            },
-
-            new G1StoryDirector.Chapter {
-                objectiveId = "hold-plaza",
-                title = "CHAPTER FOUR", subtitle = "GROUND",
-                onOpen = new[] {
-                    B(ME, "Vance's line has been stuck sixty metres short of the plaza " +
-                          "for two days. Two days, in a place where the days repeat."),
-                },
-                onClose = new[] {
-                    B(AU, "Ground taken. Ground is not the thing you are running out of."),
-                },
-            },
-
-            new G1StoryDirector.Chapter {
-                objectiveId = "restore-comms",
-                title = "CHAPTER FIVE", subtitle = "DEAD AIR",
-                onOpen = new[] {
-                    B(VI, "All external communications severed. The southeast dish is " +
-                          "structurally intact and unpowered."),
-                },
-                onClose = new[] {
-                    B(AU, "You put the Sprawl back on the air. Thank you, sincerely. " +
-                          "It makes the reporting so much easier."),
+                    B(ME, "Sorensen thinks a relief column is coming. " +
+                          "I have seen what the army has parked on the ridge. " +
+                          "It is not a relief column."),
                 },
             },
 
             new G1StoryDirector.Chapter {
                 objectiveId = "recover-core",
-                title = "CHAPTER SIX", subtitle = "TWO HUNDRED AND SIX",
+                title = "CHAPTER THREE", subtitle = "THE REPORT",
                 onOpen = new[] {
-                    B(ME, "Halloran wants the iteration count off the data core. " +
-                          "I already know I am not going to like the number."),
+                    B(ME, "Halloran wants the site log off a data core in the " +
+                          "northeast warehouse. She wants to know who signed off " +
+                          "on keeping the thing alive."),
                 },
                 onClose = new[] {
-                    B(AU, "Two hundred and six. Say it again. It is a good number. " +
-                          "A great deal of work went into reaching it."),
+                    B(AU, "Corvus authorised it. I countersigned it. " +
+                          "I would sign it again. It was a very good contract."),
                 },
             },
 
             new G1StoryDirector.Chapter {
                 objectiveId = "tower-relay",
-                title = "CHAPTER SEVEN", subtitle = "WHAT HE IS SAYING",
+                title = "CHAPTER FOUR", subtitle = "WHAT HE IS SAYING",
                 onOpen = new[] {
-                    B(VI, "Carrier signal originating from the command tower. Outbound. " +
-                          "Encrypted. Continuous for seventy-one hours."),
+                    B(VI, "Encrypted transmission from the command tower. Outbound. " +
+                          "Running continuously for seventy-one hours."),
                 },
                 onClose = new[] {
-                    B(AU, "You have heard it now, so I will not insult you. Yes, I file. " +
-                          "Yes, something reads what I file. No, it is not coming to help " +
-                          "you. It is coming to collect."),
+                    B(AU, "Yes, I have been sending. No, not for help. " +
+                          "Corvus wants the specimen recovered before the army " +
+                          "burns this valley flat. Both of those are still on the table."),
                 },
             },
 
             new G1StoryDirector.Chapter {
                 objectiveId = EmitterObjective,
-                title = "FINALE", subtitle = "THE THRESHOLD",
+                title = "FINALE", subtitle = "THE BREACH",
                 onOpen = new[] {
-                    B(AU, "There is a ring in the southern ruins that has been humming " +
-                          "since before you were assigned here. Step through it and you " +
-                          "wake up in the locker room with clean hands and no memory of " +
-                          "me. That is the offer. It has always been the offer."),
-                    B(VI, "Three resonance emitters detected at the ring. Structural " +
-                          "integrity: destructible."),
-                    B(ME, "He keeps calling it an offer. He has never once called it a way out."),
+                    B(AU, "The containment field would have sealed that breach on " +
+                          "day one. My people put three pylons around it to hold the " +
+                          "field down, because a dead specimen is worth nothing. " +
+                          "Leave them standing and walk to the helicopter with me."),
+                    B(VI, "Three field pylons detected at the breach. Destructible."),
+                    B(ME, "He keeps calling it an offer. He has not once called it a " +
+                          "way to fix this."),
                 },
                 onClose = new[] {
-                    B(ME, "Two hundred and six people stood here and stepped through. " +
-                          "I am the two hundred and seventh, and I brought a crowbar."),
-                    B(AU, "...Ah. Well. That is inconvenient."),
+                    B(ME, "The field came back up. Whatever is left down there is " +
+                          "sealed in with it, and forty-one people get to walk out."),
+                    B(AU, "You have cost my employer a great deal of money. " +
+                          "I will write that down exactly as it happened. " +
+                          "It is the one part of this that anybody will believe."),
                 },
             },
         };
@@ -262,7 +228,7 @@ public static class G1StoryBuilder
                     setup.objectives ?? new G1MissionSetup.Def[0]);
                 list.Add(new G1MissionSetup.Def {
                     id = EmitterObjective,
-                    description = "Collapse the Threshold — destroy the resonance emitters",
+                    description = "Seal the breach — destroy the three field pylons",
                     mandatory = true, count = 3,
                 });
                 setup.objectives = list.ToArray();

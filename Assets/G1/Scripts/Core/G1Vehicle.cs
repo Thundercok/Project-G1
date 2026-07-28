@@ -132,15 +132,26 @@ public sealed class G1Vehicle : MonoBehaviour, IUsable
         user.transform.localPosition = Vector3.zero;
         user.transform.localRotation = Quaternion.identity;
 
+        // Swing the camera out behind the truck. From the cab you cannot see
+        // six of the seven metres you are steering, and ramming is a weapon you
+        // have to watch connect.
+        chase = G1DriveCamera.Engage(transform, user);
+
         foreach (var l in headlights) if (l) l.enabled = true;
         G1Audio.Play2D("door_servo", 0.6f, 0.9f);
     }
+
+    G1DriveCamera chase;
 
     void Dismount()
     {
         toggleLockUntil = Time.time + 0.35f;
         var user = driver;
         driver = null;
+
+        // back to the driver's own eyes before he is put on the ground, so the
+        // hand-back happens while the seat still exists to detach from
+        if (chase != null) { chase.Release(); chase = null; }
 
         // step out to the side, and only somewhere there is room to stand
         Vector3 spot = transform.position + transform.right * -exitOffset + Vector3.up * 0.4f;

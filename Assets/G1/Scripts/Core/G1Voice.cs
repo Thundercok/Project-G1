@@ -41,6 +41,32 @@ public sealed class G1Voice : MonoBehaviour
     /// voice actually says it.
     public float SpokenLength { get; private set; }
 
+    /// One speaker at a time, everywhere in the game.
+    ///
+    /// Every voice owns its own AudioSource, and `Begin` used to stop only that
+    /// one — so the suit V.I., the Auditor, a quest contact and a HECU radio
+    /// bark could all be talking over each other, which is exactly what it
+    /// sounded like. Dialogue is not ambience: two lines at once is not twice
+    /// as much story, it is none.
+    ///
+    /// Barks lose to narration rather than interrupting it, because a soldier
+    /// shouting "flanking" is repeatable and the Auditor explaining what you
+    /// are is not.
+    static readonly System.Collections.Generic.List<G1Voice> live =
+        new System.Collections.Generic.List<G1Voice>();
+    static G1Voice holder;
+    static float holdUntil;
+
+    [Tooltip("Lines from this voice yield to whatever is already speaking.")]
+    public bool interruptible = true;
+
+    void OnEnable() { if (!live.Contains(this)) live.Add(this); }
+    void OnDisable()
+    {
+        live.Remove(this);
+        if (holder == this) holder = null;
+    }
+
     void Awake()
     {
         src = gameObject.AddComponent<AudioSource>();
@@ -54,6 +80,15 @@ public sealed class G1Voice : MonoBehaviour
     /// Start a line. Plays the pre-synthesized recording if there is one.
     public void Begin(string line)
     {
+        // An interruptible voice waits its turn; an uninterruptible one takes
+        // the floor. Narration is set uninterruptible by the story director and
+        // the opening, so a passing soldier cannot talk over the plot.
+        if (interruptible && holder != null && holder != this && Time.time < holdUntil)
+        {
+            SpokenLength = 0f;
+            return;
+        }
+
         sinceBlip = 0;
         nextAllowed = 0f;
         speaking = false;
@@ -65,10 +100,25 @@ public sealed class G1Voice : MonoBehaviour
         var clip = Resources.Load<AudioClip>("Audio/Voice/" + Key(line));
         if (clip == null) return;           // no recording — blip it instead
 
+        // silence everyone else before opening your mouth
+        foreach (var v in live)
+            if (v != null && v != this) v.Silence();
+
         src.pitch = 1f;                     // the character's pitch is baked in
         src.PlayOneShot(clip, speechVolume);
         speaking = true;
         SpokenLength = clip.length;
+
+        holder = this;
+        holdUntil = Time.time + clip.length + 0.25f;
+    }
+
+    /// Stop making noise because somebody else is talking. Separate from Stop()
+    /// so a caller can still end its own line without touching the floor.
+    void Silence()
+    {
+        speaking = false;
+        if (src != null) src.Stop();
     }
 
     /// Call once per character the typewriter reveals. Silent while a real

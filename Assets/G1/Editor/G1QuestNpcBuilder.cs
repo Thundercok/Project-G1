@@ -45,19 +45,19 @@ public static class G1QuestNpcBuilder
         //      Just past the trench line, so the opening scan always lands on
         //      it once Kane's gate is open. Must match G1DoorKitBuilder's
         //      FirstContact, which is what Kane's waypoint points at.
-        Contact(new Vector3(-26f, 0.1f, -286f), 20f, "ITERATION 41", G1NpcRole.Echo,
+        Contact(new Vector3(-26f, 0.1f, -286f), 20f, "UNIT 41", G1NpcRole.Echo,
                 "SOUTH GATE — BREACH EDGE",
-                "echo-witness", "Stand where Iteration 41 fell",
+                "echo-witness", "Stand where Unit 41's crew died",
                 new Vector3(-96f, 0f, -244f), "THE FALL SITE",
                 offer:
-                "You're the Anchor. I was too, forty loops ago... I still can't " +
-                "leave the spot where it took me. Go and stand there. Someone " +
-                "should see it who isn't already dead.",
-                accept: "West of the ruins. You'll know it. It's colder there.",
-                nag: "You haven't gone yet. It's still waiting. It's always waiting.",
-                turnIn: "You saw. Then some part of it is finally over. Sorensen's " +
-                        "aid post is east of the plaza — the living need you more.",
-                done: "Go on. I'm not going anywhere. That's rather the problem.",
+                "Reyes. My name is Reyes. That is not true and I keep saying " +
+                "it. Go west of the ruins, where my crew went down. Someone " +
+                "should see it who is still breathing.",
+                accept: "West of the ruins. You will know the place. Nothing grows there now.",
+                nag: "You have not gone yet. They are still lying where they fell.",
+                turnIn: "You saw them. Good. Sorensen's aid post is east of the " +
+                        "plaza. The living need you more than they do.",
+                done: "Go on. I cannot follow. It will not let me leave this gate.",
                 introduces: "MEDIC SORENSEN",
                 health: 0f, armor: 40f, ammo: false);
 
@@ -73,61 +73,14 @@ public static class G1QuestNpcBuilder
                 accept: "Straight south into the ruins. Don't stop moving in there.",
                 nag: "No cache, no patients — that's the arithmetic. Please hurry.",
                 turnIn: "That's blood and bandages for a week. Patched you up too. " +
-                        "Riggs is holding the motor pool — he pays better than I do.",
+                        "Halloran is in the northwest quarters. She has been asking " +
+                        "for someone who can still walk that far.",
                 done: "Stay whole. I'd rather not see you on this table.",
-                introduces: "QUARTERMASTER RIGGS",
+                introduces: "DR. HALLORAN",
                 health: 60f, armor: 25f, ammo: true);
 
-        // 3 ── quartermaster: the gunship. A kill quest with one unmistakable
-        //      target, so it can't be dead-ended by clearing the map first.
-        Contact(new Vector3(-30f, 0.1f, -58f), 200f, "QUARTERMASTER RIGGS", G1NpcRole.Quartermaster,
-                "MOTOR POOL — SOUTH PLAZA",
-                "gunship", "Destroy the HECU gunship",
-                new Vector3(0f, 14f, 0f), "GUNSHIP",
-                offer:
-                "That gunship has strafed my yard four times. Every crate I move, " +
-                "it burns. Put it in the dirt and I'll open the good lockers for you.",
-                accept: "Aim for the rotor. It flies over the plaza — you can't miss it.",
-                nag: "I can still hear rotors. That means you're not finished.",
-                turnIn: "Beautiful. Take everything you can carry. Chief Vance runs " +
-                        "the base out west — she's been asking for a spare gun.",
-                done: "Lockers are open. Help yourself, quietly.",
-                introduces: "CHIEF VANCE",
-                health: 25f, armor: 50f, ammo: true, mandatory: false);
 
-        // 4 ── security chief: push the line back to the contested plaza.
-        Contact(new Vector3(-152f, 0.1f, 10f), 210f, "CHIEF VANCE", G1NpcRole.SecurityChief,
-                "ALLIED BASE — WEST",
-                "hold-plaza", "Push through to the central plaza",
-                new Vector3(0f, 0f, 6f), "CENTRAL PLAZA",
-                offer:
-                "My line has been stuck sixty metres short of the plaza for two " +
-                "days. I don't need a hero, I need someone the Sweepers have to " +
-                "look at. Reach the plaza and my people follow you in.",
-                accept: "Then go. We move when you move.",
-                nag: "The plaza's still theirs. Nothing's changed while you stood here.",
-                turnIn: "The line's moving. First ground we've taken all week. " +
-                        "Okafor's up at the labs — his comms problem is yours now.",
-                done: "You've got a squad behind you now. Use them.",
-                introduces: "ENGINEER OKAFOR",
-                health: 30f, armor: 40f, ammo: true);
 
-        // 5 ── engineer: the original comms quest, now part of the chain.
-        Contact(new Vector3(10f, 0.1f, -150f), 40f, "ENGINEER OKAFOR", G1NpcRole.Engineer,
-                "LAB COMPLEX — NORTH",
-                "restore-comms", "Restore the signal at the comms array",
-                new Vector3(150f, 0f, 150f), "COMMS ARRAY",
-                offer:
-                "The Sweepers cut our comms, but the southeast dish is still " +
-                "standing. Reach it and bring the array back up, or nobody topside " +
-                "ever learns we were here at all.",
-                accept: "Southeast corner. Get the dish talking and get out.",
-                nag: "Still dead air. The array won't fix itself.",
-                turnIn: "We're on the air. Whatever that's worth in a loop. " +
-                        "Dr. Halloran is in the northwest quarters — she'll want you.",
-                done: "Signal's holding. Thank you for that.",
-                introduces: "DR. HALLORAN",
-                health: 25f, armor: 50f, ammo: true);
 
         // 6 ── research lead: the data core, deep in the hostile northeast.
         Contact(new Vector3(-140f, 0.1f, -148f), 60f, "DR. HALLORAN", G1NpcRole.Researcher,
@@ -135,14 +88,15 @@ public static class G1QuestNpcBuilder
                 "recover-core", "Recover the data core from the northeast warehouse",
                 new Vector3(160f, 0f, -160f), "DATA CORE",
                 offer:
-                "Everything we recorded about the Threshold is on one core in the " +
-                "northeast warehouse — including the iteration count. I need to " +
-                "know what number we're on. Bring it to me.",
-                accept: "Northeast warehouse. And doctor — read nothing on the way back.",
-                nag: "Without that core we're guessing, and I'm tired of guessing.",
-                turnIn: "Iteration two hundred and six. Two hundred and six. " +
-                        "...Park is out on the east ridge. Tell him I said run.",
-                done: "Two hundred and six. I keep saying it. It doesn't help.",
+                "Everything Corvus recorded about the specimen is on one core in " +
+                "the northeast warehouse, including who authorised keeping it " +
+                "alive. I want that name. Bring it to me.",
+                accept: "Northeast warehouse. And do not read it on the way back.",
+                nag: "Without that core we are guessing, and I am tired of guessing.",
+                turnIn: "Countersigned by the man on the tower roof. He has been " +
+                        "here since day one. Park is out on the east ridge. " +
+                        "Tell him I said run.",
+                done: "He signed it. He is still standing up there. I cannot get past that.",
                 introduces: "SIGNALS TECH PARK",
                 health: 30f, armor: 40f, ammo: true);
 

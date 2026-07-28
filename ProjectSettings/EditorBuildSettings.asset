@@ -23,5 +23,11 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/HugeMap.unity
     guid: 5ddd524b499bd437087a77c20bfd7e2d
+  - enabled: 1
+    path: Assets/Scenes/CradleStation.unity
+    guid: c0137dedcb3a44a0996a7bb96e9e585f
+  - enabled: 1
+    path: Assets/Scenes/World.unity
+    guid: 058a94e81b134429dba356f7a0b50b20
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

@@ -12,10 +12,11 @@ public static class G1PlayTestRunner
 {
     const string Arm = "Temp/g1_playtest_arm";
     const string Play = "Temp/g1_playthrough_arm";
+    const string Cradle = "Temp/g1_cradle_arm";
 
     static G1PlayTestRunner()
     {
-        if (File.Exists(Arm) || File.Exists(Play))
+        if (File.Exists(Arm) || File.Exists(Play) || File.Exists(Cradle))
             EditorApplication.delayCall += Go;
     }
 
@@ -27,8 +28,11 @@ public static class G1PlayTestRunner
             EditorApplication.delayCall += Go;
             return;
         }
+        // Cradle Station is its own scene with its own test, so the runner
+        // has to know which level it is arming as well as which test.
+        bool cradle = File.Exists(Cradle);
         bool full = File.Exists(Play);
-        string flag = full ? Play : Arm;
+        string flag = cradle ? Cradle : full ? Play : Arm;
         if (!File.Exists(flag)) return;
 
         string outDir = File.ReadAllText(flag).Trim();
@@ -37,7 +41,12 @@ public static class G1PlayTestRunner
 
         // Hand off through PlayerPrefs, not a file: entering Play mode wipes
         // Temp/, which silently ate the handoff and left the test inert.
-        if (full)
+        if (cradle)
+        {
+            PlayerPrefs.SetString(G1CradlePlaythrough.OutKey, outDir);
+            PlayerPrefs.SetInt(G1CradlePlaythrough.ArmKey, 1);
+        }
+        else if (full)
         {
             PlayerPrefs.SetString(G1Playthrough.OutKey, outDir);
             PlayerPrefs.SetInt(G1Playthrough.ArmKey, 1);
@@ -53,7 +62,8 @@ public static class G1PlayTestRunner
         File.WriteAllText(Path.Combine(outDir, "runner.txt"),
                           "runner fired, entering play mode\n");
 
-        EditorSceneManager.OpenScene("Assets/Scenes/HugeMap.unity");
+        EditorSceneManager.OpenScene(cradle ? "Assets/Scenes/CradleStation.unity"
+                                          : "Assets/Scenes/HugeMap.unity");
         EditorApplication.EnterPlaymode();
     }
 }
