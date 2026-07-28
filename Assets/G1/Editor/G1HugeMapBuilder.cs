@@ -178,7 +178,7 @@ public static class G1HugeMapBuilder
         player.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
         if (cc) cc.enabled = true;
         var card = player.GetComponent<G1StoryCard>();
-        if (card) { card.title = "THE CORVUS SPRAWL"; card.subtitle = "Two factions. One battlefield."; }
+        if (card) { card.title = "THE CORVEX"; card.subtitle = "Two factions. One battlefield."; }
         var switcher = player.GetComponentInChildren<WeaponSwitcher>(true);
         if (switcher != null) switcher.unlocked = new[] { true, true, true, true, true, true };
         player.AddComponent<G1MissionAssistant>();

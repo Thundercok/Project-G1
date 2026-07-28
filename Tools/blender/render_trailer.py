@@ -242,7 +242,7 @@ def card(body, size, y_off, z_off):
     return t
 
 TITLE_Z = -3.4                      # metres in front of the lens
-titles = [card("THE CORVUS SPRAWL", 0.255, 0.15, TITLE_Z),
+titles = [card("THE CORVEX", 0.255, 0.15, TITLE_Z),
           card("SOMETHING GOT OUT.  THE ARMY SEALED THE VALLEY.", 0.078, -0.13, TITLE_Z)]
 
 # they exist only for the last three bars

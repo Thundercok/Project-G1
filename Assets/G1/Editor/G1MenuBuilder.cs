@@ -10,6 +10,39 @@ public static class G1MenuBuilder
 {
     public const string MenuScenePath = "Assets/Scenes/MenuScene.unity";
 
+    [MenuItem("G1/★ PLAY TRAILER CINEMATIC DEMO ★", false, -90)]
+    public static void PlayTrailerCinematicDemo()
+    {
+        if (!EditorApplication.isPlaying)
+        {
+            Debug.LogWarning("G1: Enter Play Mode first before launching trailer cinematic demo.");
+            return;
+        }
+        G1TrailerCinematicSequence.LaunchTrailerDemo(recordMP4: false);
+    }
+
+    [MenuItem("G1/★ RECORD & EXPORT TRAILER TO MP4 ★", false, -85)]
+    public static void RecordAndExportTrailerMP4()
+    {
+        if (!EditorApplication.isPlaying)
+        {
+            Debug.LogWarning("G1: Enter Play Mode first before launching MP4 trailer recorder.");
+            return;
+        }
+        G1TrailerCinematicSequence.LaunchTrailerDemo(recordMP4: true);
+    }
+
+    [MenuItem("G1/★ LAUNCH AUTONOMOUS GAMEPLAY BOT & RECORD TRAILER ★", false, -75)]
+    public static void LaunchAutonomousTrailerBot()
+    {
+        if (!EditorApplication.isPlaying)
+        {
+            Debug.LogWarning("G1: Enter Play Mode first before launching autonomous trailer bot.");
+            return;
+        }
+        G1AutonomousTrailerBot.LaunchBotAndRecord();
+    }
+
     [MenuItem("G1/★ BUILD ALL CAMPAIGN (NEW PLAYER EXPERIENCE) ★", false, -100)]
     public static void BuildAllCampaignNewPlayer()
     {
@@ -57,7 +90,7 @@ public static class G1MenuBuilder
             "G1 Campaign Build Complete",
             "★ ALL CAMPAIGN LEVELS & MAIN MENU BUILT SUCCESSFULLY! ★\n\n" +
             "✓ Save file reset (Fresh New Player Experience)\n" +
-            "✓ Main Menu, Level 1, Level 2, & Level 3 built\n" +
+            "✓ Main Menu, Level 1, Level 2, Level 3, & Level 4 (HugeMap) built\n" +
             "✓ Scene build index configured in Build Settings\n\n" +
             "Press PLAY in Unity to start as a New Player!",
             "LET'S PLAY!"

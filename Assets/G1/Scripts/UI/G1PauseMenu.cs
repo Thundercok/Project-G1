@@ -206,6 +206,7 @@ public sealed class G1PauseMenu : MonoBehaviour
     {
         return G1IntroStory.IsActive
             || G1EndingCutscene.IsPlaying
+            || G1TrailerPlayer.IsPlaying
             || (G1CutsceneManager.Instance != null && G1CutsceneManager.Instance.isCutsceneActive);
     }
 }

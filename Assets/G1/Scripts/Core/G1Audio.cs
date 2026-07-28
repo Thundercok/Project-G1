@@ -34,6 +34,7 @@ public static class G1Audio
 
     static AudioClip Clip(string name)
     {
+        if (name == "radio_static") name = "radio_bark_a";
         if (!cache.TryGetValue(name, out var clip))
         {
             clip = Resources.Load<AudioClip>("Audio/" + name);

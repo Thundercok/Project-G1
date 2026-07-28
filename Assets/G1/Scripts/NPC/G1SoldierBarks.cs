@@ -65,6 +65,7 @@ public sealed class G1SoldierBarks : MonoBehaviour
 
     static int TierForScene(string name)
     {
+        if (name.Contains("HugeMap")) return 4;
         if (name.Contains("Level3")) return 3;
         if (name.Contains("Level2")) return 2;
         return 1;   // TestScene / Level 1 and everything else

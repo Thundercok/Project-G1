@@ -58,7 +58,7 @@ public static class G1OpeningBuilder
                 lookFrom = new Vector3(0f, 20f, 0f),
                 lookTo = new Vector3(0f, 12f, 0f),
                 seconds = 9f,
-                title = "THE CORVUS SPRAWL",
+                title = "THE CORVEX",
                 subtitle = "ARMY SUPPLY BASE — DAY THREE",
                 speaker = VI,
                 caption = B(VI, "Suit online. Air is bad but breathable. " +

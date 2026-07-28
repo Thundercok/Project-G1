@@ -82,7 +82,7 @@ public sealed class G1MainMenu : MonoBehaviour
             }
             currentMenuItems.Add("[ NEW GAME ]");
             currentMenuItems.Add("[ LEVEL SELECT ]");
-            currentMenuItems.Add("[ BATTLEFIELD ]");
+            currentMenuItems.Add("[ WATCH TRAILER ]");
             currentMenuItems.Add("[ WEAPON RANGE ]");
             currentMenuItems.Add("[ SETTINGS ]");
             currentMenuItems.Add("[ QUIT ]");
@@ -96,7 +96,7 @@ public sealed class G1MainMenu : MonoBehaviour
             flickerLight.intensity = Random.value < 0.06f
                 ? Random.Range(0.2f, 0.7f) : 1.4f;
 
-        if (settings != null && settings.visible)
+        if ((settings != null && settings.visible) || G1TrailerPlayer.IsPlaying)
             return;
 
         int count = currentMenuItems.Count;
@@ -140,9 +140,13 @@ public sealed class G1MainMenu : MonoBehaviour
             G1SaveSystem.ClearSave();
             SceneManager.LoadScene("TestScene");
         }
-        else if (chosen.Contains("BATTLEFIELD"))
+        else if (chosen.Contains("WATCH TRAILER"))
         {
-            SceneManager.LoadScene("HugeMap");
+            G1TrailerPlayer.Play(onComplete: () =>
+            {
+                // If video finished/unavailable, fallback to in-engine cinematic sequence
+                G1TrailerCinematicSequence.LaunchTrailerDemo();
+            });
         }
         else if (chosen.Contains("WEAPON RANGE"))
         {
