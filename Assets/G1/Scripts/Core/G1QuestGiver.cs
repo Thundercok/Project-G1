@@ -139,26 +139,3 @@ public sealed class G1QuestGiver : MonoBehaviour, IUsable
     }
 }
 
-/// A "reach this place" quest step: when the player enters, it completes (or
-/// advances) the given objective. Harmless before the objective exists —
-/// IncrementProgress on an unknown id is a no-op.
-[RequireComponent(typeof(BoxCollider))]
-public sealed class G1QuestZone : MonoBehaviour
-{
-    public string objectiveId;
-    public int amount = 1;
-    bool done;
-
-    void Reset() { GetComponent<BoxCollider>().isTrigger = true; }
-
-    void OnTriggerEnter(Collider other)
-    {
-        if (done || !other.CompareTag("Player")) return;
-        var om = G1ObjectiveManager.Instance;
-        if (om == null) return;
-        // only fire once the objective actually exists (quest was handed out)
-        if (om.objectives.Find(o => o.id == objectiveId) == null) return;
-        done = true;
-        om.IncrementProgress(objectiveId, amount);
-    }
-}

@@ -26,21 +26,3 @@ public sealed class G1MissionSetup : MonoBehaviour
     }
 }
 
-/// Increments (or completes) an objective when this object's HealthSystem dies.
-/// Put it on bosses/targets so killing them advances the mission.
-[RequireComponent(typeof(HealthSystem))]
-public sealed class G1ObjectiveOnDeath : MonoBehaviour
-{
-    public string objectiveId;
-
-    void Start()
-    {
-        var hs = GetComponent<HealthSystem>();
-        if (hs != null)
-            hs.OnDeath += (p, n) =>
-            {
-                if (G1ObjectiveManager.Instance != null && !string.IsNullOrEmpty(objectiveId))
-                    G1ObjectiveManager.Instance.IncrementProgress(objectiveId);
-            };
-    }
-}

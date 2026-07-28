@@ -76,28 +76,3 @@ public sealed class G1Rescuable : MonoBehaviour, IUsable
     }
 }
 
-/// Visual extraction gate: a ring that stays dim until every mandatory
-/// objective is complete, then flares to signal it is active. The actual
-/// scene-load is handled by a sibling G1LevelExitTrigger (which already gates
-/// on objective completion).
-public sealed class G1TeleportGate : MonoBehaviour
-{
-    public Renderer[] ringRenderers;
-    bool online;
-
-    void Update()
-    {
-        if (online) return;
-        var om = G1ObjectiveManager.Instance;
-        if (om == null || !om.IsLevelComplete()) return;
-        online = true;
-        foreach (var r in ringRenderers)
-        {
-            if (r == null) continue;
-            var m = r.sharedMaterial;
-            m.EnableKeyword("_EMISSION");
-            m.SetColor("_EmissionColor", new Color(0.2f, 1f, 0.9f) * 2.5f);
-        }
-        G1Audio.Play("door_servo", transform.position, 0.9f, 1.3f);
-    }
-}
